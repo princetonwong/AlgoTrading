@@ -10,7 +10,7 @@ USOptionSubTypes = [SubType.K_DAY, SubType.K_1M, SubType.K_5M, SubType.K_15M, Su
 #PARAMETERS
 # TIMERANGE = ("2020-07-01", "00:00:00", "2020-07-23", "23:59:00")
 TIMERANGE = None
-SYMBOLS = HK_HSIConstituent_code
+SYMBOLS = ["HK.MHImain"]
 SUBTYPES= [SubType.K_30M]
 
 timeNow = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
@@ -26,4 +26,4 @@ execution.plotDailyReturnHistogram()
 
 execution.outputAnalyticsXLSX()
 execution.outputOrdersXLSX()
-# execution.outputModelDataXLSX()
+execution.outputModelDataXLSX()
