@@ -1,0 +1,4 @@
+import pandas
+
+df = pandas.read_pickle("algo-state.pkl")
+print(df)
