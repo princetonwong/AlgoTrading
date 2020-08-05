@@ -1,6 +1,10 @@
 import pandas as pd
 import talib as tl
 import numpy as np
+import CustomAPI.Helper as helper
+
+
+# field = Helper().field
 
 class TradeModel():
     
@@ -14,7 +18,7 @@ class TradeModel():
         self.data["orderPlaced"] = pd.Series()
         self.data['t'] = pd.Series(t, index=self.data.index)
         self.data = self.data.set_index('t')
-        self.data['index_ret'] = np.concatenate(([np.nan], np.array(self.data['close'][1:]) / np.array(self.data['close'][:-1]))) - 1
+        self.data['index_ret'] = np.concatenate(([np.nan], np.array(self.data["close"][1:]) / np.array(self.data["close"][:-1]))) - 1
 
     # Overlap Studies (Lagging indicator)
     # MACD -
@@ -22,7 +26,7 @@ class TradeModel():
     def prepareMACD (self, macdParameters):
         self.macdParameters = macdParameters
         diff, dea, macd = self.macdParameters
-        diff, dea, macd = tl.MACD(self.data['close'].values, diff, dea, macd)
+        diff, dea, macd = tl.MACD(self.data["close"].values, diff, dea, macd)
 
         self.data['diff'] = pd.Series(diff, index=self.data.index.values)
         self.data['dea'] = pd.Series(dea, index=self.data.index.values)
@@ -178,8 +182,8 @@ class TradeModel():
     def setupBBANDS (self, bbandsParameters):
         close = self.data["close"].values
         timeperiod, nbdevup, nbdevdn = bbandsParameters
-        upperband, middleband, lowerband =tl.BBANDS(close, timeperiod=5, nbdevup=2, nbdevdn=2, matype=0)
-        standardDeviation = (upperband - middleband) / 2
+        upperband, middleband, lowerband =tl.BBANDS(close, timeperiod, nbdevup, nbdevdn, matype=0)
+        standardDeviation = (upperband - middleband) / nbdevup
         zScore = (close - middleband) / standardDeviation
         self.data["UpperBand"] = pd.Series(upperband, index=self.data.index.values)
         self.data["LowerBand"] = pd.Series(lowerband, index=self.data.index.values)
@@ -227,7 +231,6 @@ class TradeModel():
         slowk = self.data['slowk'].values
         self.data["orderSlowk"] = pd.Series(0, index= self.data.index)
         orderSlowk = self.data["orderSlowk"].values
-        # close = self.modelData["close"].values
         for i in range(1, len(slowk)):
             if holding[i-1] == 0:
                 if slowkdScore[i] >= 1:

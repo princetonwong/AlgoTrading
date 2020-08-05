@@ -2,8 +2,10 @@ from pathlib import Path
 import os
 
 projectName = "default"
+field = "open"
 
 class Helper():
+
 
     @staticmethod
     def serializeTuple(tuple):
