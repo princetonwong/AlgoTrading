@@ -26,7 +26,7 @@ def cal_meandev(tp,matp):
 
 def get_data(index, timeRange, kLineSubType,n,a):
     # df = get_price(index,start_date=start,end_date=end,fields = ['close','high','low'] )
-    df = FutuAPI().getKLineFromDate(index, timeRange, kLineSubType)
+    df = FutuAPI().getKLineFromDate(index, kLineSubType, timeRange)
     print(df.head(5))
     df['tp'] = (df['close']+df['high']+df['low'])/3
     df['matp'] = df['tp'].rolling(n).mean()

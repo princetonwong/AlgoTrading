@@ -1,6 +1,5 @@
 from CustomAPI.FutuAPI import FutuAPI
 from CustomAPI.TradeModel import TradeModel
-from CustomAPI.Helper import Helper
 
 class Backtest():
     def __init__(self, symbol: str, kLineSubType: str, count: int = 999):
@@ -12,12 +11,12 @@ class Backtest():
 
     def obtainDataFromFutu(self, timeRange):
         if timeRange is None:
-            self.model.data = FutuAPI().getRealTimeKLine(symbol=self.symbol, num=self.count, subtype=self.kLineSubType)
+            self.model.data = FutuAPI().getRealTimeKLine(symbol=self.symbol, subtype=self.kLineSubType, num=self.count)
 
         else:
-            self.model.data = FutuAPI().getKLineFromDate(self.symbol, timeRange, self.kLineSubType)
+            self.model.data = FutuAPI().getKLineFromDate(self.symbol, self.kLineSubType, timeRange)
             self.count = self.model.data.shape[0]
-            self.filename = self.symbol + "---" + self.kLineSubType + "---" + timeRange
+            self.filename = self.symbol + "---" + self.kLineSubType + "---" + timeRange[0]
 
         self.model.processDataAfterDownload(count=self.count)
         return self.model.data

@@ -4,8 +4,8 @@ from datetime import datetime
 from CustomAPI.Helper import Helper
 import matplotlib.pyplot as plt
 
-# field = "close"
-field = "open"
+field = "close"
+# field = "open"
 
 class BacktestSummary():
 

@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from CustomAPI.Helper import Helper
 
 class Analytics():
 
@@ -11,10 +12,7 @@ class Analytics():
             columns=["CumulativeReturn", "DailyWinRate", "MaxDrawdown", "SharpeRatio",
                      "MACDParameters", "SlowKDParameters", "CCIParameters"])
 
-    def run(self, backtests):
-        def serializeTuple(tuple):
-            return ",".join(str(x) for x in tuple)
-
+    def run(self):
         def calculateReturn():
             ret = self.n * [0]
             data = self.data
@@ -45,9 +43,9 @@ class Analytics():
         self.data["CumulativeReturn"] = cumulativeReturn
 
         analytics_dict = {}
-        analytics_dict["MACDParameters"] = serializeTuple(self.backtest.macdParameters)
-        analytics_dict["slowKDParameters"] = serializeTuple(self.backtest.slowkdParameters)
-        analytics_dict["CCIParameters"] = serializeTuple(self.backtest.cciParameters)
+        analytics_dict["MACDParameters"] = Helper().serializeTuple(self.backtest.macdParameters)
+        analytics_dict["slowKDParameters"] = Helper().serializeTuple(self.backtest.slowkdParameters)
+        analytics_dict["CCIParameters"] = Helper().serializeTuple(self.backtest.cciParameters)
         analytics_dict['CumulativeReturn'] = cumulativeReturn[-1] - 1
         analytics_dict['DailyWinRate'] = len(dailyReturn[dailyReturn > 0]) / (len(dailyReturn[dailyReturn > 0]) + len(dailyReturn[dailyReturn < 0]))
         analytics_dict['MaxDrawdown'] = maximumDrawdown(cumulativeReturn)

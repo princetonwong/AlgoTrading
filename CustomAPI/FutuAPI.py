@@ -27,7 +27,8 @@ class FutuAPI():
         sleep(5)
         return query
     
-    def getRealTimeData(self, symbol):
+    @staticmethod
+    def getRealTimeData(symbol):
         data4 = pd.DataFrame.empty
         quote_ctx = OpenQuoteContext(host='127.0.0.1', port=11111)
     
@@ -45,15 +46,14 @@ class FutuAPI():
         quote_ctx.close()
         return data4
     
-    def getRealTimeKLine(self, symbol, num = 1000, subtype: SubType = SubType.K_1M):
+    @staticmethod
+    def getRealTimeKLine(symbol, subtype: SubType = SubType.K_1M, num=1000):
         quote_ctx = OpenQuoteContext(host='127.0.0.1', port=11111)
         ret_sub, err_message = quote_ctx.subscribe([symbol], [subtype], subscribe_push=False)
-        # 先订阅k线类型。订阅成功后OpenD将持续收到服务器的推送，False代表暂时不需要推送给脚本
-        if ret_sub == RET_OK:  # 订阅成功
+        if ret_sub == RET_OK:
             ret, data2 = quote_ctx.get_cur_kline(symbol, num = num, ktype = subtype, autype = AuType.QFQ)
             if ret == RET_OK:
                 pass
-                # print (data2)
                 # print(data['turnover_rate'].values.tolist())  # 转为list
             else:
                 print('error:', data2)
@@ -62,21 +62,21 @@ class FutuAPI():
         quote_ctx.close()
         return data2
     
-    def getPlateStock(self, plate):
+    @staticmethod
+    def getPlateStock(plate):
         quote_ctx = OpenQuoteContext(host='127.0.0.1', port=11111)
         ret, data = quote_ctx.get_plate_stock(plate)
         if ret == RET_OK:
             print ("ok")
-            # print(data)
-            # print(data['stock_name'][0])  # 取第一条的股票名称
             # print(data['stock_name'].values.tolist())  # 转为list
         else:
             print('error:', data)
-        quote_ctx.close()  # 结束后记得关闭当条连接，防止连接条数用尽
-    
+        quote_ctx.close()
         return data
 
-    def getKLineFromDate(self, symbol, timeRange, kLineSubType, count=10000):
+    @staticmethod
+    def getKLineFromDate(symbol, kLineSubType, timeRange, count=10000):
+        print (timeRange)
         start, startTime, end, endTime = timeRange
         output = ""
         quote_ctx = OpenQuoteContext(host='127.0.0.1', port=11111)
@@ -85,7 +85,6 @@ class FutuAPI():
         if ret == RET_OK:
             pass
             output = data
-            # print(data['code'][0])  # 取第一条的股票代码
             # print(data['close'].values.tolist())  # 第一页收盘价转为list
         else:
             print('error:', data)
@@ -99,7 +98,7 @@ class FutuAPI():
             else:
                 print('error:', data)
         print('All pages are finished!')
-        quote_ctx.close()  # 结束后记得关闭当条连接，防止连接条数用尽
+        quote_ctx.close()
 
         data = output
         data['time_key'] = pd.to_datetime(data['time_key'], format="%Y-%m-%d %H:%M:%S")
