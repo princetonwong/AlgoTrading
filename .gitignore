@@ -163,4 +163,6 @@ examples/.DS_Store
 /examples/Learn-Algorithmic-Trading/.idea/workspace.xml
 *.pyc
 Output/.DS_Store
-/Output/
+/Output/*
+
+*.png
