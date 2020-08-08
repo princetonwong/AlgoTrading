@@ -179,3 +179,21 @@ class firstStrategy(bt.Strategy):
         print('RSI Period: {} Final PnL: {}'.format(
             self.params.period, pnl))
 
+class RSIStrategy(bt.Strategy):
+    params = (
+        ('upperband', 70.0),
+        ('lowerband', 30.0),
+             )
+    def __init__(self):
+        self.rsi = bt.indicators.RSI_SMA(self.data.close, period=21)
+
+    def next(self):
+        if not self.position:
+            if self.rsi < self.p.lowerband:
+                self.buy(size=1)
+        else:
+            if self.rsi > self.p.upperband:
+                self.sell(size=1)
+            elif self.rsi < self.p.lowerband:
+                self.buy(size=1)
+
