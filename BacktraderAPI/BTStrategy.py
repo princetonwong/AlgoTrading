@@ -1,6 +1,5 @@
 import backtrader as bt
-from CereboIndicator import *
-import numpy as np
+from BacktraderAPI import BTIndicator
 
 class BuyWhenCloseLessThanTwoPreviousStrategy(bt.Strategy):
 
@@ -32,10 +31,23 @@ class BuyWhenCloseLessThanTwoPreviousStrategy(bt.Strategy):
             self.sell()
 
 class SmaCrossStrategy(bt.SignalStrategy):
+    params = (("fastP", 5),
+              ("slowP", 20))
+
     def __init__(self):
-        sma1, sma2 = bt.ind.SMA(period=10), bt.ind.SMA(period=20)
-        crossover = bt.ind.CrossOver(sma1, sma2)
-        self.signal_add(bt.SIGNAL_LONG, crossover)
+        self.startcash = self.broker.getvalue()
+        sma1, sma2 = bt.ind.SMA(period=self.p.fastP), bt.ind.SMA(period=self.p.slowP)
+        self.crossover = bt.ind.CrossOver(sma1, sma2)
+
+
+    def next(self):
+        if self.crossover:
+            self.buy()
+
+    def stop(self):
+        pnl = round(self.broker.getvalue() - self.startcash, 2)
+        print('RSI Period: {} Final PnL: {}'.format(
+            self.params.slowP, pnl))
 
 class DonchianStrategy(bt.Strategy):
     def log(self, txt, dt=None):
@@ -144,4 +156,26 @@ class CCICrossStrategy(bt.SignalStrategy):
                     self.close()
                     self.log('SELL POSITION CLOSED, exectype Close, price %.2f' %
                              self.data.close[0])
+
+class firstStrategy(bt.Strategy):
+    params = (
+        ('period',21),
+        )
+
+    def __init__(self):
+        self.startcash = self.broker.getvalue()
+        self.rsi = bt.indicators.RSI_SMA(self.datas[0].close, period=self.params.period)
+
+    def next(self):
+        if not self.position:
+            if self.rsi < 30:
+                self.buy(size=100)
+        else:
+            if self.rsi > 70:
+                self.sell(size=100)
+
+    def stop(self):
+        pnl = round(self.broker.getvalue() - self.startcash,2)
+        print('RSI Period: {} Final PnL: {}'.format(
+            self.params.period, pnl))
 

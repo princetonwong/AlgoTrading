@@ -1,9 +1,10 @@
 from futu import *
 from time import sleep
+import Keys as Keys
 
 class FutuAPI():
     
-    password = "147536"
+    password = Keys.FutuPassword
     
     def placeUSOrder(self, price, quantity, code, tradeSide, orderType = OrderType.NORMAL, tradeEnvironment = TrdEnv.SIMULATE):
         tradeContext= OpenUSTradeContext(host='127.0.0.1', port=11111)
