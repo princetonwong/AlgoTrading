@@ -1,5 +1,5 @@
 import backtrader as bt
-
+chnage
 class StochRSI(bt.Indicator):
     lines = ('stochrsi',)
     params = dict(
