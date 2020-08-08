@@ -181,7 +181,7 @@ class firstStrategy(bt.Strategy):
 
 class RSIStrategy(bt.Strategy):
     params = (
-        ('upperband', 80.0),
+        ('upperband', 70.0),
         ('lowerband', 30.0),
              )
     def __init__(self):
