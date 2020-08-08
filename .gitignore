@@ -161,8 +161,10 @@ examples/.DS_Store
 /examples/Learn-Algorithmic-Trading/.idea/modules.xml
 /examples/Learn-Algorithmic-Trading/.idea/inspectionProfiles/profiles_settings.xml
 /examples/Learn-Algorithmic-Trading/.idea/workspace.xml
+
 *.pyc
-Output/.DS_Store
+/Output/.DS_Store
+
 /Output/*
 
 *.png
