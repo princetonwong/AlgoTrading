@@ -1,5 +1,6 @@
 import backtrader as bt
-chnage
+from backtrader.indicators import MovingAverageSimple
+
 class StochRSI(bt.Indicator):
     lines = ('stochrsi',)
     params = dict(
