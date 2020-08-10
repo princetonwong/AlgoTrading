@@ -1,4 +1,5 @@
 import backtrader as bt
+from backtrader.indicators import MovingAverageSimple
 
 class StochRSI(bt.Indicator):
     lines = ('stochrsi',)
@@ -46,6 +47,7 @@ class CCIExitSignal(bt.Indicator):
     def __init__(self):
         n, a, cciThreshold, m = self.p.cciParameters
         cci = bt.ind.CommodityChannelIndex(n, a, cciThreshold, -cciThreshold)
+
 
 class DonchianChannels(bt.Indicator):
     '''
