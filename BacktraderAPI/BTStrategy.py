@@ -88,7 +88,7 @@ class CCICrossStrategy(bt.SignalStrategy):
 
         self.upperCrossover = bt.ind.CrossUp(self.cci, self.upperband)
         # self.signal_add(bt.SIGNAL_LONG, self.upperCrossover)
-        #
+
         self.lowerCrossover = bt.ind.CrossDown(self.cci, self.lowerband)
         # self.signal_add(bt.SIGNAL_SHORT, self.lowerCrossover)
 
