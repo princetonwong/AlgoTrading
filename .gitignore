@@ -168,3 +168,4 @@ Output/.DS_Store
 Output/
 
 *.png
+/examples/
