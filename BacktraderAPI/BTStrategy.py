@@ -206,8 +206,8 @@ class maCross(bt.Strategy):
     oneplot = Force all datas to plot on the same master.
     '''
     params = (
-    ('sma1', 50),
-    ('sma2', 250),
+    ('sma1', 40),
+    ('sma2', 200),
     ('oneplot', True)
     )
 
@@ -215,7 +215,7 @@ class maCross(bt.Strategy):
         '''
         Create an dictionary of indicators so that we can dynamically add the
         indicators to the strategy using a loop. This mean the strategy will
-        work with any numner of data feeds.
+        work with any number of data feeds.
         '''
         self.inds = dict()
         for i, d in enumerate(self.datas):
@@ -231,21 +231,21 @@ class maCross(bt.Strategy):
                     d.plotinfo.plotmaster = self.datas[0]
 
     def next(self):
-        for i, d in enumerate(self.datas):
+        for i, d in enumerate(self.datas): #looping through the data feeds one by one
             dt, dn = self.datetime.date(), d._name
             pos = self.getposition(d).size
             if not pos:  # no market / no orders
                 if self.inds[d]['cross'][0] == 1:
-                    self.buy(data=d, size=10)
+                    self.buy(data=d, size=1)
                 elif self.inds[d]['cross'][0] == -1:
-                    self.sell(data=d, size=10)
+                    self.sell(data=d, size=1)
             else:
                 if self.inds[d]['cross'][0] == 1:
                     self.close(data=d)
-                    self.buy(data=d, size=10)
+                    self.buy(data=d, size=1)
                 elif self.inds[d]['cross'][0] == -1:
                     self.close(data=d)
-                    self.sell(data=d, size=10)
+                    self.sell(data=d, size=1)
 
     def notify_trade(self, trade):
         dt = self.data.datetime.date()
