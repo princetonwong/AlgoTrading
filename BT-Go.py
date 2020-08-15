@@ -18,7 +18,7 @@ data = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
 cerebro.adddata(data)
 
 #Strategy
-cerebro.addstrategy(BTStrategy.BollingerBandsStrategy)
+cerebro.addstrategy(BTStrategy.MACDCrossStrategy)
 
 #Broker
 cerebro.broker.setcash(90000.0)
