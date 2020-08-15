@@ -57,6 +57,15 @@ def getTradeAnalysisDf(analyzer, outputXLSXToFolder: str = None):
     return resultDF
 
 def getSQNDf(analyzer, outputXLSXToFolder: str = None):
+    '''
+    SQN or SystemQualityNumber. Defined by Van K. Tharp to categorize trading systems.
+    1.6 - 1.9 Below average
+    2.0 - 2.4 Average
+    2.5 - 2.9 Good
+    3.0 - 5.0 Excellent
+    5.1 - 6.9 Superb
+    7.0 - Holy Grail?
+    '''
     sqn = round(analyzer.sqn,2)
     index = ['SQN']
     result = [sqn]
