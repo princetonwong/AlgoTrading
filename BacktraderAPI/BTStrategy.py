@@ -183,11 +183,12 @@ class firstStrategy(bt.Strategy):
 
 class RSIStrategy(bt.Strategy):
     params = (
+        ("period", 21)
         ('upperband', 70.0),
         ('lowerband', 30.0),
              )
     def __init__(self):
-        self.rsi = bt.indicators.RSI_SMA(self.data.close, period=21)
+        self.rsi = bt.indicators.RSI_SMA(self.data.close, period=self.p.period)
 
     def next(self):
         if not self.position:
@@ -300,21 +301,21 @@ class BollingerBandsStrategy(bt.Strategy):
         if not self.position:
 
             if self.data.close > self.boll.lines.top:
-                self.sell(exectype=bt.Order.Stop, price=self.boll.lines.top[0], size=self.p.size)
+                self.sell(exectype=bt.Order.Stop, price=self.boll.lines.top[0])
 
             if self.data.close < self.boll.lines.bot:
-                self.buy(exectype=bt.Order.Stop, price=self.boll.lines.bot[0], size=self.p.size)
+                self.buy(exectype=bt.Order.Stop, price=self.boll.lines.bot[0])
 
         else:
 
             if self.position.size > 0:
-                self.sell(exectype=bt.Order.Limit, price=self.boll.lines.mid[0], size=self.p.size)
+                self.sell(exectype=bt.Order.Limit, price=self.boll.lines.mid[0])
                 if self.data.close < self.boll.lines.bot:
-                    self.buy(exectype=bt.Order.Stop, price=self.boll.lines.bot[0], size=self.p.size)
+                    self.buy(exectype=bt.Order.Stop, price=self.boll.lines.bot[0])
             else:
-                self.buy(exectype=bt.Order.Limit, price=self.boll.lines.mid[0], size=self.p.size)
+                self.buy(exectype=bt.Order.Limit, price=self.boll.lines.mid[0])
                 if self.data.close > self.boll.lines.top:
-                    self.sell(exectype=bt.Order.Stop, price=self.boll.lines.top[0], size=self.p.size)
+                    self.sell(exectype=bt.Order.Stop, price=self.boll.lines.top[0])
 
         if self.p.debug:
             print('---------------------------- NEXT ----------------------------------')
