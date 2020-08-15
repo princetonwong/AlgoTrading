@@ -7,7 +7,6 @@ SYMBOL = "HK.MHImain"
 SUBTYPE = SubType.K_30M
 CCIPARAMETERS = (26, 0.015, 100 ,5)
 TIMERANGE = ("2020-03-01", "00:00:00", "2020-07-31", "16:31:00")
-TIMERANGE = None
 
 folderName = "{}-{}-{}".format(SYMBOL, SUBTYPE, Helper().get_timestamp())
 
@@ -19,7 +18,7 @@ data = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
 cerebro.adddata(data)
 
 #Strategy
-cerebro.addstrategy(BTStrategy.BOLLStrategy)
+cerebro.addstrategy(BTStrategy.RSIStrategy)
 
 #Broker
 cerebro.broker.setcash(90000.0)
