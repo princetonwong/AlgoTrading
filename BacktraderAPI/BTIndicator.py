@@ -48,7 +48,6 @@ class CCIExitSignal(bt.Indicator):
         n, a, cciThreshold, m = self.p.cciParameters
         cci = bt.ind.CommodityChannelIndex(n, a, cciThreshold, -cciThreshold)
 
-
 class DonchianChannels(bt.Indicator):
     '''
     Params Note:
