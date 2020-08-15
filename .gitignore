@@ -167,5 +167,8 @@ Output/.DS_Store
 
 Output/
 
-*.png
+.png
 /examples/
+/__pycache__/
+.csv
+*.csv

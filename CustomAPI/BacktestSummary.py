@@ -5,7 +5,7 @@ from CustomAPI.Helper import Helper
 import matplotlib.pyplot as plt
 
 field = "close"
-# field = "open"
+field = "open"
 
 class BacktestSummary():
 
