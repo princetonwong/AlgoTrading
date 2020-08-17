@@ -164,7 +164,6 @@ class BollingerBandsStrategy(bt.Strategy):
         if self.p.debug:
             self.debug()
 
-
 #Trend Following
 class DonchianStrategy(bt.Strategy):
     def __init__(self):
