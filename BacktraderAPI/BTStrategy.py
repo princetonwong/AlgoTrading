@@ -260,87 +260,95 @@ class MACrossStrategy(bt.Strategy):
 
 class BollingerBandsStrategy(bt.Strategy):
 
-    #https://backtest-rookies.com/2018/02/23/backtrader-bollinger-mean-reversion-strategy/
+    params = (('BBandsperiod', 20),)
 
-    '''
-    This is a simple mean reversion bollinger band strategy.
-
-     Entry Critria:
-      - Long:
-          - Price closes below the lower band
-          - Stop Order entry when price crosses back above the lower band
-      - Short:
-          - Price closes above the upper band
-          - Stop order entry when price crosses back below the upper band
-     Exit Critria
-      - Long/Short: Price touching the median line
-    '''
-
-    params = (
-        ("period", 20),
-        ("devfactor", 3),
-        ("size", 20),
-        ("debug", False)
-              )
+    def log(self, txt, dt=None):
+        ''' Logging function fot this strategy'''
+        dt = dt or self.datas[0].datetime.date(0)
+        print('%s, %s' % (dt.isoformat(), txt))
 
     def __init__(self):
-        self.boll = bt.indicators.BollingerBands(period=self.p.period, devfactor=self.p.devfactor)
-        # self.sx = bt.indicators.CrossDown(self.data.close, self.boll.lines.top)
-        # self.lx = bt.indicators.CrossUp(self.data.close, self.boll.lines.bot)
+        # Keep a reference to the "close" line in the data[0] dataseries
+        self.dataclose = self.datas[0].close
 
-    def next(self):
+        # To keep track of pending orders and buy price/commission
+        self.order = None
+        self.buyprice = None
+        self.buycomm = None
+        self.redline = None
+        self.blueline = None
 
-        orders = self.broker.get_orders_open()
+        # Add a BBand indicator
+        self.bband = bt.indicators.BBands(self.datas[0], period=self.params.BBandsperiod)
 
-        # Cancel open orders so we can track the median line
-        if orders:
-            for order in orders:
-                self.broker.cancel(order)
+    def notify_order(self, order):
+        if order.status in [order.Submitted, order.Accepted]:
+            # Buy/Sell order submitted/accepted to/by broker - Nothing to do
+            return
 
-        if not self.position:
+        # Check if an order has been completed
+        # Attention: broker could reject order if not enougth cash
+        if order.status in [order.Completed, order.Canceled, order.Margin]:
+            if order.isbuy():
+                self.log(
+                    'BUY EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f' %
+                    (order.executed.price,
+                     order.executed.value,
+                     order.executed.comm))
 
-            if self.data.close > self.boll.lines.top:
-                self.sell(exectype=bt.Order.Stop, price=self.boll.lines.top[0], size=self.p.size)
+                self.buyprice = order.executed.price
+                self.buycomm = order.executed.comm
+            else:  # Sell
+                self.log('SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f' %
+                         (order.executed.price,
+                          order.executed.value,
+                          order.executed.comm))
 
-            if self.data.close < self.boll.lines.bot:
-                self.buy(exectype=bt.Order.Stop, price=self.boll.lines.bot[0], size=self.p.size)
+            self.bar_executed = len(self)
 
-        else:
-
-            if self.position.size > 0:
-                self.sell(exectype=bt.Order.Limit, price=self.boll.lines.mid[0], size=self.p.size)
-                if self.data.close < self.boll.lines.bot:
-                    self.buy(exectype=bt.Order.Stop, price=self.boll.lines.bot[0], size=self.p.size)
-            else:
-                self.buy(exectype=bt.Order.Limit, price=self.boll.lines.mid[0], size=self.p.size)
-                if self.data.close > self.boll.lines.top:
-                    self.sell(exectype=bt.Order.Stop, price=self.boll.lines.top[0], size=self.p.size)
-
-        if self.p.debug:
-            print('---------------------------- NEXT ----------------------------------')
-            print("1: Data Name:                            {}".format(data._name))
-            print("2: Bar Num:                              {}".format(len(data)))
-            print("3: Current date:                         {}".format(data.datetime.datetime()))
-            print('4: Open:                                 {}'.format(data.open[0]))
-            print('5: High:                                 {}'.format(data.high[0]))
-            print('6: Low:                                  {}'.format(data.low[0]))
-            print('7: Close:                                {}'.format(data.close[0]))
-            print('8: Volume:                               {}'.format(data.volume[0]))
-            print('9: Position Size:                       {}'.format(self.position.size))
-            print('--------------------------------------------------------------------')
+        # Write down: no pending order
+        self.order = None
 
     def notify_trade(self, trade):
-        if trade.isclosed:
-            dt = self.data.datetime.date()
+        if not trade.isclosed:
+            return
 
-            print('---------------------------- TRADE ---------------------------------')
-            print("1: Data Name:                            {}".format(trade.data._name))
-            print("2: Bar Num:                              {}".format(len(trade.data)))
-            print("3: Current date:                         {}".format(dt))
-            print('4: Status:                               Trade Complete')
-            print('5: Ref:                                  {}'.format(trade.ref))
-            print('6: PnL:                                  {}'.format(round(trade.pnl, 2)))
-            print('--------------------------------------------------------------------')
+        self.log('OPERATION PROFIT, GROSS %.2f, NET %.2f' %
+                 (trade.pnl, trade.pnlcomm))
+
+    def next(self):
+        # Simply log the closing price of the series from the reference
+        self.log('Close, %.2f' % self.dataclose[0])
+
+        # Check if an order is pending ... if yes, we cannot send a 2nd one
+        if self.order:
+            return
+
+        if self.dataclose < self.bband.lines.bot and not self.position:
+            self.redline = True
+
+        if self.dataclose > self.bband.lines.top and self.position:
+            self.blueline = True
+
+        if self.dataclose > self.bband.lines.mid and not self.position and self.redline:
+            # BUY, BUY, BUY!!! (with all possible default parameters)
+            self.log('BUY CREATE, %.2f' % self.dataclose[0])
+            # Keep track of the created order to avoid a 2nd order
+            self.order = self.buy()
+
+        if self.dataclose > self.bband.lines.top and not self.position:
+            # BUY, BUY, BUY!!! (with all possible default parameters)
+            self.log('BUY CREATE, %.2f' % self.dataclose[0])
+            # Keep track of the created order to avoid a 2nd order
+            self.order = self.buy()
+
+        if self.dataclose < self.bband.lines.mid and self.position and self.blueline:
+            # SELL, SELL, SELL!!! (with all possible default parameters)
+            self.log('SELL CREATE, %.2f' % self.dataclose[0])
+            self.blueline = False
+            self.redline = False
+            # Keep track of the created order to avoid a 2nd order
+            self.order = self.sell()
 
 class MACDCrossStrategy(bt.Strategy):
     '''
@@ -397,7 +405,7 @@ class MACDCrossStrategy(bt.Strategy):
         self.smadir = self.sma - self.sma(-self.p.dirperiod)
 
     def start(self):
-        self.order = None  # sentinel to avoid operrations on pending order
+        self.order = None  # sentinel to avoid operations on pending order
 
     def next(self):
         if self.order:
@@ -419,3 +427,33 @@ class MACDCrossStrategy(bt.Strategy):
                 pdist = self.atr[0] * self.p.atrdist
                 # Update only if greater than
                 self.pstop = max(pstop, pclose - pdist)
+
+# class WilliamsRStrategy(bt.Strategy):
+#
+#     params = (
+#         ('period', 14),
+#         ('upperband', -20),
+#         ('lowerband', -80)
+#     )
+#
+#     def __init__(self):
+#         self.williamsR = bt.indicators.WilliamsR(self.data,
+#                                                  period=self.p.period,
+#                                                  upperband=self.p.upperband,
+#                                                  lowerband=self.p.lowerband
+#                                                  )
+#
+#     def start(self):
+#         self.order = None  # sentinel to avoid operations on pending order
+#
+#     def next(self):
+#         if self.order:
+#             return  # pending order execution
+#
+#         if not self.position:  # not in the market
+#             if self.williamsR < self.p.lowerband:
+#                 self.order = self.buy(size=1)
+#
+#         else:  # in the market
+#             if self.williamsR > self.p.upperband:
+#                 self.order = self.sell(size=1)
