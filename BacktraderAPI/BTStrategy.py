@@ -34,188 +34,31 @@ class SmaCrossStrategy(bt.SignalStrategy):
         print('RSI Period: {} Final PnL: {}'.format(
             self.params.slowP, pnl))
 
-
-#Trend Following
-class DonchianStrategy(bt.Strategy):
-    def log(self, txt, dt=None):
-        ''' Logging function fot this strategy'''
-        dt = dt or self.datas[0].datetime.date(0)
-        print('%s, %s' % (dt.isoformat(), txt))
-
-    def notify_order(self, order):
-        if order.status in [order.Submitted, order.Accepted]:
-            # Buy/Sell order submitted/accepted to/by broker - Nothing to do
-            return
-
-        # Check if an order has been completed
-        # Attention: broker could reject order if not enough cash
-        if order.status in [order.Completed]:
-            if order.isbuy():
-                self.log('BUY EXECUTED, %.2f' % order.executed.price)
-            elif order.issell():
-                self.log('SELL EXECUTED, %.2f' % order.executed.price)
-
-            self.bar_executed = 0
-            self.holdstart = len(self)
-
-    def __init__(self):
-        self.donc = BTIndicator.DonchianChannels()
-        self.dataclose = self.datas[0].close
-
-    def next(self):
-        if self.position.size == 0:
-            if self.data > self.donc.dch:
-                self.buy()
-
-            elif self.data < self.donc.dcl:
-                self.sell()
-
-        elif self.position.size > 0:
-            if self.data < self.donc.dcm:
-                self.close()
-
-        elif self.position.size < 0:
-            if self.data > self.donc.dcm:
-                self.close()
-
-class CCICrossStrategy(bt.SignalStrategy):
-    params = dict(cciParameters = (20,0.015,100,7)
-                  )
-
-    def log(self, txt, dt=None):
-        ''' Logging function fot this strategy'''
-        dt = dt or self.datas[0].datetime.datetime(0)
-        print('CCI: %s, %s' % (dt.isoformat(), txt))
-
-    def __init__(self):
-        self.holding = dict()
-        self.order = None
-        self.dataclose = self.datas[0].close
-        self.dataopen = self.datas[0].open
-
-        n, a, cciThreshold, self.hold = self.p.cciParameters
-        self.upperband = cciThreshold
-        self.lowerband = -cciThreshold
-        self.cci = bt.ind.CommodityChannelIndex(period=n, factor=a, upperband=self.upperband, lowerband=self.lowerband)
-
-        self.upperCrossover = bt.ind.CrossUp(self.cci, self.upperband)
-        self.signal_add(bt.SIGNAL_LONG, self.upperCrossover)
-        #
-        self.lowerCrossover = bt.ind.CrossDown(self.cci, self.lowerband)
-        self.signal_add(bt.SIGNAL_SHORT, self.lowerCrossover)
-
-    def notify_order(self, order):
-        if order.status in [order.Submitted, order.Accepted]:
-            # Buy/Sell order submitted/accepted to/by broker - Nothing to do
-            return
-
-        # Check if an order has been completed
-        # Attention: broker could reject order if not enough cash
-        if order.status in [order.Completed]:
-            if order.isbuy():
-                self.log('BUY EXECUTED, %.8f' % order.executed.price)
-            elif order.issell():
-                self.log('SELL EXECUTED, %.8f' % order.executed.price)
-
-            self.bar_executed = 0
-            self.holdstart = len(self)
-
-        elif order.status in [order.Canceled, order.Margin, order.Rejected]:
-            self.log('Order Canceled/Margin/Rejected')
-
-        # Write down: no pending order
-        self.order = None
-
-    def notify_trade(self, trade):
-        if not trade.isclosed:
-            return
-
-        self.log('OPERATION PROFIT, GROSS %.8f, NET %.f' %
-                 (trade.pnl, trade.pnlcomm))
-
-    def next(self):
-        if self.order:
-            return
-
-        # If we are not in the market,
-        if not self.position:
-            if self.upperCrossover:
-                self.log('BUY CREATE, %.8f' % self.dataclose[0])
-                self.order = self.buy(price=self.dataclose[0])
-
-                # self.log('BUY CREATE, %.8f' % self.dataopen[0])
-                # self.order = self.buy(price=self.dataopen[0])
-                # self.order = self.buy()
-
-            else:
-                if self.lowerCrossover:
-                    self.log('SELL CREATE, %.8f' % self.dataclose[0])
-                    self.order = self.sell(price=self.dataclose[0])
-
-                    # self.log('SELL CREATE, %.8f' % self.dataopen[0])
-                    # self.order = self.sell(price=self.dataopen[0])
-
-                    # self.order = self.sell()
-
-        # If we are in the market,
-        elif self.position:
-            if (len(self) - self.holdstart) >= self.hold:
-                if self.cci < self.upperband:
-                    self.close()
-                    self.log('BUY POSITION CLOSED, exectype Close, price %.2f' %
-                             self.data.close[0])
-                elif self.cci > self.lowerband:
-                    self.close()
-                    self.log('SELL POSITION CLOSED, exectype Close, price %.2f' %
-                             self.data.close[0])
-
-class firstStrategy(bt.Strategy):
-    params = (
-        ('period',21),
-        )
-
-    def __init__(self):
-        self.startcash = self.broker.getvalue()
-        self.rsi = bt.indicators.RSI_SMA(self.datas[0].close, period=self.params.period)
-
-    def next(self):
-        if not self.position:
-            if self.rsi < 30:
-                self.buy(size=100)
-        else:
-            if self.rsi > 70:
-                self.sell(size=100)
-
-    def stop(self):
-        pnl = round(self.broker.getvalue() - self.startcash,2)
-        print('RSI Period: {} Final PnL: {}'.format(
-            self.params.period, pnl))
-
 class RSIStrategy(bt.Strategy):
     params = (
         ("period", 21),
         ('upperband', 70.0),
         ('lowerband', 30.0),
              )
+
     def __init__(self):
         self.rsi = bt.indicators.RSI_SMA(self.data.close, period=self.p.period)
 
     def next(self):
-        if not self.position:
+        if self.position.size == 0:
             if self.rsi < self.p.lowerband:
                 self.buy()
-        else:
+        elif self.position.size > 0:
             if self.rsi > self.p.upperband:
                 self.sell()
-            elif self.rsi < self.p.lowerband:
+        elif self.position.size < 0:
+            if self.rsi < self.p.lowerband:
                 self.buy()
 
-class MACrossWithDatasStrategy(bt.Strategy):
+class MACrossStrategy(bt.Strategy):
     '''
     For an official backtrader blog on this topic please take a look at:
-
     https://www.backtrader.com/blog/posts/2017-04-09-multi-example/multi-example.html
-
     oneplot = Force all datas to plot on the same master.
     '''
     params = (
@@ -259,15 +102,6 @@ class MACrossWithDatasStrategy(bt.Strategy):
                 elif self.inds[d]['cross'][0] == -1:
                     self.close(data=d)
                     self.sell(data=d)
-
-    def notify_trade(self, trade):
-        dt = self.data.datetime.date()
-        if trade.isclosed:
-            print('{} {} Closed: PnL Gross {}, Net {}'.format(
-                                                dt,
-                                                trade.data._name,
-                                                round(trade.pnl,2),
-                                                round(trade.pnlcomm,2)))
 
 class BollingerBandsStrategy(bt.Strategy):
 
@@ -328,27 +162,77 @@ class BollingerBandsStrategy(bt.Strategy):
                     self.sell(exectype=bt.Order.Stop, price=self.boll.lines.top[0])
 
         if self.p.debug:
-            print('---------------------------- NEXT ----------------------------------')
-            print("1: Data Name:                            {}".format(data._name))
-            print("2: Bar Num:                              {}".format(len(data)))
-            print("3: Current date:                         {}".format(data.datetime.datetime()))
-            print('4: Open:                                 {}'.format(data.open[0]))
-            print('5: High:                                 {}'.format(data.high[0]))
-            print('6: Low:                                  {}'.format(data.low[0]))
-            print('7: Close:                                {}'.format(data.close[0]))
-            print('8: Volume:                               {}'.format(data.volume[0]))
-            print('9: Position Size:                       {}'.format(self.position.size))
-            print('--------------------------------------------------------------------')
+            self.debug()
 
-    def notify_trade(self, trade):
-        if trade.isclosed:
-            dt = self.data.datetime.date()
 
-            print('---------------------------- TRADE ---------------------------------')
-            print("1: Data Name:                            {}".format(trade.data._name))
-            print("2: Bar Num:                              {}".format(len(trade.data)))
-            print("3: Current date:                         {}".format(dt))
-            print('4: Status:                               Trade Complete')
-            print('5: Ref:                                  {}'.format(trade.ref))
-            print('6: PnL:                                  {}'.format(round(trade.pnl, 2)))
-            print('--------------------------------------------------------------------')
+#Trend Following
+class DonchianStrategy(bt.Strategy):
+    def __init__(self):
+        self.donc = BTIndicator.DonchianChannels()
+        self.dataclose = self.datas[0].close
+
+    def next(self):
+        if self.position.size == 0:
+            if self.data > self.donc.dch:
+                self.buy()
+
+            elif self.data < self.donc.dcl:
+                self.sell()
+
+        elif self.position.size > 0:
+            if self.data < self.donc.dcm:
+                self.close()
+
+        elif self.position.size < 0:
+            if self.data > self.donc.dcm:
+                self.close()
+
+class CCICrossStrategy(bt.SignalStrategy):
+    params = dict(cciParameters = (20,0.015,100,7)
+                  )
+
+    def __init__(self):
+        self.holding = dict()
+        self.order = None
+        self.dataclose = self.datas[0].close
+        self.dataopen = self.datas[0].open
+
+        n, a, cciThreshold, self.hold = self.p.cciParameters
+        self.upperband = cciThreshold
+        self.lowerband = -cciThreshold
+        self.cci = bt.ind.CommodityChannelIndex(period=n, factor=a, upperband=self.upperband, lowerband=self.lowerband)
+
+        self.upperCrossover = bt.ind.CrossUp(self.cci, self.upperband)
+        self.signal_add(bt.SIGNAL_LONG, self.upperCrossover)
+        #
+        self.lowerCrossover = bt.ind.CrossDown(self.cci, self.lowerband)
+        self.signal_add(bt.SIGNAL_SHORT, self.lowerCrossover)
+
+    def notify_order(self, order):
+        super(CCICrossStrategy, self).notify_order(order)
+        if order.status in [order.Completed]:
+            self.bar_executed = 0
+            self.holdstart = len(self)
+
+    def next(self):
+        if self.order:
+            return
+
+        # If we are not in the market,
+        if self.position.size == 0:
+            if self.upperCrossover:
+                self.order = self.buy()
+
+            elif self.lowerCrossover:
+                self.order = self.sell()
+
+        elif self.position.size > 0:
+            if (len(self) - self.holdstart) >= self.hold:
+                if self.cci < self.upperband:
+                    self.close()
+
+        elif self.position.size < 0:
+            if (len(self) - self.holdstart) >= self.hold:
+                if self.cci > self.lowerband:
+                    self.close()
+
