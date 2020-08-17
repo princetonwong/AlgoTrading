@@ -3,7 +3,9 @@ from BacktraderAPI.BTIndicator import *
 
 #All bt indicators: https://www.backtrader.com/docu/indautoref/
 
-class BuyWhenCloseLessThanTwoPreviousStrategy(bt.Strategy):
+class SmaCrossStrategy(bt.SignalStrategy):
+    params = (("fastP", 10),
+              ("slowP", 20))
 
     def log(self, txt, dt=None):
         ''' Logging function fot this strategy'''
@@ -11,40 +13,20 @@ class BuyWhenCloseLessThanTwoPreviousStrategy(bt.Strategy):
         print('%s, %s' % (dt.isoformat(), txt))
 
     def __init__(self):
-        # Keep a reference to the "close" line in the data[0] dataseries
-        self.dataclose = self.datas[0].close
-        self.stochrsi = StochRSI(self.data)
-
-    def next(self):
-        # Simply log the closing price of the series from the reference
-        # self.log('Close, %.2f' % self.dataclose[0])
-
-        if self.dataclose[-2] < self.dataclose[-1]:
-            # current close less than previous close
-
-            if self.dataclose[-4] < self.dataclose[-2]:
-                # previous close less than the previous close
-
-                # BUY, BUY, BUY!!! (with all possible default parameters)
-                self.log('BUY CREATE, %.2f' % self.dataclose[0])
-                self.buy()
-        if self.dataclose[-2] > self.dataclose[-1]:
-            self.log('SELL CREATE, %.2f' % self.dataclose[0])
-            self.sell()
-
-class SmaCrossStrategy(bt.SignalStrategy):
-    params = (("fastP", 5),
-              ("slowP", 20))
-
-    def __init__(self):
         self.startcash = self.broker.getvalue()
         sma1, sma2 = bt.ind.SMA(period=self.p.fastP), bt.ind.SMA(period=self.p.slowP)
-        self.crossover = bt.ind.CrossOver(sma1, sma2)
+        self.crossup = bt.ind.CrossUp(sma1, sma2)
+        self.crossdown = bt.ind.CrossDown(sma1, sma2)
 
 
     def next(self):
-        if self.crossover:
+        if self.crossup:
             self.buy()
+            self.log('BUY CREATE, %.2f' % self.dataclose[0])
+
+        elif self.crossdown:
+            self.sell()
+            self.log('SELL CREATE, %.2f' % self.dataclose[0])
 
     def stop(self):
         pnl = round(self.broker.getvalue() - self.startcash, 2)
@@ -183,7 +165,7 @@ class firstStrategy(bt.Strategy):
 
 class RSIStrategy(bt.Strategy):
     params = (
-        ("period", 21)
+        ("period", 21),
         ('upperband', 70.0),
         ('lowerband', 30.0),
              )
@@ -193,14 +175,14 @@ class RSIStrategy(bt.Strategy):
     def next(self):
         if not self.position:
             if self.rsi < self.p.lowerband:
-                self.buy(size=1)
+                self.buy()
         else:
             if self.rsi > self.p.upperband:
-                self.sell(size=1)
+                self.sell()
             elif self.rsi < self.p.lowerband:
-                self.buy(size=1)
+                self.buy()
 
-class MACrossStrategy(bt.Strategy):
+class MACrossWithDatasStrategy(bt.Strategy):
     '''
     For an official backtrader blog on this topic please take a look at:
 
@@ -209,8 +191,8 @@ class MACrossStrategy(bt.Strategy):
     oneplot = Force all datas to plot on the same master.
     '''
     params = (
-    ('sma1', 40),
-    ('sma2', 200),
+    ('sma1', 10),
+    ('sma2', 20),
     ('oneplot', True)
     )
 
@@ -239,16 +221,16 @@ class MACrossStrategy(bt.Strategy):
             pos = self.getposition(d).size
             if not pos:  # no market / no orders
                 if self.inds[d]['cross'][0] == 1:
-                    self.buy(data=d, size=1)
+                    self.buy(data=d)
                 elif self.inds[d]['cross'][0] == -1:
-                    self.sell(data=d, size=1)
+                    self.sell(data=d)
             else:
                 if self.inds[d]['cross'][0] == 1:
                     self.close(data=d)
-                    self.buy(data=d, size=1)
+                    self.buy(data=d)
                 elif self.inds[d]['cross'][0] == -1:
                     self.close(data=d)
-                    self.sell(data=d, size=1)
+                    self.sell(data=d)
 
     def notify_trade(self, trade):
         dt = self.data.datetime.date()
