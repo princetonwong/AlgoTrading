@@ -1,8 +1,9 @@
 import backtrader as bt
-from BacktraderAPI.BTIndicator import *
+from BacktraderAPI import BTIndicator
 
 #All bt indicators: https://www.backtrader.com/docu/indautoref/
 
+#Mean Reversion
 class SmaCrossStrategy(bt.SignalStrategy):
     params = (("fastP", 10),
               ("slowP", 20))
@@ -33,22 +34,49 @@ class SmaCrossStrategy(bt.SignalStrategy):
         print('RSI Period: {} Final PnL: {}'.format(
             self.params.slowP, pnl))
 
+
+#Trend Following
 class DonchianStrategy(bt.Strategy):
     def log(self, txt, dt=None):
         ''' Logging function fot this strategy'''
         dt = dt or self.datas[0].datetime.date(0)
         print('%s, %s' % (dt.isoformat(), txt))
 
+    def notify_order(self, order):
+        if order.status in [order.Submitted, order.Accepted]:
+            # Buy/Sell order submitted/accepted to/by broker - Nothing to do
+            return
+
+        # Check if an order has been completed
+        # Attention: broker could reject order if not enough cash
+        if order.status in [order.Completed]:
+            if order.isbuy():
+                self.log('BUY EXECUTED, %.2f' % order.executed.price)
+            elif order.issell():
+                self.log('SELL EXECUTED, %.2f' % order.executed.price)
+
+            self.bar_executed = 0
+            self.holdstart = len(self)
+
     def __init__(self):
-        self.myind = DonchianChannels()
+        self.donc = BTIndicator.DonchianChannels()
         self.dataclose = self.datas[0].close
 
     def next(self):
-        if self.data[0] > self.myind.dch[0]:
-            self.log('BUY CREATE, %.2f' % self.dataclose[0])
-            self.buy()
-        elif self.data[0] < self.myind.dcl[0]:
-            self.sell()
+        if self.position.size == 0:
+            if self.data > self.donc.dch:
+                self.buy()
+
+            elif self.data < self.donc.dcl:
+                self.sell()
+
+        elif self.position.size > 0:
+            if self.data < self.donc.dcm:
+                self.close()
+
+        elif self.position.size < 0:
+            if self.data > self.donc.dcm:
+                self.close()
 
 class CCICrossStrategy(bt.SignalStrategy):
     params = dict(cciParameters = (20,0.015,100,7)
