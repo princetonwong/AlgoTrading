@@ -6,8 +6,8 @@ from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTSignalS
 SYMBOL = "HK.MHImain"
 SUBTYPE = SubType.K_30M
 CCIPARAMETERS = (26, 0.015, 100 ,7)
-# TIMERANGE = ("2020-05-01", "00:00:00", "2020-07-31", "16:31:00")
-TIMERANGE = None
+TIMERANGE = ("2016-05-01", "00:00:00", "2016-07-31", "16:31:00")
+# TIMERANGE = None
 
 folderName = "{}-{}-{}".format(SYMBOL, SUBTYPE, Helper().get_timestamp())
 
@@ -15,12 +15,12 @@ folderName = "{}-{}-{}".format(SYMBOL, SUBTYPE, Helper().get_timestamp())
 cerebro = bt.Cerebro()
 
 #Data Feed
-data = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
-# data = BTDataFeed.getHDFWikiPriceDataFeed(["AAPL"])
+# data = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
+data = BTDataFeed.getHDFWikiPriceDataFeed(["KO"])
 cerebro.adddata(data)
 
 #Sizer
-# cerebro.addsizer(BTSizer.PercentSizer, percents = 100)
+cerebro.addsizer(BTSizer.PercentSizer, percents = 40)
 
 #Strategy
 cerebro.addstrategy(BTStrategy.CCICrossStrategyWithSLOWKDExit)
