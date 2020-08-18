@@ -170,5 +170,6 @@ Output/
 .png
 /examples/
 /__pycache__/
-.csv
-*.csv
+*.h5
+*.pdf
+Data/wiki_prices.csv
