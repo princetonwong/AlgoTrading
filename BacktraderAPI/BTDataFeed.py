@@ -29,11 +29,11 @@ def getCSVDataFeed(csvPath: str):
                                    nullvalue=0.0, dtformat=('%Y-%m-%d %H:%M:%S'), datetime=2,
                                    high=5, low=6, open=3, close=4, volume=7, openinterest=-1)
 
-def getHDFWikiPriceDataFeed(tickers: [str]):
+def getHDFWikiPriceDataFeed(tickers: [str], startYear="2006", endYear:str = "2017"):
     hdfPath = Path.cwd() / "Data" / "assets.h5"
     idx = pd.IndexSlice
     df= (pd.read_hdf(hdfPath, 'quandl/wiki/prices')
-            .loc[idx['2006':'2017', tickers], ['adj_open', 'adj_high', 'adj_low', 'adj_close', 'adj_volume']]
+            .loc[idx[startYear:endYear, tickers], ['adj_open', 'adj_high', 'adj_low', 'adj_close', 'adj_volume']]
             .rename(columns={"adj_open": "open", "adj_high": "high", "adj_low": "low", "adj_close": "close", "adj_volume": "volume"})
             .reset_index(level=[0,1]))
             # .unstack('ticker')

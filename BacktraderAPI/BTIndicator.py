@@ -82,3 +82,8 @@ class DonchianChannels(bt.Indicator):
         self.l.dch = bt.ind.Highest(hi, period=self.p.period)
         self.l.dcl = bt.ind.Lowest(lo, period=self.p.period)
         self.l.dcm = (self.l.dch + self.l.dcl) / 2.0  # avg of the above
+
+class MACDHistogram(bt.ind.MACDHisto):
+    def __init__(self):
+        super(bt.ind.MACDHisto, self).__init__()
+        self.lines.histo = (self.lines.macd - self.lines.signal) * 2

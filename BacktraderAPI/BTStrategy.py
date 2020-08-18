@@ -4,7 +4,7 @@ from BacktraderAPI import BTIndicator
 #All bt indicators: https://www.backtrader.com/docu/indautoref/
 
 #Mean Reversion
-class SmaCrossStrategy(bt.SignalStrategy):
+class SmaCrossStrategy(bt.Strategy):
     params = (("fastP", 10),
               ("slowP", 20))
 
@@ -103,7 +103,7 @@ class MACrossStrategy(bt.Strategy):
                     self.close(data=d)
                     self.sell(data=d)
 
-class BollingerBandsStrategy(bt.Strategy):
+class BBandsMeanReversionStrategy(bt.Strategy):
 
     #https://backtest-rookies.com/2018/02/23/backtrader-bollinger-mean-reversion-strategy/
 
@@ -123,46 +123,117 @@ class BollingerBandsStrategy(bt.Strategy):
 
     params = (
         ("period", 20),
-        ("devfactor", 3),
-        ("size", 20),
+        ("sd", 2),
         ("debug", False)
               )
 
     def __init__(self):
-        self.boll = bt.indicators.BollingerBands(period=self.p.period, devfactor=self.p.devfactor)
-        # self.sx = bt.indicators.CrossDown(self.data.close, self.boll.lines.top)
-        # self.lx = bt.indicators.CrossUp(self.data.close, self.boll.lines.bot)
+        self.boll = bt.indicators.BollingerBands(period=self.p.period, devfactor=self.p.sd)
+        self.lower = bt.indicators.CrossDown(self.data.close, self.boll.lines.bot, subplot = False)
+        self.upper = bt.indicators.CrossUp(self.data.close, self.boll.lines.top, subplot = False)
+        self.crossMid = bt.indicators.CrossOver(self.data.close, self.boll.lines.mid, subplot = False)
 
     def next(self):
-
         orders = self.broker.get_orders_open()
 
-        # Cancel open orders so we can track the median line
-        if orders:
-            for order in orders:
-                self.broker.cancel(order)
-
-        if not self.position:
-
-            if self.data.close > self.boll.lines.top:
+        if self.position.size == 0:
+            if self.lower:
+                self.buy(exectype=bt.Order.Stop, price=self.boll.lines.bot[0])
+            elif self.upper:
                 self.sell(exectype=bt.Order.Stop, price=self.boll.lines.top[0])
 
-            if self.data.close < self.boll.lines.bot:
+        elif self.position.size > 0:
+            if self.crossMid != 0:
+                self.sell(exectype=bt.Order.Stop, price=self.boll.lines.top[0])
+
+        elif self.position.size < 0:
+            if self.crossMid != 0:
                 self.buy(exectype=bt.Order.Stop, price=self.boll.lines.bot[0])
 
-        else:
-
-            if self.position.size > 0:
-                self.sell(exectype=bt.Order.Limit, price=self.boll.lines.mid[0])
-                if self.data.close < self.boll.lines.bot:
-                    self.buy(exectype=bt.Order.Stop, price=self.boll.lines.bot[0])
-            else:
-                self.buy(exectype=bt.Order.Limit, price=self.boll.lines.mid[0])
-                if self.data.close > self.boll.lines.top:
-                    self.sell(exectype=bt.Order.Stop, price=self.boll.lines.top[0])
+        # # Cancel open orders so we can track the median line
+        # if orders:
+        #     for order in orders:
+        #         self.broker.cancel(order)
 
         if self.p.debug:
             self.debug()
+
+class MACDCrossStrategy(bt.Strategy):
+    '''
+    This strategy is loosely based on some of the examples from the Van
+    K. Tharp book: *Trade Your Way To Financial Freedom*. The logic:
+
+      - Enter the market if:
+        - The MACD.macd line crosses the MACD.signal line to the upside
+        - The Simple Moving Average has a negative direction in the last x
+          periods (actual value below value x periods ago)
+
+     - Set a stop price x times the ATR value away from the close
+
+     - If in the market:
+
+       - Check if the current close has gone below the stop price. If yes,
+         exit.
+       - If not, update the stop price if the new stop price would be higher
+         than the current
+    '''
+
+    params = (
+        # Standard MACD Parameters
+        ('macdFast', 12),
+        ('macdSlow', 26),
+        ('difPeriod', 9),
+    )
+    #     ('atrperiod', 14),  # ATR Period (standard)
+    #     ('atrdist', 3.0),   # ATR distance for stop price
+    #     ('smaperiod', 30),  # SMA Period (pretty standard)
+    #     ('dirperiod', 10),  # Lookback period to consider SMA trend direction
+    # )
+
+    # def notify_order(self, order):
+    #     if order.status == order.Completed:
+    #         pass
+    #
+    #     if not order.alive():
+    #         self.order = None  # indicate no order is pending
+
+    def __init__(self):
+        self.macd = bt.indicators.MACD(self.data,
+                                       period_me1=self.p.macdFast,
+                                       period_me2=self.p.macdSlow,
+                                       period_signal=self.p.difPeriod, subplot=False)
+
+        self.macdHistogram = BTIndicator.MACDHistogram(period_me1=self.p.macdFast, period_me2=self.p.macdSlow, period_signal=self.p.difPeriod)
+
+        self.mcross = bt.indicators.CrossOver(self.macd.macd, self.macd.signal, subplot= False)
+
+    # def start(self):
+    #     self.order = None  # sentinel to avoid operations on pending order
+
+    def next(self):
+        # if self.order:
+        #     return  # pending order execution
+
+        if self.position.size == 0:  # not in the market
+            if self.mcross == 1:
+                self.buy()
+            if self.mcross == -1:
+                self.sell()
+
+        elif self.position.size != 0:
+            if self.mcross == -1 or self.mcross == 1:
+                self.close()
+
+        # else:  # in the market
+        #     pclose = self.data.close[0]
+        #     pstop = self.pstop
+        #
+        #     if pclose < pstop:
+        #         self.close()  # stop met - get out
+        #     else:
+        #         pdist = self.atr[0] * self.p.atrdist
+        #         # Update only if greater than
+        #         self.pstop = max(pstop, pclose - pdist)
 
 #Trend Following
 class DonchianStrategy(bt.Strategy):
@@ -236,8 +307,6 @@ class CCICrossStrategyWithSLOWKDExit(CCICrossStrategy):
     ('period', 14), ('period_dfast', 3), ('period_dslow', 3),)
     '''
     params = dict(stochParameters=(5, 3, 3))
-
-
 
     def __init__(self):
         super(CCICrossStrategyWithSLOWKDExit, self).__init__()
