@@ -186,9 +186,8 @@ class DonchianStrategy(bt.Strategy):
             if self.data > self.donc.dcm:
                 self.close()
 
-class CCICrossStrategy(bt.SignalStrategy):
-    params = dict(cciParameters = (20,0.015,100,7)
-                  )
+class CCICrossStrategy(bt.Strategy):
+    params = dict(cciParameters = (26,0.015,100,5))
 
     def __init__(self):
         self.holding = dict()
@@ -201,11 +200,8 @@ class CCICrossStrategy(bt.SignalStrategy):
         self.lowerband = -cciThreshold
         self.cci = bt.ind.CommodityChannelIndex(period=n, factor=a, upperband=self.upperband, lowerband=self.lowerband)
 
-        self.upperCrossover = bt.ind.CrossUp(self.cci, self.upperband)
-        self.signal_add(bt.SIGNAL_LONG, self.upperCrossover)
-        #
-        self.lowerCrossover = bt.ind.CrossDown(self.cci, self.lowerband)
-        self.signal_add(bt.SIGNAL_SHORT, self.lowerCrossover)
+        self.upperCrossover = bt.ind.CrossUp(self.cci, self.upperband, subplot = False)
+        self.lowerCrossover = bt.ind.CrossDown(self.cci, self.lowerband, subplot = False)
 
     def notify_order(self, order):
         super(CCICrossStrategy, self).notify_order(order)
@@ -235,3 +231,48 @@ class CCICrossStrategy(bt.SignalStrategy):
                 if self.cci > self.lowerband:
                     self.close()
 
+class CCICrossStrategyWithSLOWKDExit(CCICrossStrategy):
+    '''
+    ('period', 14), ('period_dfast', 3), ('period_dslow', 3),)
+    '''
+    params = dict(stochParameters=(5, 3, 3))
+
+
+
+    def __init__(self):
+        super(CCICrossStrategyWithSLOWKDExit, self).__init__()
+        # self.p.period, self.p.period_dfast, self.p.period_dslow = self.p.cciParameters
+        self.stoch = bt.ind.StochasticFull()
+        self.kCrossupD = bt.ind.CrossUp(self.stoch.percK, self.stoch.percD, subplot= False)
+        self.kCrossdownD = bt.ind.CrossDown(self.stoch.percK, self.stoch.percD, subplot= False)
+
+    def next(self):
+        if self.order:
+            return
+
+        # If we are not in the market,
+        if self.position.size == 0:
+            if self.upperCrossover:
+                self.order = self.buy()
+
+            elif self.lowerCrossover:
+                self.order = self.sell()
+
+        elif self.position.size > 0:
+            if (len(self) - self.holdstart) >= self.hold:
+                if self.kCrossupD:
+                    self.close()
+                    print ("kCrossupD exit: CCI:{}".format(self.cci[0]))
+                    return
+
+                if self.cci < self.upperband:
+                    self.close()
+
+        elif self.position.size < 0:
+            if (len(self) - self.holdstart) >= self.hold:
+                if self.kCrossdownD:
+                    self.close()
+                    print ("kCrossdownD exit: CCI:{}".format(self.cci[0]))
+                    return
+                if self.cci > self.lowerband:
+                    self.close()
