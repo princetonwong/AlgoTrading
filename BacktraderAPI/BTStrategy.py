@@ -124,6 +124,7 @@ class BBandsMeanReversionStrategy(bt.Strategy):
     params = (
         ("period", 20),
         ("sd", 2),
+        ("exit", "median"),
         ("debug", False)
               )
 
@@ -142,13 +143,27 @@ class BBandsMeanReversionStrategy(bt.Strategy):
             elif self.upper:
                 self.sell(exectype=bt.Order.Stop, price=self.boll.lines.top[0])
 
-        elif self.position.size > 0:
-            if self.crossMid != 0:
-                self.sell(exectype=bt.Order.Stop, price=self.boll.lines.top[0])
+        else:
 
-        elif self.position.size < 0:
-            if self.crossMid != 0:
-                self.buy(exectype=bt.Order.Stop, price=self.boll.lines.bot[0])
+            if self.p.exit == "median":
+
+                if self.position.size > 0:
+                    if self.crossMid != 0:
+                        self.sell(exectype=bt.Order.Stop, price=self.boll.lines.top[0])
+
+                elif self.position.size < 0:
+                    if self.crossMid != 0:
+                        self.buy(exectype=bt.Order.Stop, price=self.boll.lines.bot[0])
+
+            elif self.p.exit == "bbands":
+
+                if self.position.size > 0:
+                    if self.upper:
+                        self.sell(exectype=bt.Order.Stop, price=self.boll.lines.top[0])
+
+                elif self.position.size < 0:
+                    if self.lower:
+                        self.buy(exectype=bt.Order.Stop, price=self.boll.lines.bot[0])
 
         # # Cancel open orders so we can track the median line
         # if orders:
@@ -345,3 +360,39 @@ class CCICrossStrategyWithSLOWKDExit(CCICrossStrategy):
                     return
                 if self.cci > self.lowerband:
                     self.close()
+
+class BBandsTrendFollowingStrategy(BBandsMeanReversionStrategy):
+    '''
+         Entry Critria:
+          - Long:
+              - Price closes above the upper band
+          - Short:
+              - Price closes below the lower band
+         Exit Critria
+          - Long/Short: When price crosses the mid, exit at bottom/top
+        '''
+
+    def next(self):
+        orders = self.broker.get_orders_open()
+
+        if self.position.size == 0:
+            if self.lower:
+                self.sell(exectype=bt.Order.Stop, price=self.boll.lines.bot[0])
+            elif self.upper:
+                self.buy(exectype=bt.Order.Stop, price=self.boll.lines.top[0])
+
+        elif self.position.size > 0:
+            if self.crossMid != 0:
+                self.sell(exectype=bt.Order.Stop, price=self.boll.lines.bot[0])
+
+        elif self.position.size < 0:
+            if self.crossMid != 0:
+                self.buy(exectype=bt.Order.Stop, price=self.boll.lines.top[0])
+
+        # # Cancel open orders so we can track the median line
+        # if orders:
+        #     for order in orders:
+        #         self.broker.cancel(order)
+
+        if self.p.debug:
+            self.debug()

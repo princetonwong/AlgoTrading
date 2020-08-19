@@ -26,7 +26,7 @@ def getTradeAnalysisDf(analyzer, outputFolderPath: str = None):
     win_streak = analyzer.streak.won.longest
     lose_streak = analyzer.streak.lost.longest
     pnl_net = round(analyzer.pnl.net.total, 2)
-    strike_rate = (total_won / total_closed) * 100
+    strike_rate = round(((total_won / total_closed) * 100),2)
     index = ['Total Open', 'Total Closed', 'Total Won', 'Total Lost', 'Strike Rate', 'Win Streak', 'Losing Streak', 'PnL Net']
     result = [total_open, total_closed, total_won, total_lost, strike_rate, win_streak, lose_streak, pnl_net]
     resultDF = pd.DataFrame(result, index= index)
