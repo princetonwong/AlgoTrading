@@ -217,6 +217,7 @@ class MACDCrossStrategy(bt.Strategy):
                                        period_me1=self.p.macdFast,
                                        period_me2=self.p.macdSlow,
                                        period_signal=self.p.difPeriod, subplot=False)
+        self.macd.csv = True
 
         self.macdHistogram = BTIndicator.MACDHistogram(period_me1=self.p.macdFast, period_me2=self.p.macdSlow, period_signal=self.p.difPeriod)
 
