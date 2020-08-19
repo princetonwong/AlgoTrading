@@ -38,3 +38,19 @@ class Helper():
         path = os.path.join(folderName, fileName)
         df.to_excel(path, engine="openpyxl")
         return df
+
+    #BT Helper
+    @staticmethod
+    def saveFig(figs, folderName):
+        folderName = Helper().getOutputFolderPath(folderName)
+        path = os.path.join(folderName, "kLine.png")
+        for fig in figs:
+            for f in fig:
+                f.set_size_inches(8, 4.5)
+                f.savefig(path, dpi=72)
+
+    @staticmethod
+    def getWriterOutputPath (folderName):
+        folderName = Helper().getOutputFolderPath(folderName)
+        path = os.path.join(folderName, "Data.csv")
+        return path

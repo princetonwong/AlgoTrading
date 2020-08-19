@@ -8,7 +8,7 @@ from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
 import seaborn as sns
 from talib import WMA
-
+from pathlib import Path
 
 idx= pd.IndexSlice
 sns.set_style('whitegrid')
@@ -215,10 +215,19 @@ def ts_cov(x, y, window=10):
 ## Load Data
 ### 500 most-traded stocks
 ohlcv = ['open', 'high', 'low', 'close', 'volume']
-data = (pd.read_hdf('data.h5', 'data/top500')
-        .loc[:, ohlcv + ['ret_01', 'sector', 'ret_fwd']]
-        .rename(columns={'ret_01': 'returns'})
-        .sort_index())
+# data = (pd.read_hdf('data.h5', 'data/top500')
+#         .loc[:, ohlcv + ['ret_01', 'sector', 'ret_fwd']]
+#         .rename(columns={'ret_01': 'returns'})
+#         .sort_index())
+hdfPath = Path.cwd() / "Data" / "assets.h5"
+data = (pd.read_hdf(hdfPath, 'quandl/wiki/prices')
+            .loc[idx["2016":"2017", "KO"], ['adj_open', 'adj_high', 'adj_low', 'adj_close', 'adj_volume']]
+            .rename(columns={"adj_open": "open", "adj_high": "high", "adj_low": "low", "adj_close": "close", "adj_volume": "volume"})
+            .reset_index(level=[0,1]))
+            # .unstack('ticker')
+            # .sort_index()
+            # .shift(-1)
+            # .tz_localize('UTC'))
 
 adv20 = data.groupby('ticker').rolling(20).volume.mean().reset_index(0, drop=True)
 data = data.assign(adv20=adv20)
@@ -252,3 +261,25 @@ mi,ic = {}, {}
 def get_mutual_info_score(returns, alpha, n=100000):
     df = pd.DataFrame({'y': returns, 'alpha': alpha}).dropna().sample(n=n)
     return mutual_info_regression(y=df.y, X=df[['alpha']])[0]
+
+## Alpha 003
+
+def alpha003(o, v):
+    """(-1 * ts_corr(rank(open), rank(volume), 10))"""
+
+    return (-ts_corr(rank(o), rank(v), 10)
+            .stack('ticker')
+            .swaplevel()
+            .replace([-np.inf, np.inf], np.nan))
+
+alpha = 3
+alphas[f'{alpha:03}'] = alpha003(o, v)
+# alphas[f'{alpha:03}'].to_hdf('alphas.h5', f'alphas/{alpha:03}')
+print (alpha003(o, v))
+
+sns.distplot(alphas[f'{alpha:03}'].clip(lower=-1));
+g = sns.jointplot(x=f'{alpha:03}', y='ret_fwd', data=alphas);
+g.annotate(spearmanr);
+
+mi[alpha] = get_mutual_info_score(alphas.ret_fwd, alphas[f'{alpha:03}'])
+print (mi[alpha])
