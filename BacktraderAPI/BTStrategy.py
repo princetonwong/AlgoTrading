@@ -274,7 +274,13 @@ class DonchianStrategy(bt.Strategy):
                 self.close()
 
 class CCICrossStrategy(bt.Strategy):
-    params = dict(cciParameters = (26,0.015,100,5))
+    params = dict(n=26, a=0.015, threshold=100, hold=5)
+    # params = (
+    #     ('n', 26),
+    #     ('a', 0.015),
+    #     ('threshold', 100),
+    #     ("hold", 5)
+    # )
 
     def __init__(self):
         self.holding = dict()
@@ -282,10 +288,9 @@ class CCICrossStrategy(bt.Strategy):
         self.dataclose = self.datas[0].close
         self.dataopen = self.datas[0].open
 
-        n, a, cciThreshold, self.hold = self.p.cciParameters
-        self.upperband = cciThreshold
-        self.lowerband = -cciThreshold
-        self.cci = bt.ind.CommodityChannelIndex(period=n, factor=a, upperband=self.upperband, lowerband=self.lowerband)
+        self.upperband = self.p.threshold
+        self.lowerband = -self.p.threshold
+        self.cci = bt.ind.CommodityChannelIndex(period=self.p.n, factor=self.p.a, upperband=self.upperband, lowerband=self.lowerband)
 
         self.upperCrossover = bt.ind.CrossUp(self.cci, self.upperband, subplot = False)
         self.lowerCrossover = bt.ind.CrossDown(self.cci, self.lowerband, subplot = False)
@@ -309,12 +314,12 @@ class CCICrossStrategy(bt.Strategy):
                 self.order = self.sell()
 
         elif self.position.size > 0:
-            if (len(self) - self.holdstart) >= self.hold:
+            if (len(self) - self.holdstart) >= self.p.hold:
                 if self.cci < self.upperband:
                     self.close()
 
         elif self.position.size < 0:
-            if (len(self) - self.holdstart) >= self.hold:
+            if (len(self) - self.holdstart) >= self.p.hold:
                 if self.cci > self.lowerband:
                     self.close()
 
@@ -322,10 +327,16 @@ class CCICrossStrategyWithSLOWKDExit(CCICrossStrategy):
     '''
     ('period', 14), ('period_dfast', 3), ('period_dslow', 3),)
     '''
-    params = dict(stochParameters=(5, 3, 3))
+    params = (
+        ('period', 5),
+        ('period_dfast', 3),
+        ('period_dslow', 3),
+    )
+
 
     def __init__(self):
         super(CCICrossStrategyWithSLOWKDExit, self).__init__()
+        self.order = None
         # self.p.period, self.p.period_dfast, self.p.period_dslow = self.p.cciParameters
         self.stoch = bt.ind.StochasticFull()
         self.kCrossupD = bt.ind.CrossUp(self.stoch.percK, self.stoch.percD, subplot= False)
@@ -344,7 +355,7 @@ class CCICrossStrategyWithSLOWKDExit(CCICrossStrategy):
                 self.order = self.sell()
 
         elif self.position.size > 0:
-            if (len(self) - self.holdstart) >= self.hold:
+            if (len(self) - self.holdstart) >= self.p.hold:
                 if self.kCrossupD:
                     self.close()
                     print ("kCrossupD exit: CCI:{}".format(self.cci[0]))
@@ -354,7 +365,7 @@ class CCICrossStrategyWithSLOWKDExit(CCICrossStrategy):
                     self.close()
 
         elif self.position.size < 0:
-            if (len(self) - self.holdstart) >= self.hold:
+            if (len(self) - self.holdstart) >= self.p.hold:
                 if self.kCrossdownD:
                     self.close()
                     print ("kCrossdownD exit: CCI:{}".format(self.cci[0]))

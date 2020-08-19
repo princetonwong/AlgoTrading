@@ -6,8 +6,8 @@ from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTIndicat
 SYMBOL = "HK.MHImain"
 SUBTYPE = SubType.K_30M
 CCIPARAMETERS = (26, 0.015, 100 ,7)
-TIMERANGE = ("2020-01-01", "00:00:00", "2020-03-31", "16:31:00")
-# TIMERANGE = None
+# TIMERANGE = ("2020-01-01", "00:00:00", "2020-03-31", "16:31:00")
+TIMERANGE = None
 
 folderName = "{}-{}-{}".format(SYMBOL, SUBTYPE, Helper().get_timestamp())
 
@@ -27,13 +27,14 @@ data.addfilter(bt.filters.HeikinAshi(data))
 #Sizer
 cerebro.addsizer(BTSizer.PercentSizer, percents= 50)
 
-#Strategy
-cerebro.addstrategy(BTStrategy.CCICrossStrategyWithSLOWKDExit)
-
 #Broker
 cerebro.broker.setcash(30000.0)
 cerebro.broker.setcommission(commission=0.0004)
 print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
+
+#Strategy
+# cerebro.addstrategy(BTStrategy.CCICrossStrategyWithSLOWKDExit)
+cerebro.optstrategy(BTStrategy.CCICrossStrategyWithSLOWKDExit, hold= range(5,10))
 
 #Analyzer
 cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="ta")
@@ -41,18 +42,30 @@ cerebro.addanalyzer(bt.analyzers.SQN, _name="sqn")
 cerebro.addanalyzer(bt.analyzers.Transactions, _name="transactions")
 
 #Run
-strategies = cerebro.run(stdstats = True)
+results = cerebro.run(stdstats = False)
 print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
-#Analyzer methods
-strategy = strategies[0]
-df = BTAnalyzer.getTradeAnalysisDf(strategy.analyzers.ta.get_analysis(), folderName)
-df2 = BTAnalyzer.getSQNDf(strategy.analyzers.sqn.get_analysis(), folderName)
-df3 = BTAnalyzer.getTransactionsDf(strategy.analyzers.transactions.get_analysis(), folderName)
+from backtrader_plotting import Bokeh #TODO
+from backtrader_plotting.schemes import Tradimo
+from bokeh.io import show
+b = Bokeh(style='bar', plot_mode='single', scheme=Tradimo())
+fig = cerebro.plot(b)
 
-#Plotting
-figs = cerebro.plot(style = "candle", iplot= False, subtxtsize = 6, maxcpus=1)
-Helper().saveFig(figs, folderName)
+#Analyzer methods
+# strategy = strategies[0]
+# df = BTAnalyzer.getTradeAnalysisDf(strategy.analyzers.ta.get_analysis(), folderName)
+# df2 = BTAnalyzer.getSQNDf(strategy.analyzers.sqn.get_analysis(), folderName)
+# df3 = BTAnalyzer.getTransactionsDf(strategy.analyzers.transactions.get_analysis(), folderName)
+
+# strategies = [x[0][0] for x in results]
+# for strategy in enumerate(strategies):
+#     df = BTAnalyzer.getTradeAnalysisDf(strategy.analyzers.ta.get_analysis(), folderName)
+#     df2 = BTAnalyzer.getSQNDf(strategy.analyzers.sqn.get_analysis(), folderName)
+#     df3 = BTAnalyzer.getTransactionsDf(strategy.analyzers.transactions.get_analysis(), folderName)
+
+# #Plotting
+# figs = cerebro.plot(style = "candle", iplot= False, subtxtsize = 6, maxcpus=1)
+# Helper().saveFig(figs, folderName)
 
 
 # PyFolio Analyzer (deprecated)
