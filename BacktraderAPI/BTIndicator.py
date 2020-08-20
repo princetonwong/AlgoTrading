@@ -1,5 +1,6 @@
 import backtrader as bt
-from backtrader.indicators import MovingAverageSimple
+from backtrader.indicators import MovingAverageSimple, Highest, Lowest
+import numpy as np
 
 class StochRSI(bt.Indicator):
     lines = ('stochrsi',)
@@ -87,3 +88,69 @@ class MACDHistogram(bt.ind.MACDHisto):
     def __init__(self):
         super(bt.ind.MACDHisto, self).__init__()
         self.lines.histo = (self.lines.macd - self.lines.signal) * 2
+
+# from __future__ import (absolute_import, division, print_function, unicode_literals)
+
+from backtrader.indicators import Indicator, Max, MovAv, Highest, Lowest, DivByZero
+class HeiKinAshiStochasticBase(bt.ind.HeikinAshi):
+    lines = ('percK', 'percD',)
+    params = (('period', 14), ('period_dfast', 3), ('movav', MovAv.Simple),
+              ('upperband', 80.0), ('lowerband', 20.0),
+              ('safediv', False), ('safezero', 0.0))
+
+    plotlines = dict(percD=dict(_name='%D', ls='--'),
+                     percK=dict(_name='%K'))
+
+    def _plotlabel(self):
+        plabels = [self.p.period, self.p.period_dfast]
+        plabels += [self.p.movav] * self.p.notdefault('movav')
+        return plabels
+
+    def _plotinit(self):
+        self.plotinfo.plotyhlines = [self.p.upperband, self.p.lowerband]
+
+    def __init__(self):
+        highesthigh = Highest(self.l.ha_high, period=self.p.period)
+        lowestlow = Lowest(self.l.ha_low, period=self.p.period)
+        knum = self.l.ha_close - lowestlow
+        kden = highesthigh - lowestlow
+        if self.p.safediv:
+            self.k = 100.0 * DivByZero(knum, kden, zero=self.p.safezero)
+        else:
+            self.k = 100.0 * (knum / kden)
+        self.d = self.p.movav(self.k, period=self.p.period_dfast)
+
+        super(HeiKinAshiStochasticBase, self).__init__()
+
+class HeiKinAshiStochasticFull(HeiKinAshiStochasticBase):
+    '''
+    This version displays the 3 possible lines:
+
+      - percK
+      - percD
+      - percSlow
+
+    Formula:
+      - k = d
+      - d = MovingAverage(k, period_dslow)
+      - dslow =
+
+    See:
+      - http://en.wikipedia.org/wiki/Stochastic_oscillator
+    '''
+    lines = ('percDSlow',)
+    params = (('period_dslow', 3),)
+
+    plotlines = dict(percDSlow=dict(_name='%DSlow'))
+
+    def _plotlabel(self):
+        plabels = [self.p.period, self.p.period_dfast, self.p.period_dslow]
+        plabels += [self.p.movav] * self.p.notdefault('movav')
+        return plabels
+
+    def __init__(self):
+        super(HeiKinAshiStochasticFull, self).__init__()
+        self.lines.percK = self.k
+        self.lines.percD = self.d
+        self.l.percDSlow = self.p.movav(
+            self.l.percD, period=self.p.period_dslow)

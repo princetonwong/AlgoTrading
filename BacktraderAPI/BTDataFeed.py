@@ -5,8 +5,9 @@ import numpy as np
 import seaborn as sns
 from CustomAPI.FutuAPI import FutuAPI
 from pathlib import Path
+from CustomAPI.Helper import Helper
 
-def getFutuDataFeed(symbol: str, subtype: SubType, timeRange):
+def getFutuDataFeed(symbol: str, subtype: SubType, timeRange, folderName = None):
     if timeRange is None:
         df = FutuAPI().getRealTimeKLine(symbol, subtype)
     else:
@@ -14,6 +15,10 @@ def getFutuDataFeed(symbol: str, subtype: SubType, timeRange):
     df['datetime'] = pd.to_datetime(df['time_key'], format='%Y-%m-%d %H:%M:%S')
     df = df[['open', 'high', 'low', 'close', 'volume', "datetime"]]
     df.set_index("datetime", inplace=True)
+
+    if folderName is not None:
+        Helper().gradientAppliedXLSX(df, "DataRaw.xlsx", ['close', 'volume'], folderName)
+
     return bt.feeds.PandasData(dataname=df, openinterest=None)
 
 def getExcelDataFeed(excelPath: str):

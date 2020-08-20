@@ -35,7 +35,7 @@ class ShortOnlySizer(bt.Sizer):
 
       # Buy situation
       position = self.broker.getposition(data)
-      if position.size:
+      if position.size == 0:
           return 0  # do not sell if nothing is open
 
       return self.p.stake

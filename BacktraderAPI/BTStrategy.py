@@ -349,29 +349,39 @@ class CCICrossStrategyWithSLOWKDExit(CCICrossStrategy):
         # If we are not in the market,
         if self.position.size == 0:
             if self.upperCrossover:
-                self.order = self.buy()
+                self.order = self.buy(data= self.data1, exectype=bt.Order.Limit ,price = self.data1.close[0])
 
             elif self.lowerCrossover:
-                self.order = self.sell()
+                self.order = self.sell(data= self.data1, exectype=bt.Order.Limit ,price = self.data1.close[0])
 
         elif self.position.size > 0:
             if (len(self) - self.holdstart) >= self.p.hold:
                 if self.kCrossupD:
-                    self.close()
+                    self.close(data= self.data1, exectype=bt.Order.Limit ,price = self.data1.close[0])
                     print ("kCrossupD exit: CCI:{}".format(self.cci[0]))
                     return
 
                 if self.cci < self.upperband:
-                    self.close()
+                    self.close(data= self.data1, exectype=bt.Order.Limit ,price = self.data1.close[0])
 
         elif self.position.size < 0:
             if (len(self) - self.holdstart) >= self.p.hold:
                 if self.kCrossdownD:
-                    self.close()
+                    self.close(data= self.data1, exectype=bt.Order.Limit ,price = self.data1.close[0])
                     print ("kCrossdownD exit: CCI:{}".format(self.cci[0]))
                     return
                 if self.cci > self.lowerband:
-                    self.close()
+                    self.close(data= self.data1, exectype=bt.Order.Limit ,price = self.data1.close[0])
+
+class CCICrossStrategyWithSLOWKDExitHeikinAshi(CCICrossStrategyWithSLOWKDExit):
+    def __init__(self):
+        super(CCICrossStrategyWithSLOWKDExitHeikinAshi, self).__init__()
+        # self.heiKinAshi = bt.ind.HeikinAshi(subplot=False)
+        self.stoch = BTIndicator.HeiKinAshiStochasticFull()
+        self.stoch.csv = True
+        self.kCrossupD = bt.ind.CrossUp(self.stoch.percK, self.stoch.percD, subplot=False)
+        self.kCrossdownD = bt.ind.CrossDown(self.stoch.percK, self.stoch.percD, subplot=False)
+
 
 class BBandsTrendFollowingStrategy(BBandsMeanReversionStrategy):
     '''

@@ -23,11 +23,11 @@ class Helper():
         return path
 
     @staticmethod
-    def gradientAppliedXLSX(df, fileName, subset):
+    def gradientAppliedXLSX(df, fileName, subset, folderName=None):
         formattedDf = df.style.background_gradient(cmap="PiYG", subset= subset)\
                                                      .highlight_null(null_color='transparent')
 
-        Helper.outputXLSX(formattedDf, folderName= Helper().getOutputFolderPath(), fileName = fileName)
+        Helper.outputXLSX(formattedDf, folderName= Helper().getOutputFolderPath(folderName), fileName = fileName)
         return formattedDf
 
     @staticmethod
@@ -47,7 +47,7 @@ class Helper():
         for fig in figs:
             for f in fig:
                 f.set_size_inches(8, 4.5)
-                f.savefig(path, dpi=72)
+                f.savefig(path, dpi=100)
 
     @staticmethod
     def getWriterOutputPath (folderName):

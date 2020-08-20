@@ -2,7 +2,6 @@ from futu import *
 import backtrader as bt
 from CustomAPI.Helper import Helper
 from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTIndicator, BTFilter
-import copy
 
 SYMBOL = "HK.MHImain"
 SUBTYPE = SubType.K_30M
@@ -19,16 +18,14 @@ cerebro.addwriter(bt.WriterFile, csv=True, out=Helper().getWriterOutputPath(FOLD
 
 #Data Feed
 data0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
-cerebro.adddata(data0, name="HEIKINASHI")
+cerebro.adddata(data0)
 
-data1 = copy.deepcopy(data0)
-data1.plotinfo.plotmaster = data0
-cerebro.adddata(data1, name="TRADE")
+# data1 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
+# cerebro.adddata(data1)
 # data = BTDataFeed.getHDFWikiPriceDataFeed(["TSLA"], startYear= "2016")
 
-
 #Data Filter
-data0.addfilter(bt.filters.HeikinAshi(data0))
+# data0.addfilter(bt.filters.HeikinAshi(data0))
 
 #Sizer
 cerebro.addsizer(BTSizer.FixedSizer)
@@ -40,7 +37,7 @@ cerebro.broker.setcommission(commission=10.6, margin=26000.0, mult=10.0)
 print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
 #Strategy
-cerebro.addstrategy(BTStrategy.CCICrossStrategyWithSLOWKDExit)
+cerebro.addstrategy(BTStrategy.CCICrossStrategyWithSLOWKDExit0)
 # cerebro.optstrategy(BTStrategy.CCICrossStrategyWithSLOWKDExit, hold= range(5,10))
 
 #Analyzer
@@ -49,7 +46,7 @@ cerebro.addanalyzer(bt.analyzers.SQN, _name="sqn")
 cerebro.addanalyzer(bt.analyzers.Transactions, _name="transactions")
 
 #Run
-results = cerebro.run(stdstats=True)
+results = cerebro.run()
 print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
 #Plotting
