@@ -255,17 +255,17 @@ class WilliamsRStrategy(bt.Strategy):
     '''
     Entry Criteria:
       - Long:
-          - Price close crosses down lowerband and then crosses up back
+          - Price close crosses down lowerband
       - Short:
-          - Price close crosses up upperband and then crosses down back
+          - Price close crosses up upperband
      Exit Criteria:
       - Long/Short:  Price close crosses up upperband / down lowerband
     '''
 
     params = (
         ('period', 14),
-        ('upperband', -40),
-        ('lowerband', -60),
+        ('upperband', -20),
+        ('lowerband', -80),
         ("debug", False)
              )
 
@@ -285,7 +285,7 @@ class WilliamsRStrategy(bt.Strategy):
 
             if self.crossLowerBand == -1:
                 self.buy(exectype=bt.Order.Stop, price=self.data.close)
-            if self.crossUpperBand == -1:
+            if self.crossUpperBand == 1:
                 self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
         elif self.position.size > 0:  # longing in the market
@@ -295,7 +295,7 @@ class WilliamsRStrategy(bt.Strategy):
 
         elif self.position.size < 0:  # shorting in the market
 
-            if self.crossLowerBand == 1:
+            if self.crossLowerBand == -1:
                 self.buy(exectype=bt.Order.Stop, price=self.data.close)
 
         if self.p.debug:
