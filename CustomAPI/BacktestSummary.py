@@ -72,8 +72,8 @@ class BacktestSummary():
         longOrderDf = self.data[self.data["orderPlaced"] == 1]
         shortOrderDf = self.data[self.data["orderPlaced"] == -1]
 
-        long = longOrderDf[field].sum()   #TODO: last_close or close or open
-        short = shortOrderDf[field].sum()   #TODO: last_close or close or open
+        long = longOrderDf[field].sum()
+        short = shortOrderDf[field].sum()
         orderPlacedDf = pd.concat([longOrderDf, shortOrderDf])
 
         numberOfOrders = len(orderPlacedDf)

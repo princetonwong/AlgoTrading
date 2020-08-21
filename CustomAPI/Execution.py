@@ -37,7 +37,6 @@ class Execution():
     def downloadBacktestData(symbol, subtype, timeRange=None):
         backtest = Backtest(symbol, subtype)
         data = backtest.obtainDataFromFutu(timeRange)
-        # data.to_csv("{}-{}.csv".format(symbol, subtype))  ##TODO
         return backtest, data
 
     ## Details
