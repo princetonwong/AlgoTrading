@@ -251,6 +251,57 @@ class MACDCrossStrategy(bt.Strategy):
         #         # Update only if greater than
         #         self.pstop = max(pstop, pclose - pdist)
 
+class WilliamsRStrategy(bt.Strategy):
+
+    '''
+    Entry Criteria:
+      - Long:
+          - Price close crosses down lowerband
+      - Short:
+          - Price close crosses up upperband
+     Exit Criteria:
+      - Long/Short:  Price close crosses up upperband / down lowerband
+    '''
+
+    params = (
+        ('period', 14),
+        ('upperband', -20),
+        ('lowerband', -80),
+        ("debug", False)
+             )
+
+    def __init__(self):
+        self.williamsR = bt.indicators.WilliamsR(self.data,
+                                                 period=self.p.period,
+                                                 upperband=self.p.upperband,
+                                                 lowerband=self.p.lowerband,
+                                                 )
+        self.crossLowerBand = bt.indicators.CrossOver(self.williamsR, self.p.lowerband, subplot=False)
+        self.crossUpperBand = bt.indicators.CrossOver(self.williamsR, self.p.upperband, subplot=False)
+
+    def next(self):
+        orders = self.broker.get_orders_open()
+
+        if self.position.size == 0:  # not in the market
+
+            if self.crossLowerBand == -1:
+                self.buy(exectype=bt.Order.Stop, price=self.data.close)
+            if self.crossUpperBand == 1:
+                self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+        elif self.position.size > 0:  # longing in the market
+
+            if self.crossUpperBand == 1:
+                self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+        elif self.position.size < 0:  # shorting in the market
+
+            if self.crossLowerBand == -1:
+                self.buy(exectype=bt.Order.Stop, price=self.data.close)
+
+        if self.p.debug:
+            self.debug()
+
 #Trend Following
 class DonchianStrategy(bt.Strategy):
     def __init__(self):
@@ -498,3 +549,54 @@ class BBandsTrendFollowingStrategy(BBandsMeanReversionStrategy):
 
         if self.p.debug:
             self.debug()
+
+class DMIStrategy(bt.Strategy):
+
+    '''
+         Entry Critria:
+          - Long:
+              - +DI > -DI
+              - ADX > Benchmark
+          - Short:
+              - +DI < -DI
+              - ADX > Benchmark
+
+         Exit Critria
+          - Long/Short: Same as opposite
+    '''
+
+    params = (("period", 14),
+              ("adxBenchmark", 20),
+              ("debug", False)
+             )
+
+    def __init__(self):
+        self.dmi = bt.indicators.DirectionalMovementIndex(self.data, period=self.p.period)
+        self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
+
+    def next(self):
+
+        orders = self.broker.get_orders_open()
+
+        if self.dmi.adx > self.p.adxBenchmark:
+
+            if self.position.size == 0:  # not in the market
+
+                if self.dicross == 1:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+                if self.dicross == -1:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+            elif self.position.size > 0:  # longing in the market
+
+                if self.dicross == -1:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+            elif self.position.size < 0:  # shorting in the market
+
+                if self.dicross == 1:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+
+            if self.p.debug:
+                self.debug()
+

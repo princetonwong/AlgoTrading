@@ -89,6 +89,9 @@ class MACDHistogram(bt.ind.MACDHisto):
         super(bt.ind.MACDHisto, self).__init__()
         self.lines.histo = (self.lines.macd - self.lines.signal) * 2
 
+# class WilliamRHorizontalLine(bt.ind.WilliamsR):
+
+
 # from __future__ import (absolute_import, division, print_function, unicode_literals)
 
 class talibCCI(bt.Indicator):
