@@ -447,3 +447,54 @@ class BBandsTrendFollowingStrategy(BBandsMeanReversionStrategy):
 
         if self.p.debug:
             self.debug()
+
+class DMIStrategy(bt.Strategy):
+
+    '''
+         Entry Critria:
+          - Long:
+              - +DI > -DI
+              - ADX > Benchmark
+          - Short:
+              - +DI < -DI
+              - ADX > Benchmark
+
+         Exit Critria
+          - Long/Short: Same as opposite
+    '''
+
+    params = (("period", 14),
+              ("adxBenchmark", 20),
+              ("debug", False)
+             )
+
+    def __init__(self):
+        self.dmi = bt.indicators.DirectionalMovementIndex(self.data, period=self.p.period)
+        self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
+
+    def next(self):
+
+        orders = self.broker.get_orders_open()
+
+        if self.dmi.adx > self.p.adxBenchmark:
+
+            if self.position.size == 0:  # not in the market
+
+                if self.dicross == 1:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+                if self.dicross == -1:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+            elif self.position.size > 0:  # longing in the market
+
+                if self.dicross == -1:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+            elif self.position.size < 0:  # shorting in the market
+
+                if self.dicross == 1:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+
+            if self.p.debug:
+                self.debug()
+
