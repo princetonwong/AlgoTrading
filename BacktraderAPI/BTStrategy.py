@@ -325,7 +325,7 @@ class DonchianStrategy(bt.Strategy):
                 self.close()
 
 class CCICrossStrategy(bt.Strategy):
-    params = dict(cciParameters = (26,0.015,100,5))
+    params = dict(period=26, factor=0.015, threshold=100, hold=5)
 
     def __init__(self):
         self.holding = dict()
@@ -333,10 +333,10 @@ class CCICrossStrategy(bt.Strategy):
         self.dataclose = self.datas[0].close
         self.dataopen = self.datas[0].open
 
-        n, a, cciThreshold, self.hold = self.p.cciParameters
-        self.upperband = cciThreshold
-        self.lowerband = -cciThreshold
-        self.cci = bt.ind.CommodityChannelIndex(period=n, factor=a, upperband=self.upperband, lowerband=self.lowerband)
+        self.upperband = self.p.threshold
+        self.lowerband = -self.p.threshold
+        self.cci = BTIndicator.talibCCI(period=self.p.period, factor=self.p.factor, upperband=self.upperband, lowerband=self.lowerband)
+        self.cci.csv= True
 
         self.upperCrossover = bt.ind.CrossUp(self.cci, self.upperband, subplot = False)
         self.lowerCrossover = bt.ind.CrossDown(self.cci, self.lowerband, subplot = False)
@@ -360,25 +360,23 @@ class CCICrossStrategy(bt.Strategy):
                 self.order = self.sell()
 
         elif self.position.size > 0:
-            if (len(self) - self.holdstart) >= self.hold:
+            if (len(self) - self.holdstart) >= self.p.hold:
                 if self.cci < self.upperband:
                     self.close()
 
         elif self.position.size < 0:
-            if (len(self) - self.holdstart) >= self.hold:
+            if (len(self) - self.holdstart) >= self.p.hold:
                 if self.cci > self.lowerband:
                     self.close()
 
 class CCICrossStrategyWithSLOWKDExit(CCICrossStrategy):
-    '''
-    ('period', 14), ('period_dfast', 3), ('period_dslow', 3),)
-    '''
-    params = dict(stochParameters=(5, 3, 3))
+
+    params = dict(period=5, period_dfast=3, period_dslow=3)
 
     def __init__(self):
         super(CCICrossStrategyWithSLOWKDExit, self).__init__()
         # self.p.period, self.p.period_dfast, self.p.period_dslow = self.p.cciParameters
-        self.stoch = bt.ind.StochasticFull()
+        self.stoch = bt.ind.StochasticFull(period= self.p.period, period_dfast= self.p.period_dfast, period_dslow= self.p.period_dslow, safediv=True)
         self.kCrossupD = bt.ind.CrossUp(self.stoch.percK, self.stoch.percD, subplot= False)
         self.kCrossdownD = bt.ind.CrossDown(self.stoch.percK, self.stoch.percD, subplot= False)
 
@@ -389,29 +387,132 @@ class CCICrossStrategyWithSLOWKDExit(CCICrossStrategy):
         # If we are not in the market,
         if self.position.size == 0:
             if self.upperCrossover:
-                self.order = self.buy()
+                self.order = self.buy(data= self.data0, exectype=bt.Order.Limit ,price = self.data0.close[0])
 
             elif self.lowerCrossover:
-                self.order = self.sell()
+                self.order = self.sell(data= self.data0, exectype=bt.Order.Limit ,price = self.data0.close[0])
 
         elif self.position.size > 0:
-            if (len(self) - self.holdstart) >= self.hold:
+            if (len(self) - self.holdstart) >= self.p.hold:
                 if self.kCrossupD:
-                    self.close()
+                    self.close(data= self.data0, exectype=bt.Order.Limit ,price = self.data0.close[0])
                     print ("kCrossupD exit: CCI:{}".format(self.cci[0]))
                     return
 
                 if self.cci < self.upperband:
-                    self.close()
+                    self.close(data= self.data0, exectype=bt.Order.Limit ,price = self.data0.close[0])
 
         elif self.position.size < 0:
-            if (len(self) - self.holdstart) >= self.hold:
+            if (len(self) - self.holdstart) >= self.p.hold:
                 if self.kCrossdownD:
-                    self.close()
+                    self.close(data= self.data0, exectype=bt.Order.Limit ,price = self.data0.close[0])
                     print ("kCrossdownD exit: CCI:{}".format(self.cci[0]))
                     return
                 if self.cci > self.lowerband:
-                    self.close()
+                    self.close(data= self.data0, exectype=bt.Order.Limit ,price = self.data0.close[0])
+
+class CCICrossStrategyWithSLOWKDExitHeikinAshi(CCICrossStrategyWithSLOWKDExit):
+    def __init__(self):
+        super(CCICrossStrategyWithSLOWKDExitHeikinAshi, self).__init__()
+        # self.heiKinAshi = bt.ind.HeikinAshi(subplot=False)
+        self.stoch = BTIndicator.HeiKinAshiStochasticFull()
+        self.stoch.csv = True
+        self.kCrossupD = bt.ind.CrossUp(self.stoch.percK, self.stoch.percD, subplot=False)
+        self.kCrossdownD = bt.ind.CrossDown(self.stoch.percK, self.stoch.percD, subplot=False)
+
+
+class ClenowTrendFollowingStrategy(bt.Strategy):
+    """The trend following strategy from the book "Following the trend" by Andreas Clenow."""
+    alias = ('ClenowTrendFollowing',)
+
+    params = (
+        ('trend_filter_fast_period', 50),
+        ('trend_filter_slow_period', 100),
+        ('fast_donchian_channel_period', 25),
+        ('slow_donchian_channel_period', 50),
+        ('trailing_stop_atr_period', 100),
+        ('trailing_stop_atr_count', 3),
+        ('risk_factor', 0.002)
+    )
+
+    def __init__(self):
+        self.trend_filter_fast = bt.indicators.EMA(period=self.params.trend_filter_fast_period)
+        self.trend_filter_slow = bt.indicators.EMA(period=self.params.trend_filter_slow_period)
+        self.dc_fast = BTIndicator.DonchianChannels(period=self.params.fast_donchian_channel_period)
+        self.dc_slow = BTIndicator.DonchianChannels(period=self.params.slow_donchian_channel_period)
+        self.atr = bt.indicators.ATR(period=self.params.trailing_stop_atr_period)
+        self.order = None  # the pending order
+        # For trailing stop loss
+        self.sl_order = None  # trailing stop order
+        self.sl_price = None
+        self.max_price = None  # track the highest price after opening long positions
+        self.min_price = None  # track the lowest price after opening short positions
+
+    def next(self):
+        # self.dc_slow.dcl <= self.dc_fast.dcl <= self.dc_fast.dch <= self.dc_slow.dch
+        assert self.dc_slow.dcl <= self.dc_fast.dcl
+        assert self.dc_fast.dcl <= self.dc_fast.dch
+        assert self.dc_fast.dch <= self.dc_slow.dch
+
+        if not self.position:  # Entry rules
+            assert self.position.size == 0
+
+            # Position size rule
+            max_loss = self.broker.get_cash() * self.p.risk_factor  # cash you afford to loss
+            position_size = max_loss / self.atr[0]
+
+            if self.data.close > self.dc_slow.dch:
+                if self.trend_filter_fast > self.trend_filter_slow:  # trend filter
+                    if self.order:
+                        self.broker.cancel(self.order)
+                    else:
+                        # Entry rule 1
+                        self.order = self.buy(price=self.data.close[0], size=position_size, exectype=bt.Order.Limit)
+                        self.max_price = self.data.close[0]
+            elif self.data.close < self.dc_slow.dcl:
+                if self.trend_filter_fast < self.trend_filter_slow:  # trend filter
+                    if self.order:
+                        self.broker.cancel(self.order)
+                    else:
+                        # Entry rule 2
+                        self.order = self.sell(price=self.data.close[0], size=position_size, exectype=bt.Order.Limit)
+                        self.min_price = self.data.close[0]
+        else:
+            assert self.position.size
+            # assert self.order is None
+
+            # Exit rules
+            if self.position.size > 0:
+                # Exit rule 1
+                if self.data.close < self.dc_fast.dcl:
+                    self.order = self.order_target_value(target=0.0, exectype=bt.Order.Limit, price=self.data.close[0])
+                    return
+            else:
+                # Exit rule 2
+                if self.data.close > self.dc_fast.dch:
+                    self.order = self.order_target_value(target=0.0, exectype=bt.Order.Limit, price=self.data.close[0])
+                    return
+
+            # Trailing stop loss
+            trail_amount = self.atr[0] * self.p.trailing_stop_atr_count
+            if self.position.size > 0:
+                self.max_price = self.data.close[0] if self.max_price is None else max(self.max_price,
+                                                                                       self.data.close[0])
+                if self.sl_price is None or self.sl_price < self.max_price - trail_amount:
+                    self.sl_price = self.max_price - trail_amount  # increase trailing price
+                    if self.sl_order:
+                        self.broker.cancel(self.sl_order)
+                    else:
+                        self.sl_order = self.order_target_value(target=0.0, exectype=bt.Order.Stop, price=self.sl_price)
+            elif self.position.size < 0:
+                self.min_price = self.data.close[0] if self.min_price is None else min(self.min_price,
+                                                                                       self.data.close[0])
+                if self.sl_price is None or self.sl_price > self.min_price + trail_amount:
+                    self.sl_price = self.min_price + trail_amount  # decrease trailing price
+                    if self.sl_order:
+                        self.broker.cancel(self.sl_order)
+                    else:
+                        self.sl_order = self.order_target_value(target=0.0, exectype=bt.Order.Stop, price=self.sl_price)
 
 class BBandsTrendFollowingStrategy(BBandsMeanReversionStrategy):
     '''

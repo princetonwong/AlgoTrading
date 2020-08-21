@@ -75,3 +75,30 @@ def getSQNDf(analyzer, outputFolderPath: str = None):
         Helper().outputXLSX(resultDF, folderName=outputFolderPath, fileName="SQN.xlsx")
 
     return resultDF
+
+def getDrawDownDf(analyzer, outputFolderPath: str = None):
+    maxDrawDown = round(analyzer.max.drawdown, 2)
+    index = ["Max DrawDown"]
+    result = [maxDrawDown]
+    resultDF = pd.DataFrame(result, index=index)
+
+    print ("Max Drawdown: {}".format(maxDrawDown))
+
+    if outputFolderPath != None:
+        Helper().outputXLSX(resultDF, folderName=outputFolderPath, fileName="Drawdown.xlsx")
+
+    return resultDF
+
+
+def getSharpeRatioDf(analyzer, outputFolderPath: str = None):
+    sharpeRatio = round(analyzer["sharperatio"], 2)
+    index = ["Sharpe Ratio"]
+    result = [sharpeRatio]
+    resultDF = pd.DataFrame(result, index=index)
+
+    print("Sharpe Ratio: {}".format(sharpeRatio))
+
+    if outputFolderPath != None:
+        Helper().outputXLSX(resultDF, folderName=outputFolderPath, fileName="SharpeRatio.xlsx")
+
+    return resultDF

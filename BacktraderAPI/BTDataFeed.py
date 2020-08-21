@@ -5,8 +5,9 @@ import numpy as np
 import seaborn as sns
 from CustomAPI.FutuAPI import FutuAPI
 from pathlib import Path
+from CustomAPI.Helper import Helper
 
-def getFutuDataFeed(symbol: str, subtype: SubType, timeRange):
+def getFutuDataFeed(symbol: str, subtype: SubType, timeRange, folderName = None):
     if timeRange is None:
         df = FutuAPI().getRealTimeKLine(symbol, subtype)
     else:
@@ -14,6 +15,10 @@ def getFutuDataFeed(symbol: str, subtype: SubType, timeRange):
     df['datetime'] = pd.to_datetime(df['time_key'], format='%Y-%m-%d %H:%M:%S')
     df = df[['open', 'high', 'low', 'close', 'volume', "datetime"]]
     df.set_index("datetime", inplace=True)
+
+    if folderName is not None:
+        Helper().gradientAppliedXLSX(df, "DataRaw.xlsx", ['close', 'volume'], folderName)
+
     return bt.feeds.PandasData(dataname=df, openinterest=None)
 
 def getExcelDataFeed(excelPath: str):
@@ -34,27 +39,6 @@ def getHDFWikiPriceDataFeed(tickers: [str], startYear="2006", endYear:str = "201
     idx = pd.IndexSlice
     df= (pd.read_hdf(hdfPath, 'quandl/wiki/prices')
             .loc[idx[startYear:endYear, tickers], ['adj_open', 'adj_high', 'adj_low', 'adj_close', 'adj_volume']]
-            .rename(columns={"adj_open": "open", "adj_high": "high", "adj_low": "low", "adj_close": "close", "adj_volume": "volume"})
-            .reset_index(level=[0,1]))
-            # .unstack('ticker')
-            # .sort_index()
-            # .shift(-1)
-            # .tz_localize('UTC'))
-    # df['datetime'] =
-    # df = df[['open', 'high', 'low', 'close', 'volume', "datetime"]]
-    # df.set_index("datetime", inplace=True)
-
-    df['datetime'] = df["date"]
-    df = df[['open', 'high', 'low', 'close', 'volume', "datetime"]]
-    df.set_index("datetime", inplace=True)
-
-    return bt.feeds.PandasData(dataname=df, openinterest=None)
-
-def getHDFWikiPriceDataFeed(tickers: [str]):
-    hdfPath = Path.cwd() / "Data" / "assets.h5"
-    idx = pd.IndexSlice
-    df= (pd.read_hdf(hdfPath, 'quandl/wiki/prices')
-            .loc[idx['2006':'2017', tickers], ['adj_open', 'adj_high', 'adj_low', 'adj_close', 'adj_volume']]
             .rename(columns={"adj_open": "open", "adj_high": "high", "adj_low": "low", "adj_close": "close", "adj_volume": "volume"})
             .reset_index(level=[0,1]))
             # .unstack('ticker')
