@@ -87,3 +87,5 @@ class MACDHistogram(bt.ind.MACDHisto):
     def __init__(self):
         super(bt.ind.MACDHisto, self).__init__()
         self.lines.histo = (self.lines.macd - self.lines.signal) * 2
+
+# class WilliamRHorizontalLine(bt.ind.WilliamsR):
