@@ -86,7 +86,7 @@ class TradeModel():
         self.data['slowk'] = pd.Series(slowk, index=self.data.index.values)
         self.data['slowd'] = pd.Series(slowd, index=self.data.index.values)
 
-    def calculateSLOWKDThreshold(self): #TODO: refine formula
+    def calculateSLOWKDThreshold(self): #TODO: implement this threshold to BT
         self.slowkdThreshold = 40
         return self.slowkdThreshold
 
@@ -190,7 +190,7 @@ class TradeModel():
         self.data["MiddleBand"] = pd.Series(middleband, index=self.data.index.values)
         self.data["ZScore"] = pd.Series(zScore, index=self.data.index.values)
 
-    #TODO: Order System
+
     def orderByMACD (self):
         holding = self.data["holding"].values
         orderPlaced = self.data["orderPlaced"].values

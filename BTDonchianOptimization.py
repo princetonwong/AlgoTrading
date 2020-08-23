@@ -96,7 +96,7 @@ def run_strategy(
     # Helper().saveFig(figs, FOLDERNAME)
 
     # #Bokeh Plotting
-    # from backtrader_plotting import Bokeh #TODO
+    # from backtrader_plotting import Bokeh
     # from backtrader_plotting.schemes import Tradimo
     # b = Bokeh(style='bar', plot_mode='single', scheme=Tradimo())
     # fig = cerebro.plot(b, iplot=False)
@@ -158,4 +158,4 @@ def grid_search() -> pd.DataFrame:
     return df
 
 df = grid_search()
-Helper().outputXLSX(df, FOLDERNAME, "Optimized.xlsx")
+Helper().outputXLSX(df, "Optimized")

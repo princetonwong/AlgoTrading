@@ -14,7 +14,7 @@ class BacktestSummary():
         #     columns=["Symbol", "KLineSubType", "Number of Orders", "Profit", "Slippage", "Total Fee"])
         self.orders = pd.DataFrame()
         self.timestamp = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
-        self.filename = backtest.filename
+        self.filename = backtest.folderName
         self.feePerOrder = feePerOrder
 
         self.backtest = backtest
@@ -72,8 +72,8 @@ class BacktestSummary():
         longOrderDf = self.data[self.data["orderPlaced"] == 1]
         shortOrderDf = self.data[self.data["orderPlaced"] == -1]
 
-        long = longOrderDf[field].sum()   #TODO: last_close or close or open
-        short = shortOrderDf[field].sum()   #TODO: last_close or close or open
+        long = longOrderDf[field].sum()
+        short = shortOrderDf[field].sum()
         orderPlacedDf = pd.concat([longOrderDf, shortOrderDf])
 
         numberOfOrders = len(orderPlacedDf)
