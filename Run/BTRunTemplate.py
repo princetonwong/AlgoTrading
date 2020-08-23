@@ -8,22 +8,25 @@ from tqdm.contrib.concurrent import process_map
 
 
 SYMBOL = "HK.MHImain"
-SUBTYPE = SubType.K_30M
+SUBTYPE = SubType.K_15M
 TIMERANGE = ("2017-11-01", "00:00:00", "2018-12-31", "23:59:00")
 TIMERANGE = None
 DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2015")
 
 INITIALCASH = 50000
-OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True)
+OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
 
-STRATEGY = BTStrategy.CCICrossStrategyWithSLOWKDExit
+STRATEGY = BTStrategy.CCICrossStrategy
 PARAMS = dict(period=20, factor=0.015, threshold=100, hold=5)
 
 helper = Helper()
-helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
+
 
 def run_strategy(params: Dict[str, Union[float, int, bool]] = {**OUTPUTSETTINGS, **PARAMS}) -> pd.DataFrame:
+    if params["optimization"] is False:
+        helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
+
     #Init
     cerebro = bt.Cerebro()
     cerebro.addwriter(bt.WriterFile, csv=True, out=helper.generateFilePath("BackTraderData", ".csv"), rounding=2)
@@ -110,7 +113,7 @@ def run_strategy(params: Dict[str, Union[float, int, bool]] = {**OUTPUTSETTINGS,
         vwrDF = BTAnalyzer.getVWRDf(vwrAnalyzer)
         returnDF = BTAnalyzer.getReturnDf(returnAnalyzer)
         cashDF = pd.Series([INITIALCASH, finalPortfolioValue], index=["Initial Cash", "Final Portfolio Value"])
-        kellyDF = pd.Series([strategy.analyzers.kelly.get_analysis().kellyPercent], index=["KellyRatio"])
+        kellyDF = pd.Series([strategy.analyzers.kelly.get_analysis().kellyPercent], index=["Kelly Percent"])
 
         statsDF = pd.concat([taAnalyzerDF,
                              cashDF,
@@ -141,7 +144,8 @@ def run_strategy(params: Dict[str, Union[float, int, bool]] = {**OUTPUTSETTINGS,
         "PnL Net" : statsDF["PnL Net"],
         "Strike Rate" : statsDF["Strike Rate"],
         "SQN": statsDF["SQN"],
-        "VWR": statsDF["VWR"]
+        "VWR": statsDF["VWR"],
+        "Kelly Percent": statsDF["Kelly Percent"]
     }
 
     return {**params, **stats}
@@ -149,15 +153,11 @@ def run_strategy(params: Dict[str, Union[float, int, bool]] = {**OUTPUTSETTINGS,
 def grid_search(sortKey: str) -> pd.DataFrame:
     params_list = []
 
-    for period in range(5, 10):
-        for smoothing in range(2, 6):
-            outputsettings = dict(bokeh=False,plot=False,observer=True,analyzer=True)
+    for period in range(7, 30):
+        for hold in range(5, 10):
+            outputsettings = dict(bokeh=False,plot=False,observer=True,analyzer=True, optimization=True)
 
-            optimizationParams = dict(
-                period = period,
-                smoothing = smoothing,
-                rsiFactor = 0.45,
-            )
+            optimizationParams = dict(period=period, factor=0.015, threshold=100, hold=hold)
 
             params_list.append({**outputsettings, **optimizationParams})
 
@@ -170,5 +170,5 @@ def grid_search(sortKey: str) -> pd.DataFrame:
     helper.outputXLSX(df, "Optimization")
     return df
 
-# df = grid_search(sortKey = ["VWR"])
-df= run_strategy()
+df = grid_search(sortKey = ["VWR"])
+# df= run_strategy()
