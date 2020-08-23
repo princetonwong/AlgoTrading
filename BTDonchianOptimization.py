@@ -158,4 +158,4 @@ def grid_search() -> pd.DataFrame:
     return df
 
 df = grid_search()
-Helper().outputXLSX(df, FOLDERNAME, "Optimized.xlsx")
+Helper().outputXLSX(df, "Optimized")

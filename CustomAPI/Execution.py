@@ -83,20 +83,20 @@ class Execution():
 
    # Output
     def outputAnalyticsXLSX(self):
-        filename = "Summary---{} {}.xlsx".format(self.description, self.timestamp)
+        filename = "Summary---{} {}".format(self.description, self.timestamp)
         subset = ["CumulativeReturn", "DailyWinRate", "ProfitBeforeFee", "SharpeRatio"]
         return Helper().gradientAppliedXLSX(self.analytics.reset_index(drop= True), filename, subset)
 
     def outputOrdersXLSX(self):
         for summary in self.summaries:
-            filename = "Orders---{} {}.xlsx".format(summary.filename, self.timestamp)
+            filename = "Orders---{} {}".format(summary.folderName, self.timestamp)
             subset = ["holding", "orderPlaced", "macdScore", "slowkdScore", "CCIScore", "open", "close",
                       "profitPerOrder"]
             Helper().gradientAppliedXLSX(summary.orders.sort_values("time_key"), filename, subset)
 
     def outputModelDataXLSX(self):
         for backtest in self.backtests:
-            filename = "Data---{} {}.xlsx".format(backtest.filename, self.timestamp)
+            filename = "Data---{} {}".format(backtest.filename, self.timestamp)
             subset = ["holding", "orderPlaced", "macdScore", "slowkdScore", "CCIScore", "open", "close", "ZScore"]
             Helper().gradientAppliedXLSX(backtest.model.data, filename, subset)
 

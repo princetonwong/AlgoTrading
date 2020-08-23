@@ -14,7 +14,7 @@ class BacktestSummary():
         #     columns=["Symbol", "KLineSubType", "Number of Orders", "Profit", "Slippage", "Total Fee"])
         self.orders = pd.DataFrame()
         self.timestamp = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
-        self.filename = backtest.filename
+        self.filename = backtest.folderName
         self.feePerOrder = feePerOrder
 
         self.backtest = backtest
