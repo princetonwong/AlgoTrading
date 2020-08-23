@@ -1,5 +1,4 @@
 import pandas as pd
-import os
 from CustomAPI.Helper import Helper
 from backtrader.utils.py3 import iteritems
 
