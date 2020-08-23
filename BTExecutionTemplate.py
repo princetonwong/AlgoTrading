@@ -1,15 +1,16 @@
 from futu import *
 import backtrader as bt
 from CustomAPI.Helper import Helper
-from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTIndicator, BTFilter
+from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTIndicator
 import copy
 from typing import Dict, Union
 from tqdm.contrib.concurrent import process_map
+import pandas as pd
 
 SYMBOL = "HK.MHImain"
 SUBTYPE = SubType.K_15M
-# TIMERANGE = ("2019-01-01", "00:00:00", "2019-12-31", "23:59:00")
-TIMERANGE = None
+TIMERANGE = ("2019-11-01", "00:00:00", "2019-12-31", "23:59:00")
+# TIMERANGE = None
 
 # SYMBOL = "AAPL"
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2015")
@@ -21,7 +22,7 @@ helper = Helper()
 OPTIMIZATION = None
 FOLDERNAME = helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
 
-DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
+DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
 
 def run_strategy(
         params: Dict[str, Union[float, int]] = {
@@ -31,7 +32,7 @@ def run_strategy(
 ):
     #Init
     cerebro = bt.Cerebro()
-    cerebro.addwriter(bt.WriterFile, csv=True, out=Helper().generateFilePath("Data", ".csv"), rounding=2)
+    cerebro.addwriter(bt.WriterFile, csv=True, rounding=2)
     cerebro.adddata(DATA0, name=SYMBOL)
 
     # data1 = copy.deepcopy(data0)
@@ -85,14 +86,14 @@ def run_strategy(
     # browser.start()
 
     # #Bokeh Plotting
-    # from backtrader_plotting import Bokeh
-    # from backtrader_plotting.schemes import Tradimo
-    # b = Bokeh(filename=helper.generateFilePath("Report", ".html"), style='bar', plot_mode='single', scheme=Tradimo())
-    # fig = cerebro.plot(b, iplot=False)
+    from backtrader_plotting import Bokeh
+    from backtrader_plotting.schemes import Tradimo
+    b = Bokeh(filename=("Report.html"), style='bar', plot_mode='single', scheme=Tradimo())
+    fig = cerebro.plot(b, iplot=False)
 
     # Plotting
-    # figs = cerebro.plot(style = "candle", iplot= False, subtxtsize = 6, maxcpus=1, show=False)
-    # helper.saveFig(figs)
+    figs = cerebro.plot(style = "candle", iplot= False, subtxtsize = 6, maxcpus=1, show=False)
+    helper.saveFig(figs)
 
     #Analyzer methods
     strategy = results[0]
@@ -154,7 +155,10 @@ def grid_search() -> pd.DataFrame:
     df.sort_values('Sharpe Ratio', ascending=False, inplace=True)
     return df
 
-# df = grid_search()
-# Helper().outputXLSX(df, "Optimized")
+# if __name__ == '__main__':
+#     # df = grid_search()
+#     # Helper().outputXLSX(df, "Optimized")
+
+
 
 df= run_strategy(params=PARAMS)
