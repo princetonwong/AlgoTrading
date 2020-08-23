@@ -1,15 +1,15 @@
 from futu import *
 import backtrader as bt
 from CustomAPI.Helper import Helper
-from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTIndicator, BTFilter
+from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTIndicator
 import copy
 from typing import Dict, Union
 from tqdm.contrib.concurrent import process_map
 
 SYMBOL = "HK.MHImain"
 SUBTYPE = SubType.K_15M
-# TIMERANGE = ("2019-01-01", "00:00:00", "2019-12-31", "23:59:00")
-TIMERANGE = None
+TIMERANGE = ("2019-01-01", "00:00:00", "2019-12-31", "23:59:00")
+# TIMERANGE = None
 
 # SYMBOL = "AAPL"
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2015")
@@ -17,7 +17,7 @@ TIMERANGE = None
 INITIALCASH = 50000
 FOLDERNAME = "{}-{} {} {}".format(SYMBOL, SUBTYPE, Helper().get_timestamp(),"CCI")
 
-DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
+DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
 
 def run_strategy(
         params: Dict[str, Union[float, int]] = {
@@ -27,7 +27,7 @@ def run_strategy(
 ):
     #Init
     cerebro = bt.Cerebro()
-    cerebro.addwriter(bt.WriterFile, csv=True, out=Helper().getWriterOutputPath(FOLDERNAME), rounding=2)
+    cerebro.addwriter(bt.WriterFile, csv=True, rounding=2)
     cerebro.adddata(DATA0, name=SYMBOL)
 
     # data1 = copy.deepcopy(data0)
@@ -77,7 +77,7 @@ def run_strategy(
 
     # Plotting
     figs = cerebro.plot(style = "candle", iplot= False, subtxtsize = 6, maxcpus=1)
-    Helper().saveFig(figs, FOLDERNAME)
+    # Helper().saveFig(figs, FOLDERNAME)
 
     # #Bokeh Plotting
     from backtrader_plotting import Bokeh #TODO
@@ -85,38 +85,32 @@ def run_strategy(
     b = Bokeh(style='bar', plot_mode='single', scheme=Tradimo())
     fig = cerebro.plot(b, iplot=False)
 
-    #Analyzer methods
-    strategy = results[0]
-    df = BTAnalyzer.getTradeAnalysisDf(strategy.analyzers.ta.get_analysis(), FOLDERNAME)
-    df2 = BTAnalyzer.getSQNDf(strategy.analyzers.sqn.get_analysis(), FOLDERNAME)
-    df3 = BTAnalyzer.getTransactionsDf(strategy.analyzers.transactions.get_analysis(), FOLDERNAME)
-    df4 = BTAnalyzer.get(strategy.analyzers.drawdown.get_analysis(), FOLDERNAME)
-
-    taAnalyzer = results[0].analyzers.ta.get_analysis()
-    stats = {
-        # 'PnL': list(results[0].analyzers.timereturn.get_analysis().values())[0],
-        "Symbol": SYMBOL,
-        "SubType": SUBTYPE,
-        'BuyAndHold': list(results[0].analyzers.buyandhold.get_analysis().values())[0],
-        'Sharpe Ratio': results[0].analyzers.sharperatio.get_analysis()['sharperatio'],
-        'CARG': results[0].analyzers.returns.get_analysis()['ravg'],
-        'Max Drawdown': results[0].analyzers.drawdown.get_analysis().max.drawdown / 100,
-        "total Open" : taAnalyzer.total.open,
-        "total Closed" : taAnalyzer.total.closed,
-        "total Won" : taAnalyzer.won.total,
-        "total Lost" : taAnalyzer.lost.total,
-        "win Streak" : taAnalyzer.streak.won.longest,
-        "lose Streak" : taAnalyzer.streak.lost.longest,
-        "pnlNet" : round(taAnalyzer.pnl.net.total, 2),
-        "strike Rate" : round(((taAnalyzer.won.total / taAnalyzer.total.closed) * 100), 2),
-        "SQN": results[0].analyzers.sqn.get_analysis().sqn
-    }
-
-    # strategies = [x[0][0] for x in results]
-    # for strategy in enumerate(strategies):
-    #     df = BTAnalyzer.getTradeAnalysisDf(strategy.analyzers.ta.get_analysis(), folderName)
-    #     df2 = BTAnalyzer.getSQNDf(strategy.analyzers.sqn.get_analysis(), folderName)
-    #     df3 = BTAnalyzer.getTransactionsDf(strategy.analyzers.transactions.get_analysis(), folderName)
+    # #Analyzer methods
+    # strategy = results[0]
+    # df = BTAnalyzer.getTradeAnalysisDf(strategy.analyzers.ta.get_analysis(), FOLDERNAME)
+    # df2 = BTAnalyzer.getSQNDf(strategy.analyzers.sqn.get_analysis(), FOLDERNAME)
+    # df3 = BTAnalyzer.getTransactionsDf(strategy.analyzers.transactions.get_analysis(), FOLDERNAME)
+    # df4 = BTAnalyzer.get(strategy.analyzers.drawdown.get_analysis(), FOLDERNAME)
+    #
+    # taAnalyzer = results[0].analyzers.ta.get_analysis()
+    # stats = {
+    #     # 'PnL': list(results[0].analyzers.timereturn.get_analysis().values())[0],
+    #     "Symbol": SYMBOL,
+    #     "SubType": SUBTYPE,
+    #     'BuyAndHold': list(results[0].analyzers.buyandhold.get_analysis().values())[0],
+    #     'Sharpe Ratio': results[0].analyzers.sharperatio.get_analysis()['sharperatio'],
+    #     'CARG': results[0].analyzers.returns.get_analysis()['ravg'],
+    #     'Max Drawdown': results[0].analyzers.drawdown.get_analysis().max.drawdown / 100,
+    #     "total Open" : taAnalyzer.total.open,
+    #     "total Closed" : taAnalyzer.total.closed,
+    #     "total Won" : taAnalyzer.won.total,
+    #     "total Lost" : taAnalyzer.lost.total,
+    #     "win Streak" : taAnalyzer.streak.won.longest,
+    #     "lose Streak" : taAnalyzer.streak.lost.longest,
+    #     "pnlNet" : round(taAnalyzer.pnl.net.total, 2),
+    #     "strike Rate" : round(((taAnalyzer.won.total / taAnalyzer.total.closed) * 100), 2),
+    #     "SQN": results[0].analyzers.sqn.get_analysis().sqn
+    # }
 
     return {**params, **stats}
 

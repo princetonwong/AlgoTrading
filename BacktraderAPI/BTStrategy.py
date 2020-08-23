@@ -600,3 +600,54 @@ class DMIStrategy(bt.Strategy):
             if self.p.debug:
                 self.debug()
 
+class AroonStrategy(bt.Strategy):
+
+    '''
+             Entry Critria:
+              - Long:
+                  - Aroon-up crosses above the Aroon-down
+                  - Aroon-up hits 100; Aroon-down stays near zero
+              - Short:
+                  - Aroon-up crosses down the Aroon-down
+                  - Aroon-up stays near zero; Aroon-down hits 100
+
+             Exit Critria
+              - Long/Short: Same as opposite
+        '''
+
+    params = (("period", 14),
+              ("adxBenchmark", 20),
+              ("debug", False)
+              )
+
+    def __init__(self):
+        self.dmi = bt.indicators.DirectionalMovementIndex(self.data, period=self.p.period)
+        self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
+
+    def next(self):
+
+        orders = self.broker.get_orders_open()
+
+        if self.dmi.adx > self.p.adxBenchmark:
+
+            if self.position.size == 0:  # not in the market
+
+                if self.dicross == 1:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+                if self.dicross == -1:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+            elif self.position.size > 0:  # longing in the market
+
+                if self.dicross == -1:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+            elif self.position.size < 0:  # shorting in the market
+
+                if self.dicross == 1:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+
+            if self.p.debug:
+                self.debug()
+
+
