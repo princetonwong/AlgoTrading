@@ -3,7 +3,7 @@ import os
 from CustomAPI.Helper import Helper
 from backtrader.utils.py3 import iteritems
 
-def getTransactionsDf(analyzer, outputFolderPath: str = None):
+def getTransactionsDf(analyzer, xlsx= False):
     txss = analyzer
     txs = list()
     for key, v in iteritems(txss):
@@ -13,12 +13,12 @@ def getTransactionsDf(analyzer, outputFolderPath: str = None):
     index = ['date', 'amount', 'price', 'sid', 'symbol', 'value']
     resultDF = pd.DataFrame(txs, columns= index)
 
-    if outputFolderPath != None:
-        Helper().outputXLSX(resultDF, folderName=outputFolderPath, fileName="Transactions.xlsx")
+    if xlsx:
+        Helper().outputXLSX(resultDF, fileName="Transactions")
 
     return resultDF
 
-def getTradeAnalysisDf(analyzer, outputFolderPath: str = None):
+def getTradeAnalysisDf(analyzer, xlsx=False):
     total_open = analyzer.total.open
     total_closed = analyzer.total.closed
     total_won = analyzer.won.total
@@ -29,10 +29,10 @@ def getTradeAnalysisDf(analyzer, outputFolderPath: str = None):
     strike_rate = round(((total_won / total_closed) * 100),2)
     index = ['Total Open', 'Total Closed', 'Total Won', 'Total Lost', 'Strike Rate', 'Win Streak', 'Losing Streak', 'PnL Net']
     result = [total_open, total_closed, total_won, total_lost, strike_rate, win_streak, lose_streak, pnl_net]
-    resultDF = pd.DataFrame(result, index= index)
+    resultDF = pd.Series(result, index= index)
 
-    if outputFolderPath != None:
-        Helper().outputXLSX(resultDF, folderName=outputFolderPath, fileName="TradeAnalysis.xlsx")
+    if xlsx:
+        Helper().outputXLSX(resultDF, fileName="TradeAnalysis")
 
     # Print method
     # Designate the rows
@@ -54,7 +54,7 @@ def getTradeAnalysisDf(analyzer, outputFolderPath: str = None):
 
     return resultDF
 
-def getSQNDf(analyzer, outputFolderPath: str = None):
+def getSQNDf(analyzer, xlsx= False):
     '''
     SQN or SystemQualityNumber. Defined by Van K. Tharp to categorize trading systems.
     1.6 - 1.9 Below average
@@ -67,38 +67,38 @@ def getSQNDf(analyzer, outputFolderPath: str = None):
     sqn = round(analyzer.sqn,2)
     index = ['SQN']
     result = [sqn]
-    resultDF = pd.DataFrame(result, index= index)
+    resultDF = pd.Series(result, index= index)
 
     print('SQN: {}'.format(sqn))
 
-    if outputFolderPath != None:
-        Helper().outputXLSX(resultDF, folderName=outputFolderPath, fileName="SQN.xlsx")
+    if xlsx:
+        Helper().outputXLSX(resultDF, fileName="SQN")
 
     return resultDF
 
-def getDrawDownDf(analyzer, outputFolderPath: str = None):
+def getDrawDownDf(analyzer, xlsx= False):
     maxDrawDown = round(analyzer.max.drawdown, 2)
     index = ["Max DrawDown"]
     result = [maxDrawDown]
-    resultDF = pd.DataFrame(result, index=index)
+    resultDF = pd.Series(result, index=index)
 
     print ("Max Drawdown: {}".format(maxDrawDown))
 
-    if outputFolderPath != None:
-        Helper().outputXLSX(resultDF, folderName=outputFolderPath, fileName="Drawdown.xlsx")
+    if xlsx:
+        Helper().outputXLSX(resultDF, fileName="Drawdown")
 
     return resultDF
 
 
-def getSharpeRatioDf(analyzer, outputFolderPath: str = None):
+def getSharpeRatioDf(analyzer, xlsx= False):
     sharpeRatio = round(analyzer["sharperatio"], 2)
     index = ["Sharpe Ratio"]
     result = [sharpeRatio]
-    resultDF = pd.DataFrame(result, index=index)
+    resultDF = pd.Series(result, index=index)
 
     print("Sharpe Ratio: {}".format(sharpeRatio))
 
-    if outputFolderPath != None:
-        Helper().outputXLSX(resultDF, folderName=outputFolderPath, fileName="SharpeRatio.xlsx")
+    if xlsx:
+        Helper().outputXLSX(resultDF, fileName="SharpeRatio")
 
     return resultDF

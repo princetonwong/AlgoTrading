@@ -17,7 +17,7 @@ def getFutuDataFeed(symbol: str, subtype: SubType, timeRange, folderName = None)
     df.set_index("datetime", inplace=True)
 
     if folderName is not None:
-        Helper().gradientAppliedXLSX(df, "DataRaw.xlsx", ['close', 'volume'], folderName)
+        Helper().gradientAppliedXLSX(df, "DataRaw", ['close', 'volume'])
 
     return bt.feeds.PandasData(dataname=df, openinterest=None)
 

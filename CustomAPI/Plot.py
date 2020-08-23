@@ -17,13 +17,12 @@ class Plot():
         pyplot.close()
 
     def savePNG(self, prefix=""):
-        path = Helper().getOutputFolderPath()
-        pyplot.savefig(os.path.join(path, prefix + self.filename + ".png"), dpi=100)
+        pyplot.savefig(Helper().generateFilePath(prefix + self.filename, ".png"), dpi=100)
 
 class SummaryPlot(Plot):
     def __init__(self, summary):
         self.summary = summary
-        self.filename = summary.filename
+        self.filename = summary.folderName
 
     def plotProfitPerOrderHistogram(self):
         import scipy.stats as st
@@ -42,7 +41,7 @@ class SummaryPlot(Plot):
 
 class BacktestPlot(Plot):
     def __init__(self, backtest):
-        self.filename = backtest.filename
+        self.filename = backtest.folderName
         self.backtest = backtest
         pyplot.close()
         figure = pyplot.figure(1, figsize=(25, 10), dpi=100, frameon=False)
@@ -61,7 +60,7 @@ class BacktestPlot(Plot):
     def plotKLine(self, MA=False, BBANDS=False):
         mainAxis = pyplot.subplot2grid((7, 1), (0, 0), rowspan=3, colspan=1)
         mainAxis.set_xlim(0, self.backtest.count + 1)
-        mainAxis.set_title(self.backtest.filename)
+        mainAxis.set_title(self.backtest.folderName)
         Draw().KLine(dataFrame=self.backtest.model.data, axis=mainAxis)
         Draw().OrderPlaced(df=self.backtest.model.data, axis=mainAxis)
         if MA:

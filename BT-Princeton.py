@@ -54,7 +54,7 @@ figs = cerebro.plot(style = "candle", iplot= False, subtxtsize = 6, maxcpus=1)
 Helper().saveFig(figs, FOLDERNAME)
 
 #Bokeh Plotting
-from backtrader_plotting import Bokeh #TODO
+from backtrader_plotting import Bokeh
 from backtrader_plotting.schemes import Tradimo
 from backtrader_plotting.bokeh.optbrowser import OptBrowser
 b = Bokeh(style='bar', plot_mode='single', scheme=Tradimo())

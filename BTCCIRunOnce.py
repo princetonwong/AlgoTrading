@@ -8,8 +8,8 @@ from tqdm.contrib.concurrent import process_map
 
 SYMBOL = "HK.MHImain"
 SUBTYPE = SubType.K_15M
-TIMERANGE = ("2020-04-01", "00:00:00", "2020-08-21", "23:59:00")
-# TIMERANGE = None
+# TIMERANGE = ("2020-04-01", "00:00:00", "2020-08-21", "23:59:00")
+TIMERANGE = None
 
 # SYMBOL = "AAPL"
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2015")
@@ -18,13 +18,14 @@ INITIALCASH = 50000
 
 STRATEGY = BTStrategy.CCICrossStrategy
 PARAMS={"period": 21, "hold": 7, }
-FOLDERNAME = Helper().getFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
+helper = Helper()
+FOLDERNAME = helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
 
 DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
 
 #Init
 cerebro = bt.Cerebro()
-cerebro.addwriter(bt.WriterFile, csv=True, out=Helper().getWriterOutputPath(FOLDERNAME), rounding=2)
+cerebro.addwriter(bt.WriterFile, csv=True, out=helper.generateFilePath("Data", ".csv"), rounding=2)
 cerebro.adddata(DATA0, name=SYMBOL)
 
 # data1 = copy.deepcopy(data0)
@@ -76,15 +77,16 @@ print('Final Portfolio Value: %.2f' % finalPortfolioValue)
 #Bokeh Plotting
 from backtrader_plotting import Bokeh
 from backtrader_plotting.schemes import Tradimo
-b = Bokeh(style='bar', plot_mode='single', scheme=Tradimo())
-fig = cerebro.plot(b, iplot=False) #TODO: save HTML file
+b = Bokeh(filename= helper.generateFilePath("Report", ".html"),style='bar', plot_mode='single', scheme=Tradimo())
+fig = cerebro.plot(b, iplot=False)
 
-# Plotting
-figs = cerebro.plot(style = "candle", iplot= False, subtxtsize = 6, maxcpus=1, show= False)
-Helper().saveFig(figs, FOLDERNAME)
 
-#Analyzer Output
-strategy = results[0] #TODO: extract method
+# Basic Plotting
+# figs = cerebro.plot(style = "candle", iplot= False, subtxtsize = 6, maxcpus=1, show= False)
+# helper.saveFig(figs=figs)
+
+#Analyzers Output
+strategy = results[0]
 taAnalyzer = strategy.analyzers.ta.get_analysis()
 sharpeRatioAnalyzer = strategy.analyzers.sharperatio.get_analysis()
 drawdownAnalyzer = strategy.analyzers.drawdown.get_analysis()
@@ -103,4 +105,4 @@ statsDF = pd.concat([taAnalyzerDF,
                      transactionsDF]
                     )
 
-Helper().outputXLSX(statsDF, FOLDERNAME, "Stats-{}.xlsx".format(FOLDERNAME))
+helper.outputXLSX(statsDF, "Analyzers")
