@@ -1,7 +1,7 @@
 from futu import *
 import backtrader as bt
 from CustomAPI.Helper import Helper
-from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTIndicator, BTFilter
+from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTIndicator
 
 SYMBOL = "HK.MHImain"
 SUBTYPE = SubType.K_30M

@@ -3,6 +3,24 @@ import os
 from CustomAPI.Helper import Helper
 from backtrader.utils.py3 import iteritems
 
+def getVWRDf(analyzer, xlsx=False):
+
+    '''
+    https://www.crystalbull.com/sharpe-ratio-better-with-log-returns/
+    '''
+
+    vwr = round(analyzer["vwr"], 2)
+    index = ['VWR']
+    result = [vwr]
+    resultDF = pd.Series(result, index=index)
+
+    print('VWR: {}'.format(vwr))
+
+    if xlsx:
+        Helper().outputXLSX(resultDF, fileName="VWR")
+
+    return resultDF
+
 def getTransactionsDf(analyzer, xlsx= False):
     txss = analyzer
     txs = list()

@@ -4,7 +4,7 @@ from datetime import datetime
 
 class Helper():
     field = "open"
-    folderName = "default"
+    folderName = ""
 
     def initializeFolderName(self, symbol, subtype, timerange, strategy, params):
         if timerange:
@@ -13,9 +13,9 @@ class Helper():
             timerange = self.get_timestamp()
 
         strategy = strategy.__name__
-        params = self.serializeDict(params)
+        params = self.serializeDictValues(params)
 
-        self.folderName = "{}-{} {} {} {}".format(symbol, subtype, timerange, strategy, params)
+        self.folderName += "{}-{} {} {} {}".format(symbol, subtype, timerange, strategy, params)
         Helper.folderName = self.folderName
         return self.folderName
 
@@ -31,6 +31,13 @@ class Helper():
         path = self.generateFilePath(fileName, ".xlsx")
         df.to_excel(path, engine="openpyxl")
         return df
+
+    def gradientAppliedXLSX(self, df, fileName, subset):
+        formattedDf = df.style.background_gradient(cmap="PiYG", subset= subset)\
+                                                     .highlight_null(null_color='transparent')
+
+        self.outputXLSX(formattedDf, fileName)
+        return formattedDf
 
     def saveFig(self, figs):
         path = self.generateFilePath("kLine", ".png")
@@ -48,7 +55,7 @@ class Helper():
         return ",".join(str(x) for x in tuple)
 
     @staticmethod
-    def serializeDict(dict):
+    def serializeDictValues(dict):
         return ",".join(str(x) for x in dict.values())
 
     @staticmethod
@@ -59,12 +66,6 @@ class Helper():
         path.mkdir(exist_ok=True)
         return path
 
-    @staticmethod
-    def gradientAppliedXLSX(df, fileName, subset):
-        formattedDf = df.style.background_gradient(cmap="PiYG", subset= subset)\
-                                                     .highlight_null(null_color='transparent')
 
-        Helper().outputXLSX(formattedDf, fileName)
-        return formattedDf
 
 
