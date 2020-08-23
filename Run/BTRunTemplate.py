@@ -17,7 +17,7 @@ DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
 INITIALCASH = 50000
 OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True)
 
-STRATEGY = BTStrategy.CCICrossStrategy
+STRATEGY = BTStrategy.CCICrossStrategyWithSLOWKDExit
 PARAMS = dict(period=20, factor=0.015, threshold=100, hold=5)
 
 helper = Helper()
@@ -63,6 +63,7 @@ def run_strategy(params: Dict[str, Union[float, int, bool]] = {**OUTPUTSETTINGS,
         cerebro.addanalyzer(bt.analyzers.VWR, _name="vwr")
         cerebro.addanalyzer(bt.analyzers.Returns, timeframe=bt.TimeFrame.Days, compression=1, tann=365)
         cerebro.addanalyzer(bt.analyzers.TimeReturn, timeframe=bt.TimeFrame.NoTimeFrame)
+        cerebro.addanalyzer(BTAnalyzer.Kelly, _name="kelly")
 
     if params["observer"]:
         cerebro.addobserver(bt.observers.DrawDown)
@@ -99,41 +100,48 @@ def run_strategy(params: Dict[str, Union[float, int, bool]] = {**OUTPUTSETTINGS,
         sqnAnalyzer = strategy.analyzers.sqn.get_analysis()
         returnAnalyzer = strategy.analyzers.returns.get_analysis()
         vwrAnalyzer = strategy.analyzers.vwr.get_analysis()
+        transactionsAnalyzer = strategy.analyzers.transactions.get_analysis()
 
-        taAnalyzerDF = BTAnalyzer.getTradeAnalysisDf(strategy.analyzers.ta.get_analysis())
+        taAnalyzerDF = BTAnalyzer.getTradeAnalysisDf(taAnalyzer)
         sqnDF = BTAnalyzer.getSQNDf(sqnAnalyzer)
-        transactionsDF = BTAnalyzer.getTransactionsDf(strategy.analyzers.transactions.get_analysis())
+        transactionsDF = BTAnalyzer.getTransactionsDf(transactionsAnalyzer)
         drawdownDF = BTAnalyzer.getDrawDownDf(drawdownAnalyzer)
         sharpeRatioDF = BTAnalyzer.getSharpeRatioDf(sharpeRatioAnalyzer)
         vwrDF = BTAnalyzer.getVWRDf(vwrAnalyzer)
+        returnDF = BTAnalyzer.getReturnDf(returnAnalyzer)
+        cashDF = pd.Series([INITIALCASH, finalPortfolioValue], index=["Initial Cash", "Final Portfolio Value"])
+        kellyDF = pd.Series([strategy.analyzers.kelly.get_analysis().kellyPercent], index=["KellyRatio"])
 
         statsDF = pd.concat([taAnalyzerDF,
-                             pd.Series([INITIALCASH, finalPortfolioValue], index=["Initial Cash", "Final Portfolio Value"]),
+                             cashDF,
+                             returnDF,
                              sqnDF,
                              sharpeRatioDF,
                              vwrDF,
                              drawdownDF,
-                             transactionsDF]
-                            )
+                             kellyDF
+                             ])
 
         helper.outputXLSX(statsDF, "Statistics")
+        helper.outputXLSX(transactionsDF, "Transactions")
 
     stats = {
         "Symbol": SYMBOL,
         "SubType": SUBTYPE,
-        'Sharpe Ratio': sharpeRatioDF['Sharpe Ratio'],
-        'CARG': returnAnalyzer['ravg'],
-        'Max DrawDown': drawdownDF['Max DrawDown'],
-        "Total Open" : taAnalyzerDF["Total Open"],
-        "Total Closed" : taAnalyzerDF["Total Closed"],
-        "Total Won" : taAnalyzerDF["Total Won"],
-        "Total Lost" : taAnalyzerDF["Total Lost"],
-        "Win Streak" : taAnalyzerDF["Win Streak"],
-        "Lose Streak" : taAnalyzerDF["Losing Streak"],
-        "PnL Net" : taAnalyzerDF["PnL Net"],
-        "Strike Rate" : taAnalyzerDF["Strike Rate"],
-        "SQN": sqnDF["SQN"],
-        "VWR": vwrDF["VWR"]
+        'Sharpe Ratio': statsDF['Sharpe Ratio'],
+        'Average Return': statsDF['Average Return'],
+        'Annualized Return%': statsDF['Annualized Return%'],
+        'Max DrawDown': statsDF['Max DrawDown'],
+        "Total Open" : statsDF["Total Open"],
+        "Total Closed" : statsDF["Total Closed"],
+        "Total Won" : statsDF["Total Won"],
+        "Total Lost" : statsDF["Total Lost"],
+        "Win Streak" : statsDF["Win Streak"],
+        "Lose Streak" : statsDF["Losing Streak"],
+        "PnL Net" : statsDF["PnL Net"],
+        "Strike Rate" : statsDF["Strike Rate"],
+        "SQN": statsDF["SQN"],
+        "VWR": statsDF["VWR"]
     }
 
     return {**params, **stats}
@@ -162,5 +170,5 @@ def grid_search(sortKey: str) -> pd.DataFrame:
     helper.outputXLSX(df, "Optimization")
     return df
 
-# df = grid_search(sortKey = ["Sharpe Ratio"])
+# df = grid_search(sortKey = ["VWR"])
 df= run_strategy()

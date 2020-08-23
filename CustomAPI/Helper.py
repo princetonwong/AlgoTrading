@@ -15,7 +15,7 @@ class Helper():
         strategy = strategy.__name__
         params = self.serializeDictValues(params)
 
-        self.folderName += "{}-{} {} {} {}".format(symbol, subtype, timerange, strategy, params)
+        self.folderName += "{}-{} [{}] {} {}".format(symbol, subtype, timerange, strategy, params)
         Helper.folderName = self.folderName
         return self.folderName
 
@@ -48,7 +48,7 @@ class Helper():
 
     @staticmethod
     def get_timestamp():
-        return datetime.now().strftime("%m-%d-%H-%M")
+        return datetime.now().strftime("%m-%d %H-%M")
 
     @staticmethod
     def serializeTuple(tuple):
