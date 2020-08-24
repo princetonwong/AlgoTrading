@@ -566,7 +566,7 @@ class DMIStrategy(bt.Strategy):
     '''
 
     params = (("period", 14),
-              ("adxBenchmark", 20),
+              ("adxBenchmark", 30),
               ("debug", False)
              )
 

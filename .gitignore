@@ -173,3 +173,4 @@ Output/
 *.h5
 *.pdf
 Data/wiki_prices.csv
+/Statistics.xlsx
