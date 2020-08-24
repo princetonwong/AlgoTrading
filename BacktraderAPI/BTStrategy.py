@@ -122,14 +122,14 @@ class BBandsMeanReversionStrategy(bt.Strategy):
     '''
 
     params = (
-        ("period", 20),
+        ("bbandperiod", 20),
         ("sd", 2),
         ("exit", "median"),
         ("debug", False)
               )
 
     def __init__(self):
-        self.boll = bt.indicators.BollingerBands(period=self.p.period, devfactor=self.p.sd)
+        self.boll = bt.indicators.BollingerBands(period=self.p.bbandperiod, devfactor=self.p.sd)
         self.lower = bt.indicators.CrossDown(self.data.close, self.boll.lines.bot, subplot = False)
         self.upper = bt.indicators.CrossUp(self.data.close, self.boll.lines.top, subplot = False)
         self.crossMid = bt.indicators.CrossOver(self.data.close, self.boll.lines.mid, subplot = False)
@@ -221,7 +221,7 @@ class MACDCrossStrategy(bt.Strategy):
 
         self.macdHistogram = BTIndicator.MACDHistogram(period_me1=self.p.macdFast, period_me2=self.p.macdSlow, period_signal=self.p.difPeriod)
 
-        self.mcross = bt.indicators.CrossOver(self.macd.macd, self.macd.signal, subplot= False)
+        self.macdcross = bt.indicators.CrossOver(self.macd.macd, self.macd.signal, subplot= False)
 
     # def start(self):
     #     self.order = None  # sentinel to avoid operations on pending order
@@ -231,13 +231,13 @@ class MACDCrossStrategy(bt.Strategy):
         #     return  # pending order execution
 
         if self.position.size == 0:  # not in the market
-            if self.mcross == 1:
+            if self.macdcross == 1:
                 self.buy()
-            if self.mcross == -1:
+            if self.macdcross == -1:
                 self.sell()
 
         elif self.position.size != 0:
-            if self.mcross == -1 or self.mcross == 1:
+            if self.macdcross == -1 or self.macdcross == 1:
                 self.close()
 
         # else:  # in the market
@@ -420,7 +420,6 @@ class CCICrossStrategyWithSLOWKDExitHeikinAshi(CCICrossStrategyWithSLOWKDExit):
         self.kCrossupD = bt.ind.CrossUp(self.stoch.percK, self.stoch.percD, subplot=False)
         self.kCrossdownD = bt.ind.CrossDown(self.stoch.percK, self.stoch.percD, subplot=False)
 
-
 class ClenowTrendFollowingStrategy(bt.Strategy):
     """The trend following strategy from the book "Following the trend" by Andreas Clenow."""
     alias = ('ClenowTrendFollowing',)
@@ -565,13 +564,13 @@ class DMIStrategy(bt.Strategy):
           - Long/Short: Same as opposite
     '''
 
-    params = (("period", 14),
+    params = (("dmiperiod", 14),
               ("adxBenchmark", 30),
               ("debug", False)
              )
 
     def __init__(self):
-        self.dmi = bt.indicators.DirectionalMovementIndex(self.data, period=self.p.period)
+        self.dmi = bt.indicators.DirectionalMovementIndex(self.data, period=self.p.dmiperiod)
         self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
 
     def next(self):
