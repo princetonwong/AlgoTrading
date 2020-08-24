@@ -89,11 +89,6 @@ class MACDHistogram(bt.ind.MACDHisto):
         super(bt.ind.MACDHisto, self).__init__()
         self.lines.histo = (self.lines.macd - self.lines.signal) * 2
 
-# class WilliamRHorizontalLine(bt.ind.WilliamsR):
-
-
-# from __future__ import (absolute_import, division, print_function, unicode_literals)
-
 class talibCCI(bt.Indicator):
     '''
       Introduced by Donald Lambert in 1980 to measure variations of the
@@ -156,6 +151,198 @@ class talibCCI(bt.Indicator):
     #     for i in range(start, end):
     #         larray[i] = prev = prev * alpha1 + darray[i] * alpha
 
+class AbsoluteStrengthOscilator(bt.Indicator):
+    lines = ('ash', 'bulls', 'bears',)  # output lines
+
+    # customize the plotting of the *ash* line
+    plotlines = dict(ash=dict(_method='bar', alpha=0.33, width=0.66))
+
+    RSI, STOCH = range(0, 2)  # enum values for the parameter mode
+
+    params = dict(
+        period=9,
+        smoothing=2,
+        mode=RSI,
+        rsifactor=0.5,
+        movav=bt.ind.WMA,  # WeightedMovingAverage
+        smoothav=None,  # use movav if not specified
+        pointsize=None,  # use only if specified
+    )
+
+    def __init__(self):
+        # Start calcs according to selected mode
+        if self.p.mode == self.RSI:
+            p0p1 = self.data - self.data(-1)  # used twice below
+            half_abs_p0p1 = self.p.rsifactor * abs(p0p1)  # used twice below
+
+            bulls = half_abs_p0p1 + p0p1
+            bears = half_abs_p0p1 - p0p1
+        else:
+            bulls = self.data - bt.ind.Lowest(self.data, period=self.p.period)
+            bears = bt.ind.Highest(self.data, period=self.p.period) - self.data
+
+        avbulls = self.p.movav(bulls, period=self.p.period)
+        avbears = self.p.movav(bears, period=self.p.period)
+
+        # choose smoothing average and smooth the already averaged values
+        smoothav = self.p.smoothav or self.p.movav  # choose smoothav
+        smoothbulls = smoothav(avbulls, period=self.p.smoothing)
+        smoothbears = smoothav(avbears, period=self.p.smoothing)
+
+        if self.p.pointsize:  # apply only if it makes sense
+            smoothbulls /= self.p.pointsize
+            smoothbears /= self.p.pointsize
+
+        # Assign the final values to the output lines
+        self.l.bulls = smoothbulls
+        self.l.bears = smoothbears
+        self.l.ash = smoothbulls - smoothbears
+
+class Streak(bt.ind.PeriodN):
+    '''
+    Keeps a counter of the current upwards/downwards/neutral streak
+    '''
+    lines = ('streak',)
+    params = dict(period=2)  # need prev/cur days (2) for comparisons
+
+    curstreak = 0
+
+    def next(self):
+        d0, d1 = self.data[0], self.data[-1]
+
+        if d0 > d1:
+            self.l.streak[0] = self.curstreak = max(1, self.curstreak + 1)
+        elif d0 < d1:
+            self.l.streak[0] = self.curstreak = min(-1, self.curstreak - 1)
+        else:
+            self.l.streak[0] = self.curstreak = 0
+
+class ConnorsRSI(bt.Indicator):
+    '''
+    Calculates the ConnorsRSI as:
+        - (RSI(per_rsi) + RSI(Streak, per_streak) + PctRank(per_rank)) / 3
+    '''
+    lines = ('crsi',)
+    params = dict(prsi=3, pstreak=2, prank=100, upperband=90, lowerband=10)
+
+    def _plotinit(self):
+        self.plotinfo.plotyhlines = [self.p.upperband, self.p.lowerband]
+
+    def __init__(self):
+        # Calculate the components
+        rsi = bt.ind.RSI(self.data, period=self.p.prsi, safediv=True)
+
+        streak = Streak(self.data)
+        rsi_streak = bt.ind.RSI(streak, period=self.p.pstreak)
+
+        prank = bt.ind.PercentRank(self.data, period=self.p.prank)
+
+        # Apply the formula
+        self.l.crsi = (rsi + rsi_streak + prank) / 3.0
+
+class ChandelierExit(bt.Indicator):
+
+    ''' https://corporatefinanceinstitute.com/resources/knowledge/trading-investing/chandelier-exit/ '''
+
+    lines = ('long', 'short')
+    params = (('period', 22), ('multip', 3),)
+
+    plotinfo = dict(subplot=False)
+
+    def __init__(self):
+        highest = bt.ind.Highest(self.data.high, period=self.p.period)
+        lowest = bt.ind.Lowest(self.data.low, period=self.p.period)
+        atr = self.p.multip * bt.ind.ATR(self.data, period=self.p.period)
+        self.lines.long = highest - atr
+        self.lines.short = lowest + atr
+
+class KeltnerChannel(bt.Indicator):
+
+    lines = ('mid', 'top', 'bot',)
+    params = (('period', 20), ('devfactor', 1.5),
+              ('movav', bt.ind.MovAv.Simple),)
+
+    plotinfo = dict(subplot=False)
+    plotlines = dict(
+        mid=dict(ls='--'),
+        top=dict(_samecolor=True),
+        bot=dict(_samecolor=True),
+    )
+
+    def _plotlabel(self):
+        plabels = [self.p.period, self.p.devfactor]
+        plabels += [self.p.movav] * self.p.notdefault('movav')
+        return plabels
+
+    def __init__(self):
+        self.lines.mid = ma = self.p.movav(self.data, period=self.p.period)
+        atr = self.p.devfactor * bt.ind.ATR(self.data, period=self.p.period)
+        self.lines.top = ma + atr
+        self.lines.bot = ma - atr
+
+class KeltnerChannelBBSqueeze(bt.Indicator):
+
+    '''
+    https://www.netpicks.com/squeeze-out-the-chop/
+
+    Both indicators are symmetrical, meaning that the upper and lower bands or channel lines are the same distance from the moving average. That means that we can focus on only one side in developing our indicator. In our case, we’ll just consider the upper lines.
+
+    The basic formulas we need are:
+
+        Bollinger Band = Moving Average + (Number of standard deviations X Standard Deviation)
+        Keltner Channel = Moving Average + (Number of ATR’s X ATR)
+
+    Or if we translate this into pseudo-code:
+
+        BBUpper = Avg(close, period) + (BBDevs X StdDev(close, period))
+        KCUpper = Avg(close, period) + (KCDevs X ATR(period))
+
+    The squeeze is calculated by taking the difference between these two values:
+
+        Squeeze = BBUpper – KCUpper
+
+    Which simplifies down to this:
+
+        Squeeze = (BBDevs X StdDev(close, period)) – (KCDevs X ATR(period))
+    '''
+
+    lines = ('squeeze',)
+    params = (('period', 20), ('bbdevs', 2.0), ('kcdevs', 1.5), ('movav', bt.ind.MovAv.Simple),)
+
+    plotinfo = dict(subplot=True)
+
+    def _plotlabel(self):
+        plabels = [self.p.period, self.p.bbdevs, self.p.kcdevs]
+        plabels += [self.p.movav] * self.p.notdefault('movav')
+        return plabels
+
+    def __init__(self):
+        bb = bt.ind.BollingerBands(
+            period=self.p.period, devfactor=self.p.bbdevs, movav=self.p.movav)
+        kc = KeltnerChannel(
+            period=self.p.period, devfactor=self.p.kcdevs, movav=self.p.movav)
+        self.lines.squeeze = bb.top - kc.top
+
+class VolumeWeightedAveragePrice(bt.Indicator):
+    plotinfo = dict(subplot=False)
+
+    params = (('period', 30), )
+
+    alias = ('VWAP', 'VolumeWeightedAveragePrice',)
+    lines = ('VWAP',)
+    plotlines = dict(VWAP=dict(alpha=0.50, linestyle='-.', linewidth=2.0))
+
+
+
+    def __init__(self):
+        # Before super to ensure mixins (right-hand side in subclassing)
+        # can see the assignment operation and operate on the line
+        cumvol = bt.ind.SumN(self.data.volume, period = self.p.period)
+        typprice = ((self.data.close + self.data.high + self.data.low)/3) * self.data.volume
+        cumtypprice = bt.ind.SumN(typprice, period=self.p.period)
+        self.lines[0] = cumtypprice / cumvol
+
+        super(VolumeWeightedAveragePrice, self).__init__()
 
 from backtrader.indicators import Indicator, Max, MovAv, Highest, Lowest, DivByZero
 class HeiKinAshiStochasticBase(bt.ind.HeikinAshi):

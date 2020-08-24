@@ -80,7 +80,7 @@ class MACrossStrategy(bt.Strategy):
                 d.close, period=self.params.sma1)
             self.inds[d]['sma2'] = bt.indicators.SimpleMovingAverage(
                 d.close, period=self.params.sma2)
-            self.inds[d]['cross'] = bt.indicators.CrossOver(self.inds[d]['sma1'],self.inds[d]['sma2'])
+            self.inds[d]['cross'] = bt.indicators.CrossOver(self.inds[d]['sma1'],self.inds[d]['sma2'], subplot = False)
 
             if i > 0: #Check we are not on the first loop of data feed:
                 if self.p.oneplot == True:
@@ -362,12 +362,12 @@ class CCICrossStrategy(bt.Strategy):
         elif self.position.size > 0:
             if (len(self) - self.holdstart) >= self.p.hold:
                 if self.cci < self.upperband:
-                    self.close()
+                    self.sell()
 
         elif self.position.size < 0:
             if (len(self) - self.holdstart) >= self.p.hold:
                 if self.cci > self.lowerband:
-                    self.close()
+                    self.buy()
 
 class CCICrossStrategyWithSLOWKDExit(CCICrossStrategy):
 
@@ -419,6 +419,32 @@ class CCICrossStrategyWithSLOWKDExitHeikinAshi(CCICrossStrategyWithSLOWKDExit):
         self.stoch.csv = True
         self.kCrossupD = bt.ind.CrossUp(self.stoch.percK, self.stoch.percD, subplot=False)
         self.kCrossdownD = bt.ind.CrossDown(self.stoch.percK, self.stoch.percD, subplot=False)
+
+class ASOCrossStrategy(bt.Strategy):
+    params = (
+        ("period", 9),
+        ('smoothing', 70.0),
+        ('rsiFactor', 30.0),
+    )
+
+    def __init__(self):
+        self.aso = BTIndicator.AbsoluteStrengthOscilator(period=self.p.period,
+                                                         smoothing=self.p.smoothing,
+                                                         rsifactor=self.p.rsiFactor)
+        self.crossover = bt.ind.CrossOver(self.aso.bulls, self.aso.bears, subplot=False)
+
+    def next(self):
+        if self.position.size == 0:
+            if self.crossover == 1:
+                self.buy()
+            elif self.crossover == -1:
+                self.sell()
+        elif self.position.size > 0:
+            if self.crossover == -1:
+                self.close()
+        elif self.position.size < 0:
+            if self.crossover == 1:
+                self.close()
 
 
 class ClenowTrendFollowingStrategy(bt.Strategy):
