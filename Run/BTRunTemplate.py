@@ -9,16 +9,16 @@ from tqdm.contrib.concurrent import process_map
 
 SYMBOL = "HK.MHImain"
 SUBTYPE = SubType.K_15M
-TIMERANGE = ("2017-01-01", "00:00:00", "2020-08-21", "23:59:00")
-# TIMERANGE = None
+# TIMERANGE = ("2017-01-01", "00:00:00", "2020-08-21", "23:59:00")
+TIMERANGE = None
 DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2015")
 
 INITIALCASH = 50000
-OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
+OUTPUTSETTINGS = dict(bokeh=True,plot=True,observer=True,analyzer=True, optimization=False)
 
 STRATEGY = BTStrategy.CCICrossStrategy
-PARAMS = dict(period=20, factor=0.015, threshold=100, hold=5)
+PARAMS = dict(period=8, factor=0.015, threshold=100, hold=7)
 
 helper = Helper()
 
@@ -31,9 +31,14 @@ def run_strategy(parameters= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> p
 
     #Init
     cerebro = bt.Cerebro()
-    cerebro.addwriter(bt.WriterFile, csv=True, out=helper.generateFilePath("BackTraderData", ".csv"), rounding=2)
     cerebro.adddata(DATA0, name=SYMBOL)
 
+    if outputsettings["optimization"] is False:
+        cerebro.addwriter(bt.WriterFile, csv=True, out=helper.generateFilePath("BackTraderData", ".csv"), rounding=3)
+    else:
+        cerebro.addwriter(bt.WriterFile, rounding=2)
+
+    #Multi-data feeds
     # data1 = copy.deepcopy(data0)
     # data1.plotinfo.plotmaster = data0
     # cerebro.adddata(data1, name="TRADE")
@@ -87,48 +92,51 @@ def run_strategy(parameters= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> p
     # browser = OptBrowser(b, results)
     # browser.start()
 
-    # if params["bokeh"]:
-    # from backtrader_plotting import Bokeh
-    # from backtrader_plotting.schemes import Tradimo
-    # b = Bokeh(filename=helper.generateFilePath("Report", ".html"), style='bar', plot_mode='single', scheme=Tradimo())
-    # fig = cerebro.plot(b, iplot=False)
+    if outputsettings["bokeh"]:
+        from backtrader_plotting import Bokeh
+        from backtrader_plotting.schemes import Tradimo
+        b = Bokeh(filename=helper.generateFilePath("Report", ".html"), style='bar', plot_mode='single', scheme=Tradimo())
+        fig = cerebro.plot(b, iplot=False)
 
-    # if params["plot"]:
-    # figs = cerebro.plot(style = "candle", iplot= False, subtxtsize = 6, maxcpus=1, show=False)
-    # helper.saveFig(figs)
+    if outputsettings["plot"]:
+        figs = cerebro.plot(style = "candle", iplot= False, subtxtsize = 6, maxcpus=1, show=False)
 
-    # if params["analyzer"]:
-    strategy = results[0]
-    taAnalyzer = strategy.analyzers.ta.get_analysis()
-    sharpeRatioAnalyzer = strategy.analyzers.sharperatio.get_analysis()
-    drawdownAnalyzer = strategy.analyzers.drawdown.get_analysis()
-    sqnAnalyzer = strategy.analyzers.sqn.get_analysis()
-    returnAnalyzer = strategy.analyzers.returns.get_analysis()
-    vwrAnalyzer = strategy.analyzers.vwr.get_analysis()
-    transactionsAnalyzer = strategy.analyzers.transactions.get_analysis()
+        if outputsettings["optimization"] is False:
+            helper.saveFig(figs)
 
-    taAnalyzerDF = BTAnalyzer.getTradeAnalysisDf(taAnalyzer)
-    sqnDF = BTAnalyzer.getSQNDf(sqnAnalyzer)
-    drawdownDF = BTAnalyzer.getDrawDownDf(drawdownAnalyzer)
-    sharpeRatioDF = BTAnalyzer.getSharpeRatioDf(sharpeRatioAnalyzer)
-    vwrDF = BTAnalyzer.getVWRDf(vwrAnalyzer)
-    returnDF = BTAnalyzer.getReturnDf(returnAnalyzer)
-    cashDF = pd.Series([INITIALCASH, finalPortfolioValue], index=["Initial Cash", "Final Portfolio Value"])
-    kellyDF = pd.Series([strategy.analyzers.kelly.get_analysis().kellyPercent], index=["Kelly Percent"])
-    transactionsDF = BTAnalyzer.getTransactionsDf(transactionsAnalyzer)
+    if outputsettings["analyzer"]:
+        strategy = results[0]
+        taAnalyzer = strategy.analyzers.ta.get_analysis()
+        sharpeRatioAnalyzer = strategy.analyzers.sharperatio.get_analysis()
+        drawdownAnalyzer = strategy.analyzers.drawdown.get_analysis()
+        sqnAnalyzer = strategy.analyzers.sqn.get_analysis()
+        returnAnalyzer = strategy.analyzers.returns.get_analysis()
+        vwrAnalyzer = strategy.analyzers.vwr.get_analysis()
+        transactionsAnalyzer = strategy.analyzers.transactions.get_analysis()
 
-    statsDF = pd.concat([taAnalyzerDF,
-                         cashDF,
-                         returnDF,
-                         sqnDF,
-                         sharpeRatioDF,
-                         vwrDF,
-                         drawdownDF,
-                         kellyDF
-                         ])
+        taAnalyzerDF = BTAnalyzer.getTradeAnalysisDf(taAnalyzer)
+        sqnDF = BTAnalyzer.getSQNDf(sqnAnalyzer)
+        drawdownDF = BTAnalyzer.getDrawDownDf(drawdownAnalyzer)
+        sharpeRatioDF = BTAnalyzer.getSharpeRatioDf(sharpeRatioAnalyzer)
+        vwrDF = BTAnalyzer.getVWRDf(vwrAnalyzer)
+        returnDF = BTAnalyzer.getReturnDf(returnAnalyzer)
+        cashDF = pd.Series([INITIALCASH, finalPortfolioValue], index=["Initial Cash", "Final Portfolio Value"])
+        kellyDF = pd.Series([strategy.analyzers.kelly.get_analysis().kellyPercent], index=["Kelly Percent"])
+        transactionsDF = BTAnalyzer.getTransactionsDf(transactionsAnalyzer)
 
-    helper.outputXLSX(statsDF, "Statistics")
-    helper.outputXLSX(transactionsDF, "Transactions")
+        statsDF = pd.concat([taAnalyzerDF,
+                             cashDF,
+                             returnDF,
+                             sqnDF,
+                             sharpeRatioDF,
+                             vwrDF,
+                             drawdownDF,
+                             kellyDF
+                             ])
+
+        if outputsettings["optimization"] is False:
+            helper.outputXLSX(statsDF, "Statistics")
+            helper.outputXLSX(transactionsDF, "Transactions")
 
     stats = {
         "Symbol": SYMBOL,
@@ -150,7 +158,9 @@ def run_strategy(parameters= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> p
         "Kelly Percent": statsDF["Kelly Percent"]
     }
 
-    return {**parameters,**stats}
+    returnDict = {**parameters,**stats}
+
+    return returnDict
 
 def grid_search(sortKey: str) -> pd.DataFrame:
     params_list = []
@@ -164,7 +174,7 @@ def grid_search(sortKey: str) -> pd.DataFrame:
             params_list.append({**optimizationParams})
             outputsettings_list.append({**outputsettings})
 
-    helper.folderName = "(Optimized)" + helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, optimizationParams) #TODO: Filename fix, optimization fix
+    helper.folderName = "(Optimization)" + helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, optimizationParams) #TODO: Filename fix, optimization fix
     print (params_list)
     # print (**params_list)
     stats = process_map(run_strategy, params_list, outputsettings_list, max_workers=os.cpu_count())
