@@ -362,12 +362,12 @@ class CCICrossStrategy(bt.Strategy):
         elif self.position.size > 0:
             if (len(self) - self.holdstart) >= self.p.hold:
                 if self.cci < self.upperband:
-                    self.close()
+                    self.sell()
 
         elif self.position.size < 0:
             if (len(self) - self.holdstart) >= self.p.hold:
                 if self.cci > self.lowerband:
-                    self.close()
+                    self.buy()
 
 class CCICrossStrategyWithSLOWKDExit(CCICrossStrategy):
 

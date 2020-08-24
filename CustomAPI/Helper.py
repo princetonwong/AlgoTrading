@@ -15,7 +15,7 @@ class Helper():
         strategy = strategy.__name__
         params = self.serializeDictValues(params)
 
-        self.folderName += "{}-{} [{}] {} {}".format(symbol, subtype, timerange, strategy, params)
+        self.folderName = "{}-{} [{}] {} {}".format(symbol, subtype, timerange, strategy, params)
         Helper.folderName = self.folderName
         return self.folderName
 
