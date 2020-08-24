@@ -302,6 +302,81 @@ class WilliamsRStrategy(bt.Strategy):
         if self.p.debug:
             self.debug()
 
+class IchimokuCloudStrategy(bt.Strategy):
+    '''
+
+    https://medium.com/@harrynicholls/7-popular-technical-indicators-and-how-to-use-them-to-increase-your-trading-profits-7f13ffeb8d05
+    https://tradingtools.net/simplified-ichimoku-strategy/
+
+            Kijun Sen (blue line, confirm future trends): standard line/base line, averaging highest high and lowest low for past 26 periods
+            Tenkan Sen (red line, confirm trending/ranging): turning line, averaging highest high and lowest low for past 9 periods
+            Chikou Span (green line, confirm future trends): lagging line, today’s closing price plotted 26 periods behind
+            Senkou Span (red/green band, support and resistance levels):
+            - first Senkou line (fast): averaging Tenkan Sen and Kijun Sen, plotted 26 periods ahead
+            - second Senkou line (slow): averaging highest high and lowest low over past 52 periods, plotted 26 periods ahead
+
+            Entry Critria:
+
+            - Slopy Tenkan Sen
+
+             - Long:
+                 - The price crossing above Kijun Sen
+                 - Chikou Span crossing above the price
+                 - The price above the cloud
+             - Short:
+                 - The price crossing down Kijun Sen
+                 - Chikou Span crossing down the price
+                 - The price below the cloud
+
+            Exit Critria
+             - Long/Short: Same as opposite
+    '''
+
+
+    params = (("kijun", 26),
+              ("tenkan", 9),
+              ("chikou", 26),
+              ("senkou", 52),
+              ("senkou_lead", 26),
+              ("debug", False),
+              )
+
+    def __init__(self):
+        self.ichimoku = bt.indicators.Ichimoku(self.data,
+                                               kijun=self.p.kijun,
+                                               tenkan=self.p.tenkan,
+                                               chikou = self.p.chikou,
+                                               senkou=self.p.senkou,
+                                               senkou_lead=self.p.senkou_lead
+                                               )
+        self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
+
+    def next(self):
+
+        orders = self.broker.get_orders_open()
+
+        if self.dmi.adx > self.p.adxBenchmark:
+
+            if self.position.size == 0:  # not in the market
+
+                if self.dicross == 1:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+                if self.dicross == -1:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+            elif self.position.size > 0:  # longing in the market
+
+                if self.dicross == -1:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+            elif self.position.size < 0:  # shorting in the market
+
+                if self.dicross == 1:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+
+            if self.p.debug:
+                self.debug()
+
 #Trend Following
 class DonchianStrategy(bt.Strategy):
     def __init__(self):
@@ -598,4 +673,5 @@ class DMIStrategy(bt.Strategy):
 
             if self.p.debug:
                 self.debug()
+
 
