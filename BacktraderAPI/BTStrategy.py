@@ -307,6 +307,7 @@ class IchimokuCloudStrategy(bt.Strategy):
 
     https://medium.com/@harrynicholls/7-popular-technical-indicators-and-how-to-use-them-to-increase-your-trading-profits-7f13ffeb8d05
     https://tradingtools.net/simplified-ichimoku-strategy/
+    https://school.stockcharts.com/doku.php?id=technical_indicators:ichimoku_cloud
 
             Kijun Sen (blue line, confirm future trends): standard line/base line, averaging highest high and lowest low for past 26 periods
             Tenkan Sen (red line, confirm trending/ranging): turning line, averaging highest high and lowest low for past 9 periods
@@ -315,20 +316,21 @@ class IchimokuCloudStrategy(bt.Strategy):
             - first Senkou line (fast): averaging Tenkan Sen and Kijun Sen, plotted 26 periods ahead
             - second Senkou line (slow): averaging highest high and lowest low over past 52 periods, plotted 26 periods ahead
 
-            Entry Critria:
-
-            - Slopy Tenkan Sen
+            Entry Criteria:
 
              - Long:
-                 - The price crossing above Kijun Sen
-                 - Chikou Span crossing above the price
-                 - The price above the cloud
+                 - The price above the green cloud (price > 1st Senkou line > 2nd Senkou line) (Trend)
+                 - Tenkan Sen crosses above Kijun Sen (momentum)
+                 - Price crosses above Kijun Sen (momentum)
+                 optional: Chikou Span crossing above the price
              - Short:
-                 - The price crossing down Kijun Sen
-                 - Chikou Span crossing down the price
-                 - The price below the cloud
+                 - The price below the red cloud (price < 1st Senkou line < 2nd Senkou line) (Trend)
+                 - Tenkan Sen crosses below Kijun Sen (momentum)
+                 - Price crosses below Kijun Sen (momentum)
+                 Optional: Chikou Span crossing down the price
 
-            Exit Critria
+
+            Exit Criteria
              - Long/Short: Same as opposite
     '''
 
@@ -349,33 +351,35 @@ class IchimokuCloudStrategy(bt.Strategy):
                                                senkou=self.p.senkou,
                                                senkou_lead=self.p.senkou_lead
                                                )
-        self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
+        self.tKCross = bt.indicators.CrossOver(self.ichimoku.l.tenkan_sen, self.ichimoku.l.kijun_sen)
+        self.priceKCross = bt.indicators.CrossOver(self.data.close, self.ichimoku.l.kijun_sen)
 
     def next(self):
 
         orders = self.broker.get_orders_open()
 
-        if self.dmi.adx > self.p.adxBenchmark:
-
-            if self.position.size == 0:  # not in the market
-
-                if self.dicross == 1:
+        if self.position.size == 0:  # not in the market
+            if self.data.close > self.ichimoku.l.senkou_span_a > self.ichimoku.l.senkou_span_b:
+                if self.tKCross == 1 and self.priceKCross == 1:
                     self.buy(exectype=bt.Order.Stop, price=self.data.close)
-                if self.dicross == -1:
+            if self.data.close < self.ichimoku.l.senkou_span_a < self.ichimoku.l.senkou_span_b:
+                if self.tKCross == -1 and self.priceKCross == -1:
                     self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
-            elif self.position.size > 0:  # longing in the market
+        elif self.position.size > 0:  # longing in the market
 
-                if self.dicross == -1:
+            if self.data.close < self.ichimoku.l.senkou_span_a < self.ichimoku.l.senkou_span_b:
+                if self.tKCross == -1 and self.priceKCross == -1:
                     self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
-            elif self.position.size < 0:  # shorting in the market
+        elif self.position.size < 0:  # shorting in the market
 
-                if self.dicross == 1:
+            if self.data.close > self.ichimoku.l.senkou_span_a > self.ichimoku.l.senkou_span_b:
+                if self.tKCross == 1 and self.priceKCross == 1:
                     self.buy(exectype=bt.Order.Stop, price=self.data.close)
 
-            if self.p.debug:
-                self.debug()
+        if self.p.debug:
+            self.debug()
 
 #Trend Following
 class DonchianStrategy(bt.Strategy):
