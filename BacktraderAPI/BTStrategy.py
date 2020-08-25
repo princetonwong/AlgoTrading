@@ -122,14 +122,14 @@ class BBandsMeanReversionStrategy(bt.Strategy):
     '''
 
     params = (
-        ("period", 20),
+        ("bbandperiod", 20),
         ("sd", 2),
         ("exit", "median"),
         ("debug", False)
               )
 
     def __init__(self):
-        self.boll = bt.indicators.BollingerBands(period=self.p.period, devfactor=self.p.sd)
+        self.boll = bt.indicators.BollingerBands(period=self.p.bbandperiod, devfactor=self.p.sd)
         self.lower = bt.indicators.CrossDown(self.data.close, self.boll.lines.bot, subplot = False)
         self.upper = bt.indicators.CrossUp(self.data.close, self.boll.lines.top, subplot = False)
         self.crossMid = bt.indicators.CrossOver(self.data.close, self.boll.lines.mid, subplot = False)
@@ -221,7 +221,7 @@ class MACDCrossStrategy(bt.Strategy):
 
         self.macdHistogram = BTIndicator.MACDHistogram(period_me1=self.p.macdFast, period_me2=self.p.macdSlow, period_signal=self.p.difPeriod)
 
-        self.mcross = bt.indicators.CrossOver(self.macd.macd, self.macd.signal, subplot= False)
+        self.macdcross = bt.indicators.CrossOver(self.macd.macd, self.macd.signal, subplot= False)
 
     # def start(self):
     #     self.order = None  # sentinel to avoid operations on pending order
@@ -231,13 +231,13 @@ class MACDCrossStrategy(bt.Strategy):
         #     return  # pending order execution
 
         if self.position.size == 0:  # not in the market
-            if self.mcross == 1:
+            if self.macdcross == 1:
                 self.buy()
-            if self.mcross == -1:
+            if self.macdcross == -1:
                 self.sell()
 
         elif self.position.size != 0:
-            if self.mcross == -1 or self.mcross == 1:
+            if self.macdcross == -1 or self.macdcross == 1:
                 self.close()
 
         # else:  # in the market
@@ -301,6 +301,81 @@ class WilliamsRStrategy(bt.Strategy):
 
         if self.p.debug:
             self.debug()
+
+class IchimokuCloudStrategy(bt.Strategy):
+    '''
+
+    https://medium.com/@harrynicholls/7-popular-technical-indicators-and-how-to-use-them-to-increase-your-trading-profits-7f13ffeb8d05
+    https://tradingtools.net/simplified-ichimoku-strategy/
+
+            Kijun Sen (blue line, confirm future trends): standard line/base line, averaging highest high and lowest low for past 26 periods
+            Tenkan Sen (red line, confirm trending/ranging): turning line, averaging highest high and lowest low for past 9 periods
+            Chikou Span (green line, confirm future trends): lagging line, today’s closing price plotted 26 periods behind
+            Senkou Span (red/green band, support and resistance levels):
+            - first Senkou line (fast): averaging Tenkan Sen and Kijun Sen, plotted 26 periods ahead
+            - second Senkou line (slow): averaging highest high and lowest low over past 52 periods, plotted 26 periods ahead
+
+            Entry Critria:
+
+            - Slopy Tenkan Sen
+
+             - Long:
+                 - The price crossing above Kijun Sen
+                 - Chikou Span crossing above the price
+                 - The price above the cloud
+             - Short:
+                 - The price crossing down Kijun Sen
+                 - Chikou Span crossing down the price
+                 - The price below the cloud
+
+            Exit Critria
+             - Long/Short: Same as opposite
+    '''
+
+
+    params = (("kijun", 26),
+              ("tenkan", 9),
+              ("chikou", 26),
+              ("senkou", 52),
+              ("senkou_lead", 26),
+              ("debug", False),
+              )
+
+    def __init__(self):
+        self.ichimoku = bt.indicators.Ichimoku(self.data,
+                                               kijun=self.p.kijun,
+                                               tenkan=self.p.tenkan,
+                                               chikou = self.p.chikou,
+                                               senkou=self.p.senkou,
+                                               senkou_lead=self.p.senkou_lead
+                                               )
+        self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
+
+    def next(self):
+
+        orders = self.broker.get_orders_open()
+
+        if self.dmi.adx > self.p.adxBenchmark:
+
+            if self.position.size == 0:  # not in the market
+
+                if self.dicross == 1:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+                if self.dicross == -1:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+            elif self.position.size > 0:  # longing in the market
+
+                if self.dicross == -1:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+            elif self.position.size < 0:  # shorting in the market
+
+                if self.dicross == 1:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+
+            if self.p.debug:
+                self.debug()
 
 #Trend Following
 class DonchianStrategy(bt.Strategy):
@@ -591,13 +666,13 @@ class DMIStrategy(bt.Strategy):
           - Long/Short: Same as opposite
     '''
 
-    params = (("period", 14),
+    params = (("dmiperiod", 14),
               ("adxBenchmark", 30),
               ("debug", False)
              )
 
     def __init__(self):
-        self.dmi = bt.indicators.DirectionalMovementIndex(self.data, period=self.p.period)
+        self.dmi = bt.indicators.DirectionalMovementIndex(self.data, period=self.p.dmiperiod)
         self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
 
     def next(self):
