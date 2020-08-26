@@ -381,6 +381,34 @@ class IchimokuCloudStrategy(bt.Strategy):
         if self.p.debug:
             self.debug()
 
+class StochasticStrategy(bt.Strategy):
+
+    '''
+
+
+
+    '''
+
+    params = (
+        ("period", 21),
+        ('upperband', 70.0),
+        ('lowerband', 30.0),
+    )
+
+    def __init__(self):
+        self.rsi = bt.indicators.Stochastic(self.data.close, period=self.p.period)
+
+    def next(self):
+        if self.position.size == 0:
+            if self.rsi < self.p.lowerband:
+                self.buy()
+        elif self.position.size > 0:
+            if self.rsi > self.p.upperband:
+                self.sell()
+        elif self.position.size < 0:
+            if self.rsi < self.p.lowerband:
+                self.buy()
+
 #Trend Following
 class DonchianStrategy(bt.Strategy):
     def __init__(self):
