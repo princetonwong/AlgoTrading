@@ -2,12 +2,6 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import backtrader as bt
 from BacktraderAPI import BTIndicator
-from .MeanReversionStrategy import *
-from .TrendFollowingStrategy import *
-from .MACDStrategy import *
-from .CCIStrategy import *
-from .BTStrategyBase import *
-from .BTStrategyExit import *
 
 class ASOCrossStrategy(bt.Strategy):
     params = (
@@ -273,3 +267,137 @@ class CCICrossStrategyWithSLOWKDExitHeikinAshi(CCICrossStrategyWithStochasticExi
         self.stoch.csv = True
         self.kCrossupD = bt.ind.CrossUp(self.stoch.percK, self.stoch.percD, subplot=False)
         self.kCrossdownD = bt.ind.CrossDown(self.stoch.percK, self.stoch.percD, subplot=False)
+        
+class IchimokuCloudStrategy(bt.Strategy):
+    '''
+
+    https://medium.com/@harrynicholls/7-popular-technical-indicators-and-how-to-use-them-to-increase-your-trading-profits-7f13ffeb8d05
+    https://tradingtools.net/simplified-ichimoku-strategy/
+    https://school.stockcharts.com/doku.php?id=technical_indicators:ichimoku_cloud
+
+            Kijun Sen (blue line, confirm future trends): standard line/base line, averaging highest high and lowest low for past 26 periods
+            Tenkan Sen (red line, confirm trending/ranging): turning line, averaging highest high and lowest low for past 9 periods
+            Chikou Span (green line, confirm future trends): lagging line, today’s closing price plotted 26 periods behind
+            Senkou Span (red/green band, support and resistance levels):
+            - first Senkou line (fast): averaging Tenkan Sen and Kijun Sen, plotted 26 periods ahead
+            - second Senkou line (slow): averaging highest high and lowest low over past 52 periods, plotted 26 periods ahead
+
+            Entry Criteria:
+
+             - Long:
+                 - The price above the green cloud (price > 1st Senkou line > 2nd Senkou line) (Trend)
+                 - Tenkan Sen crosses above Kijun Sen (momentum)
+                 - Price crosses above Kijun Sen (momentum)
+                 optional: Chikou Span crossing above the price
+             - Short:
+                 - The price below the red cloud (price < 1st Senkou line < 2nd Senkou line) (Trend)
+                 - Tenkan Sen crosses below Kijun Sen (momentum)
+                 - Price crosses below Kijun Sen (momentum)
+                 Optional: Chikou Span crossing down the price
+
+
+            Exit Criteria
+             - Long/Short: Same as opposite
+    '''
+
+
+    params = (("kijun", 26),
+              ("tenkan", 9),
+              ("chikou", 26),
+              ("senkou", 52),
+              ("senkou_lead", 26),
+              )
+
+    def __init__(self):
+        self.ichimoku = bt.indicators.Ichimoku(self.data,
+                                               kijun=self.p.kijun,
+                                               tenkan=self.p.tenkan,
+                                               chikou = self.p.chikou,
+                                               senkou=self.p.senkou,
+                                               senkou_lead=self.p.senkou_lead
+                                               )
+        self.tKCross = bt.indicators.CrossOver(self.ichimoku.l.tenkan_sen, self.ichimoku.l.kijun_sen)
+        self.priceKCross = bt.indicators.CrossOver(self.data.close, self.ichimoku.l.kijun_sen)
+
+    def next(self):
+
+        orders = self.broker.get_orders_open()
+
+        if self.position.size == 0:  # not in the market
+            if self.data.close > self.ichimoku.l.senkou_span_a > self.ichimoku.l.senkou_span_b:
+                if self.tKCross == 1 and self.priceKCross == 1:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+            if self.data.close < self.ichimoku.l.senkou_span_a < self.ichimoku.l.senkou_span_b:
+                if self.tKCross == -1 and self.priceKCross == -1:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+        elif self.position.size > 0:  # longing in the market
+
+            if self.data.close < self.ichimoku.l.senkou_span_a < self.ichimoku.l.senkou_span_b:
+                if self.tKCross == -1 and self.priceKCross == -1:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+        elif self.position.size < 0:  # shorting in the market
+
+            if self.data.close > self.ichimoku.l.senkou_span_a > self.ichimoku.l.senkou_span_b:
+                if self.tKCross == 1 and self.priceKCross == 1:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+        
+class StochasticStrategy(bt.Strategy):
+
+    '''
+    https://tradingstrategyguides.com/best-stochastic-trading-strategy/
+
+    Entry Criteria:
+
+    1. Check the daily chart and make sure the Stochastic indicator < 20 and the %K line crossed above %D line.
+    2. Move Down to the 15-Minute Time Frame and Wait for the Stochastic Indicator to hit the 20 level. %K line crossed above %D line.
+    3. Wait for the Stochastic %K line (blue moving average) to cross above the 20 level
+    4. Wait for a Swing Low Pattern to develop on the 15-Minute Chart
+    5. Entry Long When the Highest Point of the Swing Low Pattern is Broken to the Upside
+    6. Use Protective Stop Loss placed below the most recent 15-minute Swing Low
+    7. Take Profit at 2xSL
+
+             - Long:
+                 -
+             - Short:
+                 -
+
+
+            Exit Criteria
+             - Long/Short: Same as opposite
+    '''
+
+    params = (
+        ('period', 14),
+        ('period_dfast', 3),
+        ('period_dslow', 3),
+        ('upperband', 80.0),
+        ('lowerband', 20.0),
+    )
+
+    def __init__(self):
+        self.stochastic = bt.indicators.Stochastic(self.data,
+                                                   period=self.p.period,
+                                                   period_dfast=self.p.period_dfast,
+                                                   period_dslow=self.p.period_dslow,
+                                                   )
+        self.kCrosslower = bt.indicators.CrossOver(self.stochastic.l.percK,self.p.lowerband)
+        self.kCrossupper = bt.indicators.CrossOver(self.stochastic.l.percK,self.p.upperband)
+        self.kCrossD = bt.indicators.CrossOver(self.stochastic.l.percK,self.stochastic.l.percD)
+
+    def next(self):
+
+        if self.position.size == 0:
+            if self.kCrosslower == 1 and self.kCrossD == 1:
+                self.buy(exectype=bt.Order.Stop, price=self.data.close)
+            if self.kCrossupper == -1 and self.kCrossD == -1:
+                self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+        elif self.position.size > 0:
+            if self.kCrossupper == -1 and self.kCrossD == -1:
+                self.close(exectype=bt.Order.Stop, price=self.data.close)
+
+        elif self.position.size < 0:
+            if self.kCrosslower == 1 and self.kCrossD == 1:
+                self.close(exectype=bt.Order.Stop, price=self.data.close)
