@@ -16,6 +16,9 @@ class BBandsStrategyBase(bt.Strategy):
         self.crossUpBollTop = bt.indicators.CrossUp(self.data, self.boll.lines.top, subplot = False)
         self.crossOverBollMid = bt.indicators.CrossOver(self.data, self.boll.lines.mid, subplot = False)
 
+        self.crossDownBollBottom.csv = True
+        self.crossUpBollTop.csv= True
+
 class CCIStrategyBase(bt.Strategy):
     params = dict(cciPeriod=26, cciFactor=0.015, cciThreshold=100)
 
@@ -45,6 +48,17 @@ class ChandelierStrategyExit(bt.Strategy):
         self.crossOverChandelierShort = bt.ind.CrossOver(self.data, self.chandelier.short, plot=False)
         self.crossOverChandelierShort.csv = True
 
+class DMIStrategyBase(bt.Strategy):
+
+    params = dict(dmiperiod=14, adxBenchmark=30)
+
+    def __init__(self):
+        super(DMIStrategyBase, self).__init__()
+        self.dmi = bt.indicators.DirectionalMovementIndex(self.data, period=self.p.dmiperiod)
+        self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
+        self.dmi.csv = True
+        self.dicross.csv=True
+
 class StochasticStrategyBase(bt.Strategy):
     '''
       - http://en.wikipedia.org/wiki/Stochastic_oscillator
@@ -70,8 +84,9 @@ class SMAStrategyBase(bt.Strategy):
 
     def __init__(self):
         super(SMAStrategyBase, self).__init__()
-        sma1, sma2 = bt.ind.SMA(period=self.p.SMAFastPeriod), bt.ind.SMA(period=self.p.SMASlowPeriod)
-        self.smaFastCrossoverSlow = bt.ind.CrossOver(sma1, sma2)
+        self.sma1, self.sma2 = bt.ind.SMA(period=self.p.SMAFastPeriod), bt.ind.SMA(period=self.p.SMASlowPeriod)
+        self.smaFastCrossoverSlow = bt.ind.CrossOver(self.sma1, self.sma2)
+        self.sma2.csv = True
 
 class RSIStrategyBase(bt.Strategy):
     params = dict(rsiPeriod=21, rsiUpperband=70, rsiLowerband=30)
@@ -91,7 +106,7 @@ class MACDStrategyBase(bt.Strategy):
         self.macd.csv = True
         self.macdHistogram = BTIndicator.MACDHistogram(period_me1=self.p.macdFast, period_me2=self.p.macdSlow, period_signal=self.p.diffPeriod)
         self.mcross = bt.indicators.CrossOver(self.macd.macd, self.macd.signal, subplot= False)
-
+        self.mcross.csv = True
 
 
 class WillamsRStrategyBase(bt.Strategy):

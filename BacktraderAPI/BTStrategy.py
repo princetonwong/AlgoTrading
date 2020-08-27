@@ -128,7 +128,7 @@ class ClenowTrendFollowingStrategy(bt.Strategy):
                     else:
                         self.sl_order = self.order_target_value(target=0.0, exectype=bt.Order.Stop, price=self.sl_price)
 
-class DMIStrategy(bt.Strategy):
+class DMICrossStrategy(DMIStrategyBase):
 
     '''
          Entry Critria:
@@ -142,15 +142,6 @@ class DMIStrategy(bt.Strategy):
          Exit Critria
           - Long/Short: Same as opposite
     '''
-
-    params = (("dmiperiod", 14),
-              ("adxBenchmark", 30),
-              ("debug", False)
-             )
-
-    def __init__(self):
-        self.dmi = bt.indicators.DirectionalMovementIndex(self.data, period=self.p.dmiperiod)
-        self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
 
     def next(self):
 
