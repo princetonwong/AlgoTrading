@@ -388,8 +388,8 @@ class StochasticStrategy(bt.Strategy):
 
     Entry Criteria:
 
-    1. Check the daily chart and make sure the Stochastic indicator is below the 20 line and the %K line crossed above the %D line.
-    2. Move Down to the 15-Minute Time Frame and Wait for the Stochastic Indicator to hit the 20 level. The %K line(blue line) crossed above the %D line(orange line).
+    1. Check the daily chart and make sure the Stochastic indicator < 20 and the %K line crossed above %D line.
+    2. Move Down to the 15-Minute Time Frame and Wait for the Stochastic Indicator to hit the 20 level. %K line crossed above %D line.
     3. Wait for the Stochastic %K line (blue moving average) to cross above the 20 level
     4. Wait for a Swing Low Pattern to develop on the 15-Minute Chart
     5. Entry Long When the Highest Point of the Swing Low Pattern is Broken to the Upside
@@ -420,22 +420,25 @@ class StochasticStrategy(bt.Strategy):
                                                    period_dfast=self.p.period_dfast,
                                                    period_dslow=self.p.period_dslow,
                                                    )
-        self.kCrosslower = bt.indicators.CrossOver(self.lines.percK,self.p.lowerband)
-        self.kCrossD = bt.indicators.CrossOver(self.lines.percK,self.l.percD)
+        self.kCrosslower = bt.indicators.CrossOver(self.stochastic.l.percK,self.p.lowerband)
+        self.kCrossupper = bt.indicators.CrossOver(self.stochastic.l.percK,self.p.upperband)
+        self.kCrossD = bt.indicators.CrossOver(self.stochastic.l.percK,self.stochastic.l.percD)
 
     def next(self):
 
-
         if self.position.size == 0:
-            if self.kCrosslower == 1 and self.lines.percK > self.l.percD:
-
+            if self.kCrosslower == 1 and self.kCrossD == 1:
                 self.buy(exectype=bt.Order.Stop, price=self.data.close)
-        elif self.position.size > 0:
-
+            if self.kCrossupper == -1 and self.kCrossD == -1:
                 self.sell(exectype=bt.Order.Stop, price=self.data.close)
-        elif self.position.size < 0:
 
-                self.buy(exectype=bt.Order.Stop, price=self.data.close)
+        elif self.position.size > 0:
+            if self.kCrossupper == -1 and self.kCrossD == -1:
+                self.close(exectype=bt.Order.Stop, price=self.data.close)
+
+        elif self.position.size < 0:
+            if self.kCrosslower == 1 and self.kCrossD == 1:
+                self.close(exectype=bt.Order.Stop, price=self.data.close)
 
 #Trend Following
 class DonchianStrategy(bt.Strategy):
