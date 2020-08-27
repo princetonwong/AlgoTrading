@@ -1,0 +1,43 @@
+import backtrader as bt
+from BacktraderAPI import BTIndicator
+
+class HoldStrategyExit(bt.Strategy):
+    params = dict(hold= 5)
+
+    def __init__(self):
+        super(HoldStrategyExit, self).__init__()
+        self.holding = dict()
+
+    def notify_order(self, order):
+        super(HoldStrategyExit, self).notify_order(order)
+        if order.status in [order.Completed]:  # HOLD FOR AT LEAST FEW BARS
+            self.bar_executed = 0
+            self.holdstart = len(self)
+            
+class ATRDistanceStrategyExit(bt.Strategy):
+    '''
+         - Set a stop price x times the ATR value away from the close
+
+         - If in the market:
+           - Check if the current close has gone below the stop price. If yes,
+             exit.
+           - If not, update the stop price if the new stop price would be higher
+             than the current
+        '''
+    
+    params = dict(atrPeriod=14, atrDistance=3, smaPeriod=30, lookback=10)
+    
+    def __init__(self):
+        super(ATRDistanceStrategyExit, self).__init__()
+        self.atr = bt.ind.ATR(period=self.p.period)
+    
+    def next(self):
+        pclose = self.data.close[0]
+        pstop = self.pstop
+
+        if pclose < pstop:
+            self.close()  # stop met - get out
+        else:
+            pdist = self.atr[0] * self.p.atrDistance
+            # Update only if greater than
+            self.pstop = max(pstop, pclose - pdist)
