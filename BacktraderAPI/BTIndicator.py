@@ -1,5 +1,4 @@
-import backtrader as bt
-from backtrader.indicators import MovingAverageSimple, Highest, Lowest
+from backtrader.indicators import *
 import numpy as np
 
 class StochRSI(bt.Indicator):
@@ -107,7 +106,7 @@ class talibCCI(bt.Indicator):
       '''
     alias = ('CCI',)
 
-    lines = ('cci','meandev','dev','tp','tpmean')
+    lines = ('cci', "upperband", "lowerband")
 
     params = (('period', 26),
               ('factor', 0.015),
@@ -122,6 +121,7 @@ class talibCCI(bt.Indicator):
 
     def _plotinit(self):
         self.plotinfo.plotyhlines = [0.0, self.p.upperband, self.p.lowerband]
+        # self.plotinfo.plothlines = [self.p.upperband, self.p.lowerband]
 
     def __init__(self):
         # self.addminperiod(self.p.period)
@@ -129,7 +129,9 @@ class talibCCI(bt.Indicator):
         # self.l.tpmean = self.p.movav(self.l.tp, period=self.p.period)
         self.l.cci = bt.talib.CCI(self.data.high, self.data.low, self.data.close, timeperiod = self.p.period)
 
-    # def next(self):
+    def next(self):
+        self.l.upperband[0] = self.p.upperband
+        self.l.lowerband[0] = self.p.lowerband
     #     # self.l.tp[0] = (self.data.high[0] + self.data.low[0] + self.data.close[0]) / 3.0
     #     # self.l.tpmean = bt.ind.MovAv(self.l.tp, period= self.p.period)
     #     print (self.l.tpmean[0])
@@ -250,11 +252,20 @@ class ChandelierExit(bt.Indicator):
     plotinfo = dict(subplot=False)
 
     def __init__(self):
-        highest = bt.ind.Highest(self.data.high, period=self.p.period)
-        lowest = bt.ind.Lowest(self.data.low, period=self.p.period)
-        atr = self.p.multip * bt.ind.ATR(self.data, period=self.p.period)
-        self.lines.long = highest - atr
-        self.lines.short = lowest + atr
+        self.highest = bt.ind.Highest(self.data.high, period=self.p.period)
+        self.lowest = bt.ind.Lowest(self.data.low, period=self.p.period)
+        self.atr = self.p.multip * bt.ind.ATR(self.data, period=self.p.period)
+        self.lines.long = self.highest - self.atr
+        self.lines.short = self.lowest + self.atr
+
+class ChandelierExitHistogram(ChandelierExit):
+    lines = ("histo",)
+    plotinfo = dict(subplot=True)
+    plotlines = dict(long=dict(_plotskip=True, ), short=dict(_plotskip=True, ), histo=dict(_method='bar', alpha=0.50, width=1.0))
+
+    def __init__(self):
+        super(ChandelierExitHistogram, self).__init__()
+        self.lines.histo = self.lines.long - self.lines.short
 
 class KeltnerChannel(bt.Indicator):
 
@@ -344,7 +355,6 @@ class VolumeWeightedAveragePrice(bt.Indicator):
 
         super(VolumeWeightedAveragePrice, self).__init__()
 
-from backtrader.indicators import Indicator, Max, MovAv, Highest, Lowest, DivByZero
 class HeiKinAshiStochasticBase(bt.ind.HeikinAshi):
     lines = ('percK', 'percD',)
     params = (('period', 14), ('period_dfast', 3), ('movav', MovAv.Simple),
