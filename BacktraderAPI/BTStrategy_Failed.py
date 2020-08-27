@@ -1,12 +1,6 @@
 import backtrader as bt
 from BacktraderAPI import BTIndicator
 
-#All bt indicators: https://www.backtrader.com/docu/indautoref/
-
-#Mean Reversion
-
-#Trend Following
-
 class AroonWithEMAStrategy(bt.Strategy):
 
     '''
