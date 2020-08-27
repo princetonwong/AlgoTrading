@@ -9,11 +9,8 @@ from BacktraderAPI import BTIndicator
 
 class AroonWithEMAStrategy(bt.Strategy):
 
-
     '''
-
         Failed:
-
               - Long:
                 - close is above 200 EMA
                 - Aroon Long crosses above 30
@@ -25,15 +22,12 @@ class AroonWithEMAStrategy(bt.Strategy):
               - Exit Criteria:
                 - Long: Close Buy when Aroon Long crosses below 70
                 - Short: Close Sell when Aroon Short crosses below 70
-
-
     '''
 
     params = (
                 ("period", 25),
                 ("upperband", 100),
                 ("lowerband", 0),
-                ("debug", False)
               )
 
     def __init__(self):
@@ -46,24 +40,18 @@ class AroonWithEMAStrategy(bt.Strategy):
         orders = self.broker.get_orders_open()
 
         if self.position.size == 0:  # not in the market
-
             if self.aroon.aroonup == self.p.upperband and self.aroon.aroondown == self.p.lowerband:
                 self.buy(exectype=bt.Order.Stop, price=self.data.close)
             if self.aroon.aroondown == self.p.upperband and self.aroon.aroonup == self.p.lowerband:
                 self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
         elif self.position.size > 0:  # longing in the market
-
             if self.aroon.aroondown == self.p.upperband and self.aroon.aroonup == self.p.lowerband:
                 self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
         elif self.position.size < 0:  # shorting in the market
-
             if self.aroon.aroonup == self.p.upperband and self.aroon.aroondown == self.p.lowerband:
                 self.buy(exectype=bt.Order.Stop, price=self.data.close)
-
-        if self.p.debug:
-            self.debug()
 
 class DMICrossMACDCrossBBandsStrategy(bt.Strategy):
 
@@ -92,7 +80,6 @@ class DMICrossMACDCrossBBandsStrategy(bt.Strategy):
               ('difPeriod', 9),
               ("bbandperiod", 20),
               ("sd", 2),
-              ("debug", False)
               )
 
     def __init__(self):
@@ -119,7 +106,6 @@ class DMICrossMACDCrossBBandsStrategy(bt.Strategy):
         if self.dmi.adx > self.p.adxBenchmark:
 
             if self.position.size == 0:  # not in the market
-
                 if self.self.dmi.plusDI > self.dmi.minusDI and self.data.close > self.ma.sma and self.macdcross == 1:
                     if self.bbandupper:
                         self.buy(exectype=bt.Order.Stop, price=self.data.close)
@@ -128,16 +114,11 @@ class DMICrossMACDCrossBBandsStrategy(bt.Strategy):
                         self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
             elif self.position.size > 0:  # longing in the market
-
                 if self.self.dmi.plusDI < self.dmi.minusDI and self.data.close < self.ma.sma and self.macdcross == -1:
                     if self.bbandlower:
                         self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
             elif self.position.size < 0:  # shorting in the market
-
                 if self.self.dmi.plusDI > self.dmi.minusDI and self.data.close > self.ma.sma and self.macdcross == 1:
                     if self.bbandupper:
                         self.buy(exectype=bt.Order.Stop, price=self.data.close)
-
-            elif self.p.debug:
-                self.debug()
