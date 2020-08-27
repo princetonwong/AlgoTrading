@@ -120,10 +120,10 @@ def getSharpeRatioDf(analyzer, xlsx= False):
     return resultDF
 
 def getReturnDf(analyzer, xlsx=False):
-    rtot = round(analyzer["rtot"], 2)
-    ravg = round(analyzer["ravg"], 2)
-    rnorm = round(analyzer["rnorm"], 2)
-    rnorm100 = round(analyzer["rnorm100"], 2)
+    rtot = round(analyzer["rtot"], 3)
+    ravg = round(analyzer["ravg"], 3)
+    rnorm = round(analyzer["rnorm"], 3)
+    rnorm100 = round(analyzer["rnorm100"], 3)
     index = ["Total Compound Return", "Average Return", "Annualized Return", "Annualized Return%"]
     result = [rtot, ravg, rnorm, rnorm100]
     resultDF = pd.Series(result, index=index)
@@ -232,7 +232,7 @@ class Kelly(Analyzer):
             # (Since BT convention is to class trades with profit >=0 as a
             # winner)
             if winLossRatio == 0:
-                kellyPercent = None   # Because average of winners were 0.
+                kellyPercent = 0   # Because average of winners were 0.
 
             else:
                 # Calculate probability of winning from our data.
@@ -248,7 +248,7 @@ class Kelly(Analyzer):
                 kellyPercent = winProb - (inverse_winProb / winLossRatio)
 
         else:
-            kellyPercent = None  # Not enough information to calculate.
+            kellyPercent = 0  # Not enough information to calculate.
 
         self.rets.kellyRatio = kellyPercent             # e.g. 0.215
         self.rets.kellyPercent = kellyPercent * 100     # e.g. 21.5

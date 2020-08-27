@@ -17,8 +17,8 @@ DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
 INITIALCASH = 100000
 OUTPUTSETTINGS = dict(bokeh=True,plot=True,observer=True,analyzer=True, optimization=False)
 
-STRATEGY = BTStrategy.CCICrossStrategy
-PARAMS = dict(cciPeriod=29, cciFactor=0.015, cciThreshold=100, hold=10)
+STRATEGY = BTStrategy.CCICrossStrategyWithChandelierExit
+PARAMS = dict(period=15, factor=0.015, threshold=100, hold=8, chandelierPeriod=21, multip=3) #(26,0.015,100,9)
 
 helper = Helper()
 
@@ -165,7 +165,7 @@ def grid_search(sortKey: str) -> pd.DataFrame:
     for x in range(60, 80, 2):
         for y in range(20, 40, 2):
             outputsettings = dict(bokeh=False,plot=False,observer=True,analyzer=True, optimization=True)
-            optimizationParams = dict(rsiPeriod=21, rsiUpperband=x, rsiLowerband=y)
+            optimizationParams = dict(period=x, factor=0.015, threshold=100, hold=y, chandelierPeriod=21, multip=3)
 
             params_list.append({**optimizationParams})
             outputsettings_list.append({**outputsettings})
