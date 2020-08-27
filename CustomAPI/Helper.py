@@ -28,7 +28,7 @@ class Helper():
         return os.path.join(path, finalFilePath)
 
     def outputXLSX(self, df, fileName):
-        path = (fileName + ".xlsx")
+        path = self.generateFilePath(fileName, ".xlsx")
         df.to_excel(path, engine="openpyxl")
         return df
 

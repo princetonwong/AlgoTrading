@@ -34,17 +34,6 @@ class CCIStrategyBase(bt.Strategy):
         self.cciCrossLowerband = bt.ind.CrossDown(self.cci, self.lowerband, plot=True)
         self.cciCrossLowerband.csv = True
 
-class ChandelierStrategyExit(bt.Strategy):
-    params = dict(chandelierPeriod=22, multiplier=3)
-
-    def __init__(self):
-        super(ChandelierStrategyExit, self).__init__()
-        self.chandelier = BTIndicator.ChandelierExit(period=self.p.chandelierPeriod, multip=self.p.multiplier)
-        self.crossOverChandelierLong = bt.ind.CrossOver(self.data, self.chandelier.long, plot=False)
-        self.crossOverChandelierLong.csv = True
-        self.crossOverChandelierShort = bt.ind.CrossOver(self.data, self.chandelier.short, plot=False)
-        self.crossOverChandelierShort.csv = True
-
 class StochasticStrategyBase(bt.Strategy):
     '''
       - http://en.wikipedia.org/wiki/Stochastic_oscillator
@@ -70,8 +59,8 @@ class SMAStrategyBase(bt.Strategy):
 
     def __init__(self):
         super(SMAStrategyBase, self).__init__()
-        sma1, sma2 = bt.ind.SMA(period=self.p.SMAFastPeriod), bt.ind.SMA(period=self.p.SMASlowPeriod)
-        self.smaFastCrossoverSlow = bt.ind.CrossOver(sma1, sma2)
+        self.sma1, self.sma2 = bt.ind.SMA(period=self.p.SMAFastPeriod), bt.ind.SMA(period=self.p.SMASlowPeriod)
+        self.smaFastCrossoverSlow = bt.ind.CrossOver(self.sma1, self.sma2, plot=False)
 
 class RSIStrategyBase(bt.Strategy):
     params = dict(rsiPeriod=21, rsiUpperband=70, rsiLowerband=30)
@@ -92,8 +81,6 @@ class MACDStrategyBase(bt.Strategy):
         self.macdHistogram = BTIndicator.MACDHistogram(period_me1=self.p.macdFast, period_me2=self.p.macdSlow, period_signal=self.p.diffPeriod)
         self.mcross = bt.indicators.CrossOver(self.macd.macd, self.macd.signal, subplot= False)
 
-
-
 class WillamsRStrategyBase(bt.Strategy):
     params = dict(willRperiod=14, willRUpperband=-20, willRLowerband=-80)
 
@@ -106,3 +93,12 @@ class WillamsRStrategyBase(bt.Strategy):
                                                  )
         self.willRCrossoverLow = bt.indicators.CrossOver(self.williamsR, self.p.willRLowerband, subplot=False)
         self.willRCrossoverUp = bt.indicators.CrossOver(self.williamsR, self.p.willRUpperband, subplot=False)
+
+class PiercingCandleStrategyBase(bt.Strategy):
+    params = dict(smaPeriod=5, lookback=6)
+
+    def __init__(self):
+     super(PiercingCandleStrategyBase, self).__init__()
+     self.trend = BTIndicator.TrendBySMAStreak(smaPeriod=self.p.smaPeriod, lookback=self.p.lookback).trend
+     self.piercingCandle = BTIndicator.TwoBarPiercingCandle().pattern
+

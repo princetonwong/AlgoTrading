@@ -206,6 +206,7 @@ class Streak(bt.ind.PeriodN):
     '''
     lines = ('streak',)
     params = dict(period=2)  # need prev/cur days (2) for comparisons
+    plotlines = dict(streak=dict(_method='bar', alpha=0.50, width=1.0))
 
     curstreak = 0
 
@@ -417,3 +418,51 @@ class HeiKinAshiStochasticFull(HeiKinAshiStochasticBase):
         self.lines.percD = self.d
         self.l.percDSlow = self.p.movav(
             self.l.percD, period=self.p.period_dslow)
+
+class TwoBarPiercingCandle(bt.Indicator):
+    '''
+        The Piercing: in a downtrend, O1 >C1, O2 <C2, O2 ≤C1, C2<O1, and C2>C1+0.5(O1−C1).
+
+        High winning rate in bullish market, and oscillating market, rare occurence
+
+        See:
+        - Profitable candlestick trading strategies—The evidence from a new perspective
+        doi:10.1016/j.rfe.2012.02.001
+      '''
+    lines = ('pattern', )
+
+    def __init__(self):
+        self.l.pattern = bt.talib.CDLPIERCING(self.data.open, self.data.high, self.data.low, self.data.close)
+
+class TrendBySMAStreak(bt.Indicator):
+    lines = ('trend',"streak",)
+    params = dict(smaPeriod=5, lookback=6)
+    plotlines = dict(trend=dict(_method='bar', alpha=0.50, width=1.0))
+
+    curstreak = 0
+
+    def _plotinit(self):
+        self.plotinfo.plotyhlines = [self.p.lookback, -self.p.lookback]
+
+    def __init__(self):
+        self.sma = bt.ind.MovingAverageSimple(period= self.p.smaPeriod, plot=False)
+        self.addminperiod(self.p.smaPeriod + self.p.lookback)
+
+    def next(self):
+        d0, d1 = self.sma[0], self.sma[-1]
+
+        if d0 > d1:
+            self.curstreak = max(1, self.curstreak + 1)
+        elif d0 < d1:
+            self.curstreak = min(-1, self.curstreak - 1)
+        else:
+            self.curstreak = 0
+
+        if self.curstreak >= self.p.lookback:
+            self.l.trend[0] = 1
+        elif self.curstreak <= -self.p.lookback:
+            self.l.trend[0] = -1
+        else:
+            self.l.trend[0] = 0
+
+

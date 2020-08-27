@@ -8,6 +8,11 @@ from .CCIStrategy import *
 from .MACDStrategy import *
 from .MeanReversionStrategy import *
 from .TrendFollowingStrategy import *
+from .BTStrategy_Failed import *
+
+class EmptyStrategy(bt.Strategy):
+    def __init__(self):
+        super(EmptyStrategy, self).__init__()
 
 class ASOCrossStrategy(bt.Strategy):
     params = (
@@ -407,3 +412,16 @@ class StochasticStrategy(bt.Strategy):
         elif self.position.size < 0:
             if self.kCrosslower == 1 and self.kCrossD == 1:
                 self.close(exectype=bt.Order.Stop, price=self.data.close)
+
+class PiercingCandleHoldingStrategy (PiercingCandleStrategyBase, HoldStrategyExit):
+    def next(self):
+        if self.position.size == 0:
+            if self.trend == 1 and self.piercingCandle:
+                self.buy()
+
+        elif self.position.size > 0:
+            if (len(self) - self.holdstart) >= self.p.hold:
+                self.sell()
+
+        elif self.position.size < 0:
+                pass
