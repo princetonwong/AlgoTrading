@@ -143,13 +143,13 @@ class DMIStrategy(bt.Strategy):
           - Long/Short: Same as opposite
     '''
 
-    params = (("period", 14),
-              ("adxBenchmark", 20),
+    params = (("dmiperiod", 14),
+              ("adxBenchmark", 30),
               ("debug", False)
              )
 
     def __init__(self):
-        self.dmi = bt.indicators.DirectionalMovementIndex(self.data, period=self.p.period)
+        self.dmi = bt.indicators.DirectionalMovementIndex(self.data, period=self.p.dmiperiod)
         self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
 
     def next(self):
