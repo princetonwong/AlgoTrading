@@ -2,6 +2,12 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import backtrader as bt
 from BacktraderAPI import BTIndicator
+from .BTStrategyExit import *
+from .BTStrategyBase import *
+from .CCIStrategy import *
+from .MACDStrategy import *
+from .MeanReversionStrategy import *
+from .TrendFollowingStrategy import *
 
 class ASOCrossStrategy(bt.Strategy):
     params = (
