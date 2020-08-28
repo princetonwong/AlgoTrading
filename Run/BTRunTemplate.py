@@ -7,9 +7,9 @@ from typing import Dict, Union
 from tqdm.contrib.concurrent import process_map
 
 
-SYMBOL = "HK.MHImain"
-SUBTYPE = SubType.K_15M
-# TIMERANGE = ("2017-08-01", "00:00:00", "2020-08-25", "23:59:00")
+SYMBOL = "HK.00014"
+SUBTYPE = SubType.K_DAY
+TIMERANGE = ("2019-10-01", "00:00:00", "2020-07-25", "23:59:00")
 TIMERANGE = None
 DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2015")
@@ -17,8 +17,8 @@ DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
 INITIALCASH = 100000
 OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
 
-STRATEGY = BTStrategy.RSIReversionStrategy
-PARAMS = dict(rsiPeriod=21, rsiUpperband=76, rsiLowerband=26)
+STRATEGY = BTStrategy.EmptyStrategy
+PARAMS = dict()
 
 helper = Helper()
 
@@ -54,7 +54,6 @@ def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.Da
 
     #Strategy
     cerebro.addstrategy(STRATEGY, **params)
-    # cerebro.addindicator(BTIndicator.AbsoluteStrengthOscilator)
     # cerebro.addindicator(BTIndicator.KeltnerChannel)
     # cerebro.addindicator(BTIndicator.KeltnerChannelBBSqueeze)
     # cerebro.addindicator(BTIndicator.VolumeWeightedAveragePrice)

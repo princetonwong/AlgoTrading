@@ -17,37 +17,6 @@ class StochRSI(bt.Indicator):
 
         self.l.stochrsi = (rsi - minrsi) / (maxrsi - minrsi)
 
-class CCICloseSignal(bt.Indicator):
-    lines = ("CCI",)
-    params = dict(n= 20,
-                  a= 0.015,
-                  threshold= 100,
-                  m= 7
-                  )
-
-    def cal_meandev(self, tp, matp):
-        mean_dev = (self.p.n - 1) * [np.nan]
-        for i in range(len(tp) - self.p.n + 1):
-            mean_dev.append(np.mean(abs(tp[i:i + self.p.n] - matp[i + self.p.n - 1])))
-        return np.array(mean_dev)
-
-    def __init__(self):
-        tp = (self.data.close + self.data.high + self.data.low) / 3
-        matp = MovingAverageSimple(tp, period=self.p.n)
-        mean_dev = self.cal_meandev(tp, matp)
-        cci = (tp - matp) / (self.p.a * mean_dev)
-
-        self.l.cci = cci
-
-class CCIExitSignal(bt.Indicator):
-    lines = ("signal",)
-    params = (("cciParameters",(20,0.015,100,5)),)
-
-
-    def __init__(self):
-        n, a, cciThreshold, m = self.p.cciParameters
-        cci = bt.ind.CommodityChannelIndex(n, a, cciThreshold, -cciThreshold)
-
 class DonchianChannels(bt.Indicator):
     '''
     Params Note:
@@ -85,7 +54,7 @@ class DonchianChannels(bt.Indicator):
 
 class MACDHistogram(bt.ind.MACDHisto):
     def __init__(self):
-        super(bt.ind.MACDHisto, self).__init__()
+        super(MACDHistogram, self).__init__()
         self.lines.histo = (self.lines.macd - self.lines.signal) * 2
 
 class talibCCI(bt.Indicator):
@@ -465,4 +434,54 @@ class TrendBySMAStreak(bt.Indicator):
         else:
             self.l.trend[0] = 0
 
+class ZeroLagMACD(bt.Indicator):
+    lines = ('macd', "signal", "histo",)
+    params = dict(fastPeriod=12, slowPeriod=26, signalPeriod=9)
+    plotlines = dict(histo=dict(_method='bar', alpha=0.50, width=1.0))
 
+    def __init__(self):
+        self.emaFast = bt.ind.EMA(self.data, period= self.p.fastPeriod)
+        self.emaSlow = bt.ind.EMA(self.data, period= self.p.slowPeriod)
+        self.emaemaFast = bt.ind.EMA(self.emaFast, period=self.p.fastPeriod)
+        self.emaemaSlow = bt.ind.EMA(self.emaSlow, period=self.p.slowPeriod)
+        self.l.macd = (self.emaFast * 2 - self.emaemaFast) - (self.emaSlow * 2 - self.emaemaSlow)
+
+        self.emaLineMACD = bt.ind.EMA(self.l.macd, period=self.p.signalPeriod)
+        self.l.signal = bt.ind.EMA(self.l.macd) * 2 - bt.ind.EMA(self.emaLineMACD, period=self.p.signalPeriod)
+
+        self.l.histo = (self.l.macd - self.l.signal)
+
+class SwingIndex(bt.Indicator):
+    lines = ('signal',)
+    def nextstart(self):
+        self.line[0] = 0
+
+    def next(self):
+        high = self.data.high
+        low = self.data.low
+        dataopen = self.data.open
+        close = self.data.close
+        if abs(high[0] - close[-1]) >= abs(low[0] - close[-1]):
+            if abs(high[0] - close[-1]) >= (high[0] - low[0]):
+                self.r = abs(high[0] - close[-1]) - .5 * (abs(low[0] - close[-1])) + .25 * (abs(close[-1] - dataopen[-1]))
+            else:
+                self.r = (high[0] - low[0]) + .25 * (abs(close[-1] - dataopen[-1]))
+        else:
+            if abs(low[0] - close[-1]) >= (high[0] - low[0]):
+                self.r = abs(low[0] - close[-1]) - .5 * (abs(high[0] - close[-1])) + .25 * (abs(close[-1] - dataopen[-1]))
+            else:
+                self.r = (high[0] - low[0]) + .25 * (abs(close[-1] - dataopen[-1]))
+
+        self.k = max(abs(high[0] - close[-1]), abs(low[0] - close[-1]))
+
+        self.nominator = (close[0] - close[-1]) + .5 * (close[0] - dataopen[0]) + .25 * (close[-1] - dataopen[-1])
+
+        if self.r == 0:
+            self.l.signal[0] = 0
+        else:
+            self.l.signal[0] = 50 * self.nominator/ self.r * self.k / 3
+
+class AccumulationSwingIndex(bt.Indicator):
+    lines = ('signal',)
+    def __init__(self):
+        self.l.signal = bt.ind.Accum(SwingIndex().signal)

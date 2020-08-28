@@ -29,7 +29,7 @@ class ATRDistanceStrategyExit(bt.Strategy):
     
     def __init__(self):
         super(ATRDistanceStrategyExit, self).__init__()
-        self.atr = bt.ind.ATR(period=self.p.period)
+        self.atr = bt.ind.ATR(period=self.p.atrPeriod)
     
     def next(self): #TODO:
         pclose = self.data.close[0]

@@ -102,3 +102,12 @@ class PiercingCandleStrategyBase(bt.Strategy):
      self.trend = BTIndicator.TrendBySMAStreak(smaPeriod=self.p.smaPeriod, lookback=self.p.lookback).trend
      self.piercingCandle = BTIndicator.TwoBarPiercingCandle().pattern
 
+class AbsoluteStrengthOscillatorStrategyBase(bt.Strategy):
+    params = dict(period=21, smoothing=34, rsiFactor=30)
+
+    def __init__(self):
+        self.aso = BTIndicator.AbsoluteStrengthOscilator(period=self.p.period,
+                                                         smoothing=self.p.smoothing,
+                                                         rsifactor=self.p.rsiFactor)
+        self.asoBullsCrossoverBears = bt.ind.CrossOver(self.aso.bulls, self.aso.bears, plot=False)
+

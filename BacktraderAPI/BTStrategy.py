@@ -9,36 +9,26 @@ from .MACDStrategy import *
 from .MeanReversionStrategy import *
 from .TrendFollowingStrategy import *
 from .BTStrategy_Failed import *
+from .CandleStrategy import *
 
 class EmptyStrategy(bt.Strategy):
     def __init__(self):
         super(EmptyStrategy, self).__init__()
 
-class ASOCrossStrategy(bt.Strategy):
-    params = (
-        ("period", 9),
-        ('smoothing', 70.0),
-        ('rsiFactor', 30.0),
-    )
 
-    def __init__(self):
-        self.aso = BTIndicator.AbsoluteStrengthOscilator(period=self.p.period,
-                                                         smoothing=self.p.smoothing,
-                                                         rsifactor=self.p.rsiFactor)
-        self.crossover = bt.ind.CrossOver(self.aso.bulls, self.aso.bears, subplot=False)
-
+class ASOCrossStrategy(AbsoluteStrengthOscillatorStrategyBase):
     def next(self):
         if self.position.size == 0:
-            if self.crossover == 1:
+            if self.asoBullsCrossoverBears == 1:
                 self.buy()
-            elif self.crossover == -1:
+            elif self.asoBullsCrossoverBears == -1:
                 self.sell()
         elif self.position.size > 0:
-            if self.crossover == -1:
-                self.close()
+            if self.asoBullsCrossoverBears == -1:
+                self.sell()
         elif self.position.size < 0:
-            if self.crossover == 1:
-                self.close()
+            if self.asoBullsCrossoverBears == 1:
+                self.buy()
 
 class ClenowTrendFollowingStrategy(bt.Strategy):
     """The trend following strategy from the book "Following the trend" by Andreas Clenow."""
@@ -270,15 +260,6 @@ class ChandelierStrategy(bt.Strategy):
             if self.cross == -1:
                 self.sell()
 
-class CCICrossStrategyWithSLOWKDExitHeikinAshi(CCICrossStrategyWithStochasticExit):
-    def __init__(self):
-        super(CCICrossStrategyWithSLOWKDExitHeikinAshi, self).__init__()
-        # self.heiKinAshi = bt.ind.HeikinAshi(subplot=False)
-        self.stoch = BTIndicator.HeiKinAshiStochasticFull()
-        self.stoch.csv = True
-        self.kCrossupD = bt.ind.CrossUp(self.stoch.percK, self.stoch.percD, subplot=False)
-        self.kCrossdownD = bt.ind.CrossDown(self.stoch.percK, self.stoch.percD, subplot=False)
-        
 class IchimokuCloudStrategy(bt.Strategy):
     '''
 
@@ -413,15 +394,3 @@ class StochasticStrategy(bt.Strategy):
             if self.kCrosslower == 1 and self.kCrossD == 1:
                 self.close(exectype=bt.Order.Stop, price=self.data.close)
 
-class PiercingCandleHoldingStrategy (PiercingCandleStrategyBase, HoldStrategyExit):
-    def next(self):
-        if self.position.size == 0:
-            if self.trend == 1 and self.piercingCandle:
-                self.buy()
-
-        elif self.position.size > 0:
-            if (len(self) - self.holdstart) >= self.p.hold:
-                self.sell()
-
-        elif self.position.size < 0:
-                pass
