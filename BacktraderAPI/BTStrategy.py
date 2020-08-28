@@ -9,6 +9,43 @@ from .MACDStrategy import *
 from .MeanReversionStrategy import *
 from .TrendFollowingStrategy import *
 
+class AroonCrossStrategy(AroonStrategyBase,EMAStrategyBase):
+
+    '''
+        - Long:
+        - close is above 200 EMA
+        - Aroon Long touches upper & Short touches lower
+
+        - Short:
+        - close is below 200 EMA
+        - Aroon Short touches upper & Long touches lower
+
+        - Exit Criteria:
+        - Long: Close Buy when Aroon Long crosses below Aroon Short below 50
+        - Short: Close Sell when Aroon Short crosses below Aroon Long below 50
+    '''
+
+    def next(self):
+        orders = self.broker.get_orders_open()
+
+        if self.position.size == 0:  # not in the market
+            if self.data.close > self.ema:
+                if self.aroonCross == 1 and self.aroon.aroondown < self.aroonMidBand:
+                # if self.aroon.aroonup == self.p.aroonUpBand and self.aroon.aroondown == self.p.aroonLowBand:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+            if self.data.close < self.ema:
+                if self.aroonCross == -1 and self.aroon.aroonup < self.aroonMidBand:
+                # if self.aroon.aroondown == self.p.aroonUpBand and self.aroon.aroonup == self.p.aroonLowBand:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+        elif self.position.size > 0:  # longing in the market
+            if self.aroonCross == -1 and self.aroon.aroonup < self.aroonMidBand:
+                self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+        elif self.position.size < 0:  # shorting in the market
+            if self.aroonCross == 1 and self.aroon.aroondown < self.aroonMidBand:
+                self.buy(exectype=bt.Order.Stop, price=self.data.close)
+
 class ASOCrossStrategy(bt.Strategy):
     params = (
         ("period", 9),
@@ -128,7 +165,7 @@ class ClenowTrendFollowingStrategy(bt.Strategy):
                     else:
                         self.sl_order = self.order_target_value(target=0.0, exectype=bt.Order.Stop, price=self.sl_price)
 
-class DMIStrategy(bt.Strategy):
+class DMICrossStrategy(DMIStrategyBase):
 
     '''
          Entry Critria:
@@ -142,15 +179,6 @@ class DMIStrategy(bt.Strategy):
          Exit Critria
           - Long/Short: Same as opposite
     '''
-
-    params = (("dmiperiod", 14),
-              ("adxBenchmark", 30),
-              ("debug", False)
-             )
-
-    def __init__(self):
-        self.dmi = bt.indicators.DirectionalMovementIndex(self.data, period=self.p.dmiperiod)
-        self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
 
     def next(self):
 
@@ -175,8 +203,6 @@ class DMIStrategy(bt.Strategy):
                 if self.dicross == 1:
                     self.buy(exectype=bt.Order.Stop, price=self.data.close)
 
-            if self.p.debug:
-                self.debug()
 
 class ChandelierStrategy(bt.Strategy):
     params = dict(period=22, multip=3)
@@ -307,12 +333,12 @@ class IchimokuCloudStrategy(bt.Strategy):
     '''
 
 
-    params = (("kijun", 26),
-              ("tenkan", 9),
-              ("chikou", 26),
-              ("senkou", 52),
-              ("senkou_lead", 26),
-              )
+    params = dict(kijun=26,
+                  tenkan=9,
+                  chikou=26,
+                  senkou=52,
+                  senkou_lead=26
+                  )
 
     def __init__(self):
         self.ichimoku = bt.indicators.Ichimoku(self.data,
@@ -387,6 +413,7 @@ class StochasticStrategy(bt.Strategy):
                                                    period=self.p.period,
                                                    period_dfast=self.p.period_dfast,
                                                    period_dslow=self.p.period_dslow,
+                                                   safediv=True
                                                    )
         self.kCrosslower = bt.indicators.CrossOver(self.stochastic.l.percK,self.p.lowerband)
         self.kCrossupper = bt.indicators.CrossOver(self.stochastic.l.percK,self.p.upperband)
