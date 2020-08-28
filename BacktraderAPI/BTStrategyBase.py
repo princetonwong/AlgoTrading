@@ -3,6 +3,19 @@ from BacktraderAPI import BTIndicator
 
 #All backtrader indicators: https://www.backtrader.com/docu/indautoref/
 
+class AroonStrategyBase(bt.Strategy):
+
+    params = dict(aroonPeriod=25,
+                  aroonUpBand=100,
+                  aroonLowBand=0
+                  )
+
+    def __init__(self):
+        super(AroonStrategyBase, self).__init__()
+        self.aroon = bt.indicators.AroonUpDownOscillator(self.data, period=self.p.aroonPeriod)
+        self.aroonMidBand = int((self.p.aroonUpBand + self.p.aroonLowBand)/2)
+        self.aroonCross = bt.indicators.CrossOver(self.aroon.aroonup, self.aroon.aroondown, subplot=True)
+
 class BBandsStrategyBase(bt.Strategy):
 
     #https://backtest-rookies.com/2018/02/23/backtrader-bollinger-mean-reversion-strategy/
@@ -58,6 +71,14 @@ class DMIStrategyBase(bt.Strategy):
         self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
         self.dmi.csv = True
         self.dicross.csv=True
+
+class EMAStrategyBase(bt.Strategy):
+
+    params = dict(emaPeriod=30)
+
+    def __init__(self):
+        super(EMAStrategyBase,self).__init__()
+        self.ema = bt.indicators.ExponentialMovingAverage(self.data,period=self.p.emaPeriod)
 
 class StochasticStrategyBase(bt.Strategy):
     '''

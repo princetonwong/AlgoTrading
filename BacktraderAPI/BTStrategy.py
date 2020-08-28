@@ -9,6 +9,43 @@ from .MACDStrategy import *
 from .MeanReversionStrategy import *
 from .TrendFollowingStrategy import *
 
+class AroonCrossStrategy(AroonStrategyBase,EMAStrategyBase):
+
+    '''
+        - Long:
+        - close is above 200 EMA
+        - Aroon Long touches upper & Short touches lower
+
+        - Short:
+        - close is below 200 EMA
+        - Aroon Short touches upper & Long touches lower
+
+        - Exit Criteria:
+        - Long: Close Buy when Aroon Long crosses below Aroon Short below 50
+        - Short: Close Sell when Aroon Short crosses below Aroon Long below 50
+    '''
+
+    def next(self):
+        orders = self.broker.get_orders_open()
+
+        if self.position.size == 0:  # not in the market
+            if self.data.close > self.ema:
+                if self.aroonCross == 1 and self.aroon.aroondown < self.aroonMidBand:
+                # if self.aroon.aroonup == self.p.aroonUpBand and self.aroon.aroondown == self.p.aroonLowBand:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+            if self.data.close < self.ema:
+                if self.aroonCross == -1 and self.aroon.aroonup < self.aroonMidBand:
+                # if self.aroon.aroondown == self.p.aroonUpBand and self.aroon.aroonup == self.p.aroonLowBand:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+        elif self.position.size > 0:  # longing in the market
+            if self.aroonCross == -1 and self.aroon.aroonup < self.aroonMidBand:
+                self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+        elif self.position.size < 0:  # shorting in the market
+            if self.aroonCross == 1 and self.aroon.aroondown < self.aroonMidBand:
+                self.buy(exectype=bt.Order.Stop, price=self.data.close)
+
 class ASOCrossStrategy(bt.Strategy):
     params = (
         ("period", 9),
