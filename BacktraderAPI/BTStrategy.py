@@ -166,8 +166,6 @@ class DMICrossStrategy(DMIStrategyBase):
                 if self.dicross == 1:
                     self.buy(exectype=bt.Order.Stop, price=self.data.close)
 
-            if self.p.debug:
-                self.debug()
 
 class ChandelierStrategy(bt.Strategy):
     params = dict(period=22, multip=3)
@@ -298,12 +296,12 @@ class IchimokuCloudStrategy(bt.Strategy):
     '''
 
 
-    params = (("kijun", 26),
-              ("tenkan", 9),
-              ("chikou", 26),
-              ("senkou", 52),
-              ("senkou_lead", 26),
-              )
+    params = dict(kijun=26,
+                  tenkan=9,
+                  chikou=26,
+                  senkou=52,
+                  senkou_lead=26
+                  )
 
     def __init__(self):
         self.ichimoku = bt.indicators.Ichimoku(self.data,
@@ -378,6 +376,7 @@ class StochasticStrategy(bt.Strategy):
                                                    period=self.p.period,
                                                    period_dfast=self.p.period_dfast,
                                                    period_dslow=self.p.period_dslow,
+                                                   safediv=True
                                                    )
         self.kCrosslower = bt.indicators.CrossOver(self.stochastic.l.percK,self.p.lowerband)
         self.kCrossupper = bt.indicators.CrossOver(self.stochastic.l.percK,self.p.upperband)
