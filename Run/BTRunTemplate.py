@@ -7,9 +7,9 @@ from typing import Dict, Union
 from tqdm.contrib.concurrent import process_map
 
 
-SYMBOL = "HK.00014"
-SUBTYPE = SubType.K_DAY
-TIMERANGE = ("2019-10-01", "00:00:00", "2020-07-25", "23:59:00")
+SYMBOL = "HK.MHImain"
+SUBTYPE = SubType.K_30M
+# TIMERANGE = ("2019-08-25", "00:00:00", "2020-08-25", "23:59:00")
 TIMERANGE = None
 DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2015")
@@ -17,8 +17,8 @@ DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
 INITIALCASH = 100000
 OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
 
-STRATEGY = BTStrategy.EmptyStrategy
-PARAMS = dict()
+STRATEGY = BTStrategy.CCICrossStrategyWithBBandKChanExit
+PARAMS = dict(cciPeriod=22, cciFactor=0.015, cciThreshold=100, hold=8, movAvPeriod=20)
 
 helper = Helper()
 
@@ -42,10 +42,10 @@ def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.Da
     # cerebro.adddata(data1, name="TRADE")
 
     #Data Filter
-    # data1.addfilter(bt.filters.HeikinAshi(data1))
+    DATA0.addfilter(bt.filters.HeikinAshi(DATA0))
 
     #Sizer
-    cerebro.addsizer(BTSizer.FixedSizer, stake=1)
+    cerebro.addsizer(BTSizer.FixedSizer)
 
     #Broker
     cerebro.broker.setcash(INITIALCASH)
@@ -73,10 +73,12 @@ def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.Da
 
     if outputsettings["observer"]:
         cerebro.addobserver(bt.observers.DrawDown)
-        cerebro.addobserver(bt.observers.DrawDownLength)
+        cerebro.addobserver(bt.observers.Trades)
+        cerebro.addobserver(bt.observers.Broker)
+        cerebro.addobserver(bt.observers.BuySell, barplot= True, bardist= 0.01)
 
     #Run
-    results = cerebro.run(stdstats=True)
+    results = cerebro.run(stdstats=False)
     assert len(results) == 1
     finalPortfolioValue = cerebro.broker.getvalue()
     print('Final Portfolio Value: %.2f' % finalPortfolioValue)
@@ -161,10 +163,10 @@ def grid_search(sortKey: str) -> pd.DataFrame:
     params_list = []
     outputsettings_list = []
 
-    for x in range(60, 80, 2):
-        for y in range(20, 40, 2):
+    for x in range(10, 30, 2):
+        for y in range(4, 20, 2):
             outputsettings = dict(bokeh=False,plot=False,observer=True,analyzer=True, optimization=True)
-            optimizationParams = dict(rsiPeriod=21, rsiUpperband=x, rsiLowerband=y)
+            optimizationParams = dict(cciPeriod=x, cciFactor=0.015, cciThreshold=100, hold=y, movAvPeriod=20)
 
             params_list.append({**optimizationParams})
             outputsettings_list.append({**outputsettings})

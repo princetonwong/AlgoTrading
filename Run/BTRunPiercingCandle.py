@@ -54,7 +54,7 @@ def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.Da
 
     #Strategy
     cerebro.addstrategy(STRATEGY, **params)
-    cerebro.addindicator(BTIndicator.TrendBySMAStreak)
+    cerebro.addindicator(BTIndicator.StreakBySMA)
 
     #Analyzer
     if outputsettings["analyzer"]:

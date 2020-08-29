@@ -10,11 +10,21 @@ from .MeanReversionStrategy import *
 from .TrendFollowingStrategy import *
 from .BTStrategy_Failed import *
 from .CandleStrategy import *
+from .RSIStrategy import *
 
-class EmptyStrategy(bt.Strategy):
-    def __init__(self):
-        super(EmptyStrategy, self).__init__()
-
+class EmptyStrategy(CCIStrategyBase, BBandsKChanSqueezeStrategyBase):
+    def next(self):
+        if self.position.size == 0:
+            if self.bBandCxKChan == 1:
+                self.buy()
+            elif self.bBandCxKChan == -1:
+                self.sell()
+        elif self.position.size > 0:
+            if self.bBandCxKChan == -1:
+                self.sell()
+        elif self.position.size < 0:
+            if self.bBandCxKChan == 1:
+                self.buy()
 
 class ASOCrossStrategy(AbsoluteStrengthOscillatorStrategyBase):
     def next(self):
@@ -379,7 +389,6 @@ class StochasticStrategy(bt.Strategy):
         self.kCrossD = bt.indicators.CrossOver(self.stochastic.l.percK,self.stochastic.l.percD)
 
     def next(self):
-
         if self.position.size == 0:
             if self.kCrosslower == 1 and self.kCrossD == 1:
                 self.buy(exectype=bt.Order.Stop, price=self.data.close)
@@ -393,4 +402,22 @@ class StochasticStrategy(bt.Strategy):
         elif self.position.size < 0:
             if self.kCrosslower == 1 and self.kCrossD == 1:
                 self.close(exectype=bt.Order.Stop, price=self.data.close)
+
+class KeltnerChannelStrategy(KeltnerChannelStrategyBase):
+    def next(self):
+        if self.position.size == 0:
+            if self.cxKChanTop == 1:
+                self.order = self.buy()
+
+            elif self.cxKChanBot == -1:
+                self.order = self.sell()
+
+
+        elif self.position.size > 0:
+            if self.cxKChanTop == -1:
+                self.sell()
+
+        elif self.position.size < 0:
+            if self.cxKChanBot == 1:
+                self.buy()
 

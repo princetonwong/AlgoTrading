@@ -1,21 +1,50 @@
 from backtrader.indicators import *
-import numpy as np
 
-class StochRSI(bt.Indicator):
-    lines = ('stochrsi',)
-    params = dict(
-        period=14,  # to apply to RSI
-        pperiod=None,  # if passed apply to HighestN/LowestN, else "period"
-    )
+#RSI
+class DynamicTradeOscillator(bt.Indicator):
+    lines = ('dto', )
+    params = dict(rsiPeriod=10, pPeriod=8, upperband=70, lowerband=30)
+
+    def _plotinit(self):
+        self.plotinfo.plotyhlines = [self.p.upperband, self.p.lowerband]
 
     def __init__(self):
-        rsi = bt.ind.RSI(self.data, period=self.p.period)
+        rsi = bt.ind.RSI(period=self.p.rsiPeriod, safediv=True)
+        maxrsi = bt.ind.Highest(rsi, period=self.p.pPeriod)
+        minrsi = bt.ind.Lowest(rsi, period=self.p.pPeriod)
+        self.l.dto = DivByZero(rsi - minrsi , maxrsi - minrsi) * 100
 
-        pperiod = self.p.pperiod or self.p.period
-        maxrsi = bt.ind.Highest(rsi, period=pperiod)
-        minrsi = bt.ind.Lowest(rsi, period=pperiod)
+class StochRSI(DynamicTradeOscillator):
+    lines = ('k', "d",)
+    params = dict(kPeriod=5, dPeriod=3)
 
-        self.l.stochrsi = (rsi - minrsi) / (maxrsi - minrsi)
+    def __init__(self):
+        super(StochRSI, self).__init__()
+        self.l.k = bt.ind.MovingAverageSimple(self.l.dto, period= self.p.kPeriod)
+        self.l.d = bt.ind.MovingAverageSimple(self.k, period= self.p.dPeriod)
+
+class ConnorsRSI(bt.Indicator):
+    '''
+    Calculates the ConnorsRSI as:
+        - (RSI(per_rsi) + RSI(Streak, per_streak) + PctRank(per_rank)) / 3
+    '''
+    lines = ('crsi',)
+    params = dict(prsi=3, pstreak=2, prank=100, upperband=90, lowerband=10)
+
+    def _plotinit(self):
+        self.plotinfo.plotyhlines = [self.p.upperband, self.p.lowerband]
+
+    def __init__(self):
+        # Calculate the components
+        rsi = bt.ind.RSI(self.data, period=self.p.prsi, safediv=True)
+
+        streak = Streak(self.data)
+        rsi_streak = bt.ind.RSI(streak, period=self.p.pstreak)
+
+        prank = bt.ind.PercentRank(self.data, period=self.p.prank)
+
+        # Apply the formula
+        self.l.crsi = (rsi + rsi_streak + prank) / 3.0
 
 class DonchianChannels(bt.Indicator):
     '''
@@ -51,11 +80,6 @@ class DonchianChannels(bt.Indicator):
         self.l.dch = bt.ind.Highest(hi, period=self.p.period)
         self.l.dcl = bt.ind.Lowest(lo, period=self.p.period)
         self.l.dcm = (self.l.dch + self.l.dcl) / 2.0  # avg of the above
-
-class MACDHistogram(bt.ind.MACDHisto):
-    def __init__(self):
-        super(MACDHistogram, self).__init__()
-        self.lines.histo = (self.lines.macd - self.lines.signal) * 2
 
 class talibCCI(bt.Indicator):
     '''
@@ -157,8 +181,8 @@ class AbsoluteStrengthOscilator(bt.Indicator):
 
         # choose smoothing average and smooth the already averaged values
         smoothav = self.p.smoothav or self.p.movav  # choose smoothav
-        smoothbulls = smoothav(avbulls, period=self.p.smoothing)
-        smoothbears = smoothav(avbears, period=self.p.smoothing)
+        smoothbulls = smoothav(avbulls, period=self.p.smoothing, plot=False)
+        smoothbears = smoothav(avbears, period=self.p.smoothing, plot=False)
 
         if self.p.pointsize:  # apply only if it makes sense
             smoothbulls /= self.p.pointsize
@@ -169,48 +193,7 @@ class AbsoluteStrengthOscilator(bt.Indicator):
         self.l.bears = smoothbears
         self.l.ash = smoothbulls - smoothbears
 
-class Streak(bt.ind.PeriodN):
-    '''
-    Keeps a counter of the current upwards/downwards/neutral streak
-    '''
-    lines = ('streak',)
-    params = dict(period=2)  # need prev/cur days (2) for comparisons
-    plotlines = dict(streak=dict(_method='bar', alpha=0.50, width=1.0))
 
-    curstreak = 0
-
-    def next(self):
-        d0, d1 = self.data[0], self.data[-1]
-
-        if d0 > d1:
-            self.l.streak[0] = self.curstreak = max(1, self.curstreak + 1)
-        elif d0 < d1:
-            self.l.streak[0] = self.curstreak = min(-1, self.curstreak - 1)
-        else:
-            self.l.streak[0] = self.curstreak = 0
-
-class ConnorsRSI(bt.Indicator):
-    '''
-    Calculates the ConnorsRSI as:
-        - (RSI(per_rsi) + RSI(Streak, per_streak) + PctRank(per_rank)) / 3
-    '''
-    lines = ('crsi',)
-    params = dict(prsi=3, pstreak=2, prank=100, upperband=90, lowerband=10)
-
-    def _plotinit(self):
-        self.plotinfo.plotyhlines = [self.p.upperband, self.p.lowerband]
-
-    def __init__(self):
-        # Calculate the components
-        rsi = bt.ind.RSI(self.data, period=self.p.prsi, safediv=True)
-
-        streak = Streak(self.data)
-        rsi_streak = bt.ind.RSI(streak, period=self.p.pstreak)
-
-        prank = bt.ind.PercentRank(self.data, period=self.p.prank)
-
-        # Apply the formula
-        self.l.crsi = (rsi + rsi_streak + prank) / 3.0
 
 class ChandelierExit(bt.Indicator):
 
@@ -289,6 +272,7 @@ class KeltnerChannelBBSqueeze(bt.Indicator):
 
     lines = ('squeeze',)
     params = (('period', 20), ('bbdevs', 2.0), ('kcdevs', 1.5), ('movav', bt.ind.MovAv.Simple),)
+    plotlines = dict(squeeze=dict(_method='bar', alpha=0.50, width=1.0))
 
     plotinfo = dict(subplot=True)
 
@@ -302,7 +286,9 @@ class KeltnerChannelBBSqueeze(bt.Indicator):
             period=self.p.period, devfactor=self.p.bbdevs, movav=self.p.movav)
         kc = KeltnerChannel(
             period=self.p.period, devfactor=self.p.kcdevs, movav=self.p.movav)
-        self.lines.squeeze = bb.top - kc.top
+        bbavg = bt.ind.MovingAverageSimple(bb.top, period= 3)
+        kcavg = bt.ind.MovingAverageSimple(kc.top, period= 3)
+        self.lines.squeeze = bbavg - kcavg
 
 class VolumeWeightedAveragePrice(bt.Indicator):
     plotinfo = dict(subplot=False)
@@ -403,56 +389,27 @@ class TwoBarPiercingCandle(bt.Indicator):
     def __init__(self):
         self.l.pattern = bt.talib.CDLPIERCING(self.data.open, self.data.high, self.data.low, self.data.close)
 
-class TrendBySMAStreak(bt.Indicator):
-    lines = ('trend',"streak",)
-    params = dict(smaPeriod=5, lookback=6)
-    plotlines = dict(trend=dict(_method='bar', alpha=0.50, width=1.0))
 
-    curstreak = 0
-
-    def _plotinit(self):
-        self.plotinfo.plotyhlines = [self.p.lookback, -self.p.lookback]
-
-    def __init__(self):
-        self.sma = bt.ind.MovingAverageSimple(period= self.p.smaPeriod, plot=False)
-        self.addminperiod(self.p.smaPeriod + self.p.lookback)
-
-    def next(self):
-        d0, d1 = self.sma[0], self.sma[-1]
-
-        if d0 > d1:
-            self.curstreak = max(1, self.curstreak + 1)
-        elif d0 < d1:
-            self.curstreak = min(-1, self.curstreak - 1)
-        else:
-            self.curstreak = 0
-
-        if self.curstreak >= self.p.lookback:
-            self.l.trend[0] = 1
-        elif self.curstreak <= -self.p.lookback:
-            self.l.trend[0] = -1
-        else:
-            self.l.trend[0] = 0
-
+#MACD
 class ZeroLagMACD(bt.Indicator):
     lines = ('macd', "signal", "histo",)
     params = dict(fastPeriod=12, slowPeriod=26, signalPeriod=9)
     plotlines = dict(histo=dict(_method='bar', alpha=0.50, width=1.0))
 
     def __init__(self):
-        self.emaFast = bt.ind.EMA(self.data, period= self.p.fastPeriod)
-        self.emaSlow = bt.ind.EMA(self.data, period= self.p.slowPeriod)
-        self.emaemaFast = bt.ind.EMA(self.emaFast, period=self.p.fastPeriod)
-        self.emaemaSlow = bt.ind.EMA(self.emaSlow, period=self.p.slowPeriod)
-        self.l.macd = (self.emaFast * 2 - self.emaemaFast) - (self.emaSlow * 2 - self.emaemaSlow)
+        self.emaFast = bt.ind.ExponentialMovingAverage(self.data, period= self.p.fastPeriod)
+        self.emaSlow = bt.ind.ExponentialMovingAverage(self.data, period= self.p.slowPeriod)
+        self.emaemaFast = bt.ind.ExponentialMovingAverage(self.emaFast.ema, period=self.p.fastPeriod)
+        self.emaemaSlow = bt.ind.ExponentialMovingAverage(self.emaSlow.ema, period=self.p.slowPeriod)
+        self.l.macd = (self.emaFast.ema * 2 - self.emaemaFast.ema) - (self.emaSlow.ema * 2 - self.emaemaSlow.ema)
 
-        self.emaLineMACD = bt.ind.EMA(self.l.macd, period=self.p.signalPeriod)
-        self.l.signal = bt.ind.EMA(self.l.macd) * 2 - bt.ind.EMA(self.emaLineMACD, period=self.p.signalPeriod)
+        self.l.signal = bt.ind.ExponentialMovingAverage(self.l.macd, period=self.p.signalPeriod)
+        # self.l.signal = (bt.ind.ExponentialMovingAverage(self.l.macd).ema * 2 - bt.ind.ExponentialMovingAverage(self.emaLineMACD.ema, period=self.p.signalPeriod).ema)
 
         self.l.histo = (self.l.macd - self.l.signal)
 
 class SwingIndex(bt.Indicator):
-    lines = ('signal',)
+    lines = ('si',)
     def nextstart(self):
         self.line[0] = 0
 
@@ -477,11 +434,64 @@ class SwingIndex(bt.Indicator):
         self.nominator = (close[0] - close[-1]) + .5 * (close[0] - dataopen[0]) + .25 * (close[-1] - dataopen[-1])
 
         if self.r == 0:
-            self.l.signal[0] = 0
+            self.l.si[0] = 0
         else:
-            self.l.signal[0] = 50 * self.nominator/ self.r * self.k / 3
+            self.l.si[0] = 50 * self.nominator/ self.r * self.k / 3
 
 class AccumulationSwingIndex(bt.Indicator):
-    lines = ('signal',)
+    lines = ('asi',)
     def __init__(self):
-        self.l.signal = bt.ind.Accum(SwingIndex().signal)
+        self.l.asi = bt.ind.Accum(SwingIndex().si)
+
+
+#Streak
+class Streak(bt.ind.PeriodN):
+    '''
+    Keeps a counter of the current upwards/downwards/neutral streak
+    '''
+    lines = ('streak',)
+    params = dict(period=2)  # need prev/cur days (2) for comparisons
+    plotlines = dict(streak=dict(_method='bar', alpha=0.50, width=1.0))
+
+    curstreak = 0
+
+    def next(self):
+        d0, d1 = self.data[0], self.data[-1]
+
+        if d0 > d1:
+            self.l.streak[0] = self.curstreak = max(1, self.curstreak + 1)
+        elif d0 < d1:
+            self.l.streak[0] = self.curstreak = min(-1, self.curstreak - 1)
+        else:
+            self.l.streak[0] = self.curstreak = 0
+
+class StreakBySMA(bt.Indicator):
+    lines = ('trend',"streak",)
+    params = dict(smaPeriod=5, lookback=6)
+    plotlines = dict(trend=dict(_method='bar', alpha=0.50, width=1.0))
+
+    curstreak = 0
+
+    def _plotinit(self):
+        self.plotinfo.plotyhlines = [self.p.lookback, -self.p.lookback]
+
+    def __init__(self):
+        self.sma = bt.ind.MovingAverageSimple(period= self.p.smaPeriod, plot=False)
+        self.addminperiod(self.p.smaPeriod + self.p.lookback)
+
+    def next(self):
+        d0, d1 = self.sma[0], self.sma[-1]
+
+        if d0 > d1:
+            self.l.streak[0] = self.curstreak = max(1, self.curstreak + 1)
+        elif d0 < d1:
+            self.l.streak[0] = self.curstreak = min(-1, self.curstreak - 1)
+        else:
+            self.l.streak[0] = self.curstreak = 0
+
+        if self.curstreak >= self.p.lookback:
+            self.l.trend[0] = 1
+        elif self.curstreak <= -self.p.lookback:
+            self.l.trend[0] = -1
+        else:
+            self.l.trend[0] = 0

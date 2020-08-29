@@ -9,15 +9,15 @@ from tqdm.contrib.concurrent import process_map
 SYMBOL = "HK.MHImain"
 SUBTYPE = SubType.K_15M
 TIMERANGE = ("2017-08-01", "00:00:00", "2020-08-25", "23:59:00")
-TIMERANGE = None
+# TIMERANGE = None
 DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2015")
 
-INITIALCASH = 30000
-OUTPUTSETTINGS = dict(bokeh=False,plot=False,observer=True,analyzer=True, optimization=False)
+INITIALCASH = 60000
+OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
 
 STRATEGY = BTStrategy.CCICrossStrategyWithChandelierExit
-PARAMS = dict(cciPeriod=15, cciFactor=0.015, cciThreshold=100, hold=8, chandelierPeriod=21, multiplier=3) #(26,0.015,100,9)
+PARAMS = dict(cciPeriod=26, cciFactor=0.015, cciThreshold=100, hold=9, chandelierPeriod=21, multiplier=3) #(26,0.015,100,9)
 
 helper = Helper()
 
