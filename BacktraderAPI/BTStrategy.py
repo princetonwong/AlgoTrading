@@ -12,18 +12,58 @@ from .BTStrategy_Failed import *
 from .CandleStrategy import *
 from .RSIStrategy import *
 
-class EmptyStrategy(CCIStrategyBase, BBandsKChanSqueezeStrategyBase):
+class EmptyStrategy(bt.Strategy):
+    def __init__(self):
+        super(EmptyStrategy, self).__init__()
+
+class StochasticTTFStrategy(bt.Strategy):
+    def __init__(self):
+        super(StochasticTTFStrategy, self).__init__()
+        self.ttf = BTIndicator.TrendTriggerFactor()
+        self.stochTTF = BTIndicator.StochasticTTF()
+        self.ttfCxLower = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.lowerband, plot=False)
+        self.ttfCxUpper = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.upperband, plot=False)
+        self.kCxd = bt.indicators.CrossOver(self.stochTTF.k, self.stochTTF.d, plot=False)
+
     def next(self):
         if self.position.size == 0:
-            if self.bBandCxKChan == 1:
+            if self.kCxd == -1:
                 self.buy()
-            elif self.bBandCxKChan == -1:
+
+            elif self.kCxd == 1:
                 self.sell()
+
         elif self.position.size > 0:
-            if self.bBandCxKChan == -1:
+            if self.stochTTF.k <= -100:
                 self.sell()
+
         elif self.position.size < 0:
-            if self.bBandCxKChan == 1:
+            if self.stochTTF.k >= 100:
+                self.buy()
+
+class TTFStrategy(bt.Strategy):
+    params = dict(lookback=15, upperband=100, lowerband=-100)
+
+    def __init__(self):
+        super(TTFStrategy, self).__init__()
+        self.ttf = BTIndicator.TrendTriggerFactor(lookback=self.p.lookback, upperband=self.p.upperband, lowerband=self.p.lowerband)
+        self.ttfCxLower = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.lowerband, plot=False)
+        self.ttfCxUpper = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.upperband, plot=False)
+
+    def next(self):
+        if self.position.size == 0:
+            if self.ttfCxUpper == -1:
+                self.sell()
+
+            elif self.ttfCxLower == 1:
+                self.buy()
+
+        elif self.position.size > 0:
+            if self.ttfCxUpper == 1:
+                self.sell()
+
+        elif self.position.size < 0:
+            if self.ttfCxLower == -1:
                 self.buy()
 
 class ASOCrossStrategy(AbsoluteStrengthOscillatorStrategyBase):

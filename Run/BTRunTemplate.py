@@ -6,21 +6,23 @@ import copy
 from typing import Dict, Union
 from tqdm.contrib.concurrent import process_map
 
-
+helper = Helper()
+SYMBOL = "BAC"
 SYMBOL = "HK.MHImain"
-SUBTYPE = SubType.K_30M
-# TIMERANGE = ("2019-08-25", "00:00:00", "2020-08-25", "23:59:00")
+SUBTYPE = SubType.K_15M
+TIMERANGE = ("2018-03-29", "00:00:00", "2020-08-25", "23:59:00") #TODO: Create CSV Writer to store Stock Info
 TIMERANGE = None
-DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
-# DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2015")
+# DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2016")
 
-INITIALCASH = 100000
+INITIALCASH = 60000
 OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
 
-STRATEGY = BTStrategy.CCICrossStrategyWithBBandKChanExit
-PARAMS = dict(cciPeriod=22, cciFactor=0.015, cciThreshold=100, hold=8, movAvPeriod=20)
+STRATEGY = BTStrategy.TTFStrategy
+PARAMS = dict(lookback=19, upperband=100, lowerband=-100)
+# PARAMS = dict()
 
-helper = Helper()
+FOLDERNAME = helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
+DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
 
 def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.DataFrame:
     print (params)
@@ -42,7 +44,7 @@ def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.Da
     # cerebro.adddata(data1, name="TRADE")
 
     #Data Filter
-    DATA0.addfilter(bt.filters.HeikinAshi(DATA0))
+    # DATA0.addfilter(bt.filters.HeikinAshi(DATA0))
 
     #Sizer
     cerebro.addsizer(BTSizer.FixedSizer)
@@ -163,15 +165,15 @@ def grid_search(sortKey: str) -> pd.DataFrame:
     params_list = []
     outputsettings_list = []
 
-    for x in range(10, 30, 2):
-        for y in range(4, 20, 2):
-            outputsettings = dict(bokeh=False,plot=False,observer=True,analyzer=True, optimization=True)
-            optimizationParams = dict(cciPeriod=x, cciFactor=0.015, cciThreshold=100, hold=y, movAvPeriod=20)
+    for x in range(5, 30, 1):
+        y=100
+        outputsettings = dict(bokeh=False,plot=False,observer=True,analyzer=True, optimization=True)
+        optimizationParams = dict(lookback=x, upperband=y, lowerband=-y)
 
-            params_list.append({**optimizationParams})
-            outputsettings_list.append({**outputsettings})
+        params_list.append({**optimizationParams})
+        outputsettings_list.append({**outputsettings})
 
-    helper.folderName = "(Optimization)" + helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, optimizationParams)
+    helper.folderName = "[Opt]" + helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, optimizationParams)
     stats = process_map(run_strategy, params_list, outputsettings_list, max_workers=os.cpu_count())
 
     df = pd.DataFrame(stats)

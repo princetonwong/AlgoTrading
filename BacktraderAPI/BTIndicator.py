@@ -193,7 +193,33 @@ class AbsoluteStrengthOscilator(bt.Indicator):
         self.l.bears = smoothbears
         self.l.ash = smoothbulls - smoothbears
 
+class TrendTriggerFactor(bt.Indicator):
+    lines = ('ttf', 'upperband', "lowerband")
+    params = dict(lookback=15, upperband=100, lowerband=-100)
 
+    def _plotinit(self):
+        self.plotinfo.plotyhlines = [0.0, self.p.upperband, self.p.lowerband]
+
+    def __init__(self):
+        high = self.data.high
+        low= self.data.low
+        lookback = self.p.lookback
+        bp = Highest(high, period= lookback) - Lowest(low(-15), period= lookback)
+        sp = Highest(high(-15), period= lookback) - Lowest(low, period= lookback)
+        self.l.ttf = DivByZero(bp-sp, 0.5 * (bp +sp)) * 100
+
+    def next(self):
+        self.l.upperband[0] = self.p.upperband
+        self.l.lowerband[0] = self.p.lowerband
+
+class StochasticTTF(TrendTriggerFactor):
+    lines = ('k', "d",)
+    params = dict(kPeriod=9, dPeriod=5)
+
+    def __init__(self):
+        super(StochasticTTF, self).__init__()
+        self.l.k = bt.ind.MovingAverageSimple(self.l.ttf, period= self.p.kPeriod)
+        self.l.d = bt.ind.MovingAverageSimple(self.k, period= self.p.dPeriod)
 
 class ChandelierExit(bt.Indicator):
 
