@@ -7,8 +7,10 @@ from typing import Dict, Union
 from tqdm.contrib.concurrent import process_map
 
 helper = Helper()
-SYMBOL = "BAC"
-SYMBOL = "HK.MHImain"
+SYMBOL = "BAC"      #HDFWiki
+SYMBOL = "HK.MHImain"   #Futu
+SYMBOL_LIST = ["AAPL"]  #AlphaVantage
+SYMBOL = SYMBOL_LIST[0]
 SUBTYPE = SubType.K_30M
 TIMERANGE = ("2019-03-29", "00:00:00", "2020-08-25", "23:59:00") #TODO: Create CSV Writer to store Stock Info
 TIMERANGE = None
@@ -17,12 +19,13 @@ TIMERANGE = None
 INITIALCASH = 60000
 OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
 
-STRATEGY = BTStrategy.MACDStrategy.ZeroLagMACDStrategy
+STRATEGY = BTStrategy.EmptyStrategy
 PARAMS = dict(lookback=19, upperband=100, lowerband=-100)
 PARAMS = dict()
 
 FOLDERNAME = helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
-DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
+# DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
+DATA0 = BTDataFeed.getAlphaVantageFeeds(SYMBOL_LIST, compact=False, debug=False, fromdate=datetime(2018, 1, 1), todate=datetime(2019, 1, 1))[0]
 
 def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.DataFrame:
     print (params)

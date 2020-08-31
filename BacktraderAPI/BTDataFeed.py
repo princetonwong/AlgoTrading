@@ -6,6 +6,8 @@ import seaborn as sns
 from CustomAPI.FutuAPI import FutuAPI
 from pathlib import Path
 from CustomAPI.Helper import Helper
+from Keys import *
+from alpha_vantage.timeseries import TimeSeries
 
 def getFutuDataFeed(symbol: str, subtype: SubType, timeRange, folderName = None):
     if timeRange is None:
@@ -20,6 +22,47 @@ def getFutuDataFeed(symbol: str, subtype: SubType, timeRange, folderName = None)
         Helper().gradientAppliedXLSX(df, "FutuRAWData", ['close'])
 
     return bt.feeds.PandasData(dataname=df, openinterest=None)
+
+def getAlphaVantageFeeds(symbol_list, compact=False, debug=False, *args, **kwargs):
+    '''
+    Helper function to download Alpha Vantage Data.
+
+    This will return a nested list with each entry containing:
+        [0] pandas dataframe
+        [1] the name of the feed.
+    '''
+    data_list = list()
+    size = 'compact' if compact else 'full'
+
+    for symbol in symbol_list:
+        if debug:
+            print('Downloading: {}, Size: {}'.format(symbol, size))
+        # Submit our API and create a session
+        alpha_ts = TimeSeries(key=AlphaVantage_API_KEY, output_format='pandas')
+        data, meta_data = alpha_ts.get_daily(symbol=symbol, outputsize=size)
+
+        #Convert the index to datetime.
+        data.index = pd.to_datetime(data.index)
+        data.columns = ['Open', 'High', 'Low', 'Close','Volume']
+
+        if debug:
+            print(data)
+
+        data_list.append((data, symbol))
+
+    dataFeeds = list()
+    for i in range(len(data_list)):
+        data = bt.feeds.PandasData(
+            dataname=data_list[i][0],  # This is the Pandas DataFrame
+            name=data_list[i][1],  # This is the symbol
+            timeframe=bt.TimeFrame.Days,
+            compression=1,
+            fromdate=datetime(2018, 1, 1),
+            todate=datetime(2019, 1, 1)
+        )
+        dataFeeds.append(data)
+
+    return dataFeeds
 
 def getExcelDataFeed(excelPath: str):
     df = pd.read_excel(excelPath, parse_dates=['time_key'])
