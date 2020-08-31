@@ -9,7 +9,7 @@ class DynamicTradeOscillator(bt.Indicator):
         self.plotinfo.plotyhlines = [self.p.upperband, self.p.lowerband]
 
     def __init__(self):
-        rsi = bt.ind.RSI(period=self.p.rsiPeriod, safediv=True)
+        rsi = bt.ind.RSI_Safe(period=self.p.rsiPeriod)
         maxrsi = bt.ind.Highest(rsi, period=self.p.pPeriod)
         minrsi = bt.ind.Lowest(rsi, period=self.p.pPeriod)
         self.l.dto = DivByZero(rsi - minrsi , maxrsi - minrsi) * 100
@@ -150,14 +150,14 @@ class AbsoluteStrengthOscilator(bt.Indicator):
     lines = ('ash', 'bulls', 'bears',)  # output lines
 
     # customize the plotting of the *ash* line
-    plotlines = dict(ash=dict(_method='bar', alpha=0.33, width=0.66))
+    plotlines = dict(ash=dict(_method='bar', alpha=0.33, width=0.66), bulls=dict(_plotskip=True,), bears=dict(_plotskip=True,),)
 
     RSI, STOCH = range(0, 2)  # enum values for the parameter mode
 
     params = dict(
         period=9,
         smoothing=2,
-        mode=RSI,
+        mode=STOCH,
         rsifactor=0.5,
         movav=bt.ind.WMA,  # WeightedMovingAverage
         smoothav=None,  # use movav if not specified
@@ -225,8 +225,8 @@ class ChandelierExit(bt.Indicator):
 
     ''' https://corporatefinanceinstitute.com/resources/knowledge/trading-investing/chandelier-exit/ '''
 
-    lines = ('long', 'short')
-    params = (('period', 22), ('multip', 3),)
+    lines = ('chandLong', 'chandShort')
+    params = (('period', 22), ('multiplier', 3),)
 
     plotinfo = dict(subplot=False)
 
@@ -234,8 +234,8 @@ class ChandelierExit(bt.Indicator):
         self.highest = bt.ind.Highest(self.data.high, period=self.p.period)
         self.lowest = bt.ind.Lowest(self.data.low, period=self.p.period)
         self.atr = self.p.multip * bt.ind.ATR(self.data, period=self.p.period)
-        self.lines.long = self.highest - self.atr
-        self.lines.short = self.lowest + self.atr
+        self.l.chandLong = self.highest - self.atr
+        self.l.chandShort = self.lowest + self.atr
 
 class ChandelierExitHistogram(ChandelierExit):
     lines = ("histo",)
@@ -468,7 +468,6 @@ class AccumulationSwingIndex(bt.Indicator):
     lines = ('asi',)
     def __init__(self):
         self.l.asi = bt.ind.Accum(SwingIndex().si)
-
 
 #Streak
 class Streak(bt.ind.PeriodN):

@@ -1,26 +1,8 @@
 import backtrader as bt
 from BacktraderAPI import BTIndicator
 
-#All backtrader indicators: https://www.backtrader.com/docu/indautoref/
-
-#Channel
-class AroonStrategyBase(bt.Strategy):
-
-    params = dict(aroonPeriod=25,
-                  aroonUpBand=100,
-                  aroonLowBand=0
-                  )
-
-    def __init__(self):
-        super(AroonStrategyBase, self).__init__()
-        self.aroon = bt.indicators.AroonUpDownOscillator(self.data, period=self.p.aroonPeriod)
-        self.aroonMidBand = int((self.p.aroonUpBand + self.p.aroonLowBand)/2)
-        self.aroonCross = bt.indicators.CrossOver(self.aroon.aroonup, self.aroon.aroondown, subplot=True)
-
+#Channel (Volatility)
 class BBandsStrategyBase(bt.Strategy):
-
-    #https://backtest-rookies.com/2018/02/23/backtrader-bollinger-mean-reversion-strategy/
-
     params = dict(movAvPeriod=20, bBandSD=2, bBandExit="median",)
 
     def __init__(self):
@@ -48,6 +30,44 @@ class BBandsKChanSqueezeStrategyBase(BBandsStrategyBase, KeltnerChannelStrategyB
         self.squeeze = BTIndicator.KeltnerChannelBBSqueeze()
         self.bBandCxKChan = bt.ind.CrossOver(self.squeeze.squeeze, 0, plot=False)
 
+class DonchianStrategyBase(bt.Strategy):
+    params = dict(donchianPeriod=20, lookback=-1,)
+
+    def __init__(self):
+        super(DonchianStrategyBase, self).__init__()
+        self.donchian = BTIndicator.DonchianChannels(period= self.p.donchianPeriod, lookback=self.p.lookback)
+
+#Strength of Trend
+class AroonStrategyBase(bt.Strategy):
+    '''  Amount of time between highs and lows
+    Aroon Up: Strength of uptrend
+    Aroon Down: Strength of downtrend
+    '''
+
+    params = dict(aroonPeriod=25,aroonUpBand=100,aroonLowBand=0)
+
+    def __init__(self):
+        super(AroonStrategyBase, self).__init__()
+        self.aroon = bt.indicators.AroonUpDownOscillator(self.data, period=self.p.aroonPeriod)
+        self.aroonMidBand = int((self.p.aroonUpBand + self.p.aroonLowBand)/2)
+        self.aroonCross = bt.indicators.CrossOver(self.aroon.aroonup, self.aroon.aroondown, subplot=True)
+
+class DMIStrategyBase(bt.Strategy):
+    ''' This Strategy Base shows ADX, ADXR, +DI, -DI.
+    DI : Price difference between current highs/lows and prior highs/lows
+    ADX: Average Difference in +DI and -DI. (common signal: >25)
+    ADXR: A Lagging ADX to confirm ADX trend.
+    '''
+    params = dict(dmiperiod=14, adxBenchmark=25, adxrBenchmark=20)
+
+    def __init__(self):
+        super(DMIStrategyBase, self).__init__()
+        self.dmi = bt.indicators.DirectionalMovement(period=self.p.dmiperiod)
+        self.plusDIXminusDI = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
+        self.adxXBenchmark = bt.indicators.CrossOver(self.dmi.adx, self.p.adxBenchmark, subplot=True)
+        self.adxrXBenchmark = bt.indicators.CrossOver(self.dmi.adxr, self.p.adxBenchmark, subplot=True)
+        self.dmi.csv = True
+        self.plusDIXminusDI.csv = True
 
 class CCIStrategyBase(bt.Strategy):
     params = dict(cciPeriod=26, cciFactor=0.015, cciThreshold=100)
@@ -67,41 +87,36 @@ class CCIStrategyBase(bt.Strategy):
         self.cciCrossLowerband = bt.ind.CrossDown(self.cci, self.lowerband, plot=False)
         self.cciCrossLowerband.csv = True
 
-class ChandelierStrategyExit(bt.Strategy):
-    params = dict(chandelierPeriod=22, multiplier=3)
+#Resistance, Support
+class SMAStrategyBase(bt.Strategy):
+    params = dict(SMAFastPeriod=10, SMASlowPeriod=20)
 
     def __init__(self):
-        super(ChandelierStrategyExit, self).__init__()
-        self.chandelier = BTIndicator.ChandelierExit(period=self.p.chandelierPeriod, multip=self.p.multiplier)
-        self.crossOverChandelierLong = bt.ind.CrossOver(self.data, self.chandelier.long, plot=False)
-        self.crossOverChandelierLong.csv = True
-        self.crossOverChandelierShort = bt.ind.CrossOver(self.data, self.chandelier.short, plot=False)
-        self.crossOverChandelierShort.csv = True
-
-class DMIStrategyBase(bt.Strategy):
-
-    params = dict(dmiperiod=14, adxBenchmark=30)
-
-    def __init__(self):
-        super(DMIStrategyBase, self).__init__()
-        self.dmi = bt.indicators.DirectionalMovementIndex(self.data, period=self.p.dmiperiod)
-        self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
-        self.dmi.csv = True
-        self.dicross.csv=True
+        super(SMAStrategyBase, self).__init__()
+        self.smaFast, self.smaSlow = bt.ind.SMA(period=self.p.SMAFastPeriod), bt.ind.SMA(period=self.p.SMASlowPeriod)
+        self.smaFastCrossoverSlow = bt.ind.CrossOver(self.smaFast, self.smaSlow, plot=False)
+        self.smaFast.csv = True
+        self.smaSlow.csv = True
 
 class EMAStrategyBase(bt.Strategy):
-
-    params = dict(emaPeriod=30)
+    params = dict(EMAFastPeriod=10, EMASlowPeriod=20)
 
     def __init__(self):
         super(EMAStrategyBase,self).__init__()
-        self.ema = bt.indicators.ExponentialMovingAverage(self.data,period=self.p.emaPeriod)
+        self.emaFast, self.emaSlow = bt.ind.EMA(period=self.p.EMAFastPeriod), bt.ind.EMA(period=self.p.EMASlowPeriod)
+        self.emaFastXemaSlow = bt.ind.CrossOver(self.emaFast, self.emaSlow, plot=False)
+        self.emaFast.csv = True
+        self.emaSlow.csv = True
+
+#Trend Changing, RSI, Stochastic
+class RSIStrategyBase(bt.Strategy):
+    params = dict(rsiPeriod=21, rsiUpperband=70, rsiLowerband=30)
+
+    def __init__(self):
+        super(RSIStrategyBase, self).__init__()
+        self.rsi = bt.ind.RSI_Safe(self.data, period=self.p.rsiPeriod, safediv = True)
 
 class StochasticStrategyBase(bt.Strategy):
-    '''
-      - http://en.wikipedia.org/wiki/Stochastic_oscillator
-    '''
-
     params = dict(period_Stoch=5, period_dfast=3, period_dslow=3)
 
     def __init__(self):
@@ -110,29 +125,18 @@ class StochasticStrategyBase(bt.Strategy):
                                            period_dslow=self.p.period_dslow, safediv=True)
         self.kCrossOverD = bt.ind.CrossOver(self.stoch.percK, self.stoch.percD, subplot=False)
 
-class DonchianStrategyBase(bt.Strategy):
-    params = dict(donchianPeriod=20, lookback=-1,)
+class WillamsRStrategyBase(bt.Strategy):
+    params = dict(willRperiod=14, willRUpperband=-20, willRLowerband=-80)
 
     def __init__(self):
-        super(DonchianStrategyBase, self).__init__()
-        self.donchian = BTIndicator.DonchianChannels(period= self.p.donchianPeriod, lookback=self.p.lookback)
-
-class SMAStrategyBase(bt.Strategy):
-    params = dict(SMAFastPeriod=10, SMASlowPeriod=20)
-
-    def __init__(self):
-        super(SMAStrategyBase, self).__init__()
-        self.sma1, self.sma2 = bt.ind.SMA(period=self.p.SMAFastPeriod), bt.ind.SMA(period=self.p.SMASlowPeriod)
-        self.smaFastCrossoverSlow = bt.ind.CrossOver(self.sma1, self.sma2, plot=False)
-        self.sma2.csv = True
-
-#RSI
-class RSIStrategyBase(bt.Strategy):
-    params = dict(rsiPeriod=21, rsiUpperband=70, rsiLowerband=30)
-
-    def __init__(self):
-        super(RSIStrategyBase, self).__init__()
-        self.rsi = bt.ind.RSI_SMA(self.data, period=self.p.rsiPeriod, safediv = True)
+        super(WillamsRStrategyBase, self).__init__()
+        self.williamsR = bt.indicators.WilliamsR(self.data,
+                                                 period=self.p.willRperiod,
+                                                 upperband=self.p.willRUpperband,
+                                                 lowerband=self.p.willRLowerband,
+                                                 )
+        self.willRCrossoverLow = bt.indicators.CrossOver(self.williamsR, self.p.willRLowerband, subplot=False)
+        self.willRCrossoverUp = bt.indicators.CrossOver(self.williamsR, self.p.willRUpperband, subplot=False)
 
 class DTOStrategyBase(bt.Strategy):
     params = dict(rsiPeriod=10, pPeriod=8, upperband=70, lowerband=30)
@@ -152,6 +156,17 @@ class StochRSIStrategyBase(bt.Strategy):
                                              kPeriod=self.p.kPeriod, dPeriod=self.p.dPeriod,
                                              upperband=self.p.upperband, lowerband=self.p.lowerband)
         self.stochRSIKXD = bt.ind.CrossOver(self.stochRSI.k, self.stochRSI.d, plot=False)
+
+class AbsoluteStrengthOscillatorStrategyBase(bt.Strategy):
+    params = dict(period=21, smoothing=34, rsiFactor=30, asoThreshold = 5)
+
+    def __init__(self):
+        self.aso = BTIndicator.AbsoluteStrengthOscilator(period=self.p.period,
+                                                         smoothing=self.p.smoothing,
+                                                         rsifactor=self.p.rsiFactor)
+        self.ashXZero = bt.ind.CrossOver(self.aso.ash, 0, plot=False)
+        self.ashXUpper = bt.ind.CrossOver(self.aso.ash, self.p.asoThreshold, plot=False)
+        self.ashXLower = bt.ind.CrossOver(self.aso.ash, -self.p.asoThreshold, plot=False)
 
 #MACD
 class MACDStrategyBase(bt.Strategy):
@@ -179,18 +194,6 @@ class ZeroLagMACDStrategyBase(bt.Strategy):
         self.macdHistoXZero = bt.ind.CrossOver(self.zeroLag.histo, 0.0, plot=False)
         self.macdHistoXZero.csv = True
 
-class WillamsRStrategyBase(bt.Strategy):
-    params = dict(willRperiod=14, willRUpperband=-20, willRLowerband=-80)
-
-    def __init__(self):
-        super(WillamsRStrategyBase, self).__init__()
-        self.williamsR = bt.indicators.WilliamsR(self.data,
-                                                 period=self.p.willRperiod,
-                                                 upperband=self.p.willRUpperband,
-                                                 lowerband=self.p.willRLowerband,
-                                                 )
-        self.willRCrossoverLow = bt.indicators.CrossOver(self.williamsR, self.p.willRLowerband, subplot=False)
-        self.willRCrossoverUp = bt.indicators.CrossOver(self.williamsR, self.p.willRUpperband, subplot=False)
 
 #Candle
 class PiercingCandleStrategyBase(bt.Strategy):
@@ -201,19 +204,14 @@ class PiercingCandleStrategyBase(bt.Strategy):
      self.trend = BTIndicator.StreakBySMA(smaPeriod=self.p.smaPeriod, lookback=self.p.lookback).trend
      self.piercingCandle = BTIndicator.TwoBarPiercingCandle().pattern
 
-class AbsoluteStrengthOscillatorStrategyBase(bt.Strategy):
-    params = dict(period=21, smoothing=34, rsiFactor=30)
 
-    def __init__(self):
-        self.aso = BTIndicator.AbsoluteStrengthOscilator(period=self.p.period,
-                                                         smoothing=self.p.smoothing,
-                                                         rsifactor=self.p.rsiFactor)
-        self.asoBullsCrossoverBears = bt.ind.CrossOver(self.aso.bulls, self.aso.bears, plot=False)
-
+#Trend Direction
 class ASIStrategyBase(bt.Strategy):
     def __init__(self):
         super(ASIStrategyBase, self).__init__()
+        self.si = BTIndicator.SwingIndex()
         self.asi = BTIndicator.AccumulationSwingIndex()
+        self.siXZero = bt.ind.CrossOver(self.si.si, 0.0, plot=False)
         self.asiXZero = bt.ind.CrossOver(self.asi.asi, 0.0, plot=False)
 
 class StreakStrategyBase(bt.Strategy):

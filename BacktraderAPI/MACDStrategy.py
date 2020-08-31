@@ -106,19 +106,19 @@ class MACDxDMIxBBandsStrategy(MACDStrategyBase, BBandsStrategyBase, DMIStrategyB
         if self.dmi.adx > self.p.adxBenchmark:
 
             if self.position.size == 0:  # not in the market
-                if self.dmi.plusDI > self.dmi.minusDI and self.data.close > self.sma2 and self.mcross == 1:
+                if self.dmi.plusDI > self.dmi.minusDI and self.data.close > self.smaSlow and self.mcross == 1:
                     if self.crossUpBollTop:
                         self.buy(exectype=bt.Order.Stop, price=self.data.close)
-                if self.dmi.plusDI < self.dmi.minusDI and self.data.close < self.sma2 and self.mcross == -1:
+                if self.dmi.plusDI < self.dmi.minusDI and self.data.close < self.smaSlow and self.mcross == -1:
                     if self.crossDownBollBottom:
                         self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
             elif self.position.size > 0:  # longing in the market
-                if self.dmi.plusDI < self.dmi.minusDI and self.data.close < self.sma2 and self.mcross == -1:
+                if self.dmi.plusDI < self.dmi.minusDI and self.data.close < self.smaSlow and self.mcross == -1:
                     if self.crossDownBollBottom:
                         self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
             elif self.position.size < 0:  # shorting in the market
-                if self.dmi.plusDI > self.dmi.minusDI and self.data.close > self.sma2 and self.mcross == 1:
+                if self.dmi.plusDI > self.dmi.minusDI and self.data.close > self.smaSlow and self.mcross == 1:
                     if self.crossUpBollTop:
                         self.buy(exectype=bt.Order.Stop, price=self.data.close)

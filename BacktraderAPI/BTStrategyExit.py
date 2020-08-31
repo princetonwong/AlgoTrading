@@ -47,8 +47,8 @@ class ChandelierStrategyExit(bt.Strategy):
 
     def __init__(self):
         super(ChandelierStrategyExit, self).__init__()
-        self.chandelier = BTIndicator.ChandelierExit(period=self.p.chandelierPeriod, multip=self.p.multiplier)
-        self.crossOverChandelierLong = bt.ind.CrossOver(self.data, self.chandelier.long, plot=False)
-        self.crossOverChandelierLong.csv = True
-        self.crossOverChandelierShort = bt.ind.CrossOver(self.data, self.chandelier.short, plot=False)
-        self.crossOverChandelierShort.csv = True
+        self.chandelier = BTIndicator.ChandelierExit(period=self.p.chandelierPeriod, multiplier=self.p.multiplier)
+        self.xChandLong = bt.ind.CrossOver(self.data, self.chandelier.chandLong, plot=False)
+        self.xChandLong.csv = True
+        self.xChandShort = bt.ind.CrossOver(self.data, self.chandelier.chandShort, plot=False)
+        self.xChandShort.csv = True

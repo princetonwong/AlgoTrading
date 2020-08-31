@@ -12,7 +12,7 @@ from .BTStrategy_Failed import *
 from .CandleStrategy import *
 from .RSIStrategy import *
 
-class EmptyStrategy(bt.Strategy):
+class EmptyStrategy(AbsoluteStrengthOscillatorStrategyBase):
     def __init__(self):
         super(EmptyStrategy, self).__init__()
 
@@ -106,18 +106,32 @@ class TTFStrategy(bt.Strategy):
             if self.ttfCxLower == -1:
                 self.buy()
 
+class SICrossStrategy(ASIStrategyBase):
+    def next(self):
+        if self.position.size == 0:
+            if self.siXZero == 1:
+                self.buy()
+            elif self.siXZero == -1:
+                self.sell()
+        elif self.position.size > 0:
+            if self.siXZero == -1:
+                self.sell()
+        elif self.position.size < 0:
+            if self.siXZero == 1:
+                self.buy()
+
 class ASOCrossStrategy(AbsoluteStrengthOscillatorStrategyBase):
     def next(self):
         if self.position.size == 0:
-            if self.asoBullsCrossoverBears == 1:
+            if self.ashXLower == 1:
                 self.buy()
-            elif self.asoBullsCrossoverBears == -1:
+            elif self.ashXUpper == -1:
                 self.sell()
         elif self.position.size > 0:
-            if self.asoBullsCrossoverBears == -1:
+            if self.ashXUpper == -1:
                 self.sell()
         elif self.position.size < 0:
-            if self.asoBullsCrossoverBears == 1:
+            if self.ashXLower == 1:
                 self.buy()
 
 class ClenowTrendFollowingStrategy(bt.Strategy):
@@ -236,19 +250,19 @@ class DMICrossStrategy(DMIStrategyBase):
 
             if self.position.size == 0:  # not in the market
 
-                if self.dicross == 1:
+                if self.plusDIXminusDI == 1:
                     self.buy(exectype=bt.Order.Stop, price=self.data.close)
-                if self.dicross == -1:
+                if self.plusDIXminusDI == -1:
                     self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
             elif self.position.size > 0:  # longing in the market
 
-                if self.dicross == -1:
+                if self.plusDIXminusDI == -1:
                     self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
             elif self.position.size < 0:  # shorting in the market
 
-                if self.dicross == 1:
+                if self.plusDIXminusDI == 1:
                     self.buy(exectype=bt.Order.Stop, price=self.data.close)
 
 
