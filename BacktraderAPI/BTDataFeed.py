@@ -1,13 +1,14 @@
 from futu import *
 import backtrader as bt
 import pandas as pd
-import numpy as np
-import seaborn as sns
 from CustomAPI.FutuAPI import FutuAPI
 from pathlib import Path
 from CustomAPI.Helper import Helper
 from Keys import *
 from alpha_vantage.timeseries import TimeSeries
+import yfinance
+from enum import Enum, unique
+
 
 def getFutuDataFeed(symbol: str, subtype: SubType, timeRange, folderName = None):
     if timeRange is None:
@@ -23,7 +24,62 @@ def getFutuDataFeed(symbol: str, subtype: SubType, timeRange, folderName = None)
 
     return bt.feeds.PandasData(dataname=df, openinterest=None)
 
-def getAlphaVantageFeeds(symbol_list, compact=False, debug=False, *args, **kwargs):
+@unique
+class YahooInterval(Enum):
+    K_1M = "1m"
+    K_5M = "5m"
+    K_15M = "15m"
+    K_30M = "30m"
+    K_60M = "60m"
+    K_DAY = "1d"
+
+def getYahooDataFeeds(symbol_list, subtype, timerange, folderName = None):
+    yahooSubtype = YahooInterval[subtype].value
+    yahooStart, yahooEnd = timerange[0], timerange[2]
+
+    df = yfinance.download(  # or pdr.get_data_yahoo(...
+        # tickers list or string as well
+        tickers= symbol_list,
+
+        start = yahooStart,
+        end =yahooEnd,
+        # use "period" instead of start/end
+        # valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
+        # (optional, default is '1mo')
+        # period="5d",
+
+        # fetch data by interval (including intraday if period < 60 days)
+        # valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
+        # (optional, default is '1d')
+        interval= yahooSubtype,
+
+        # group by ticker (to access via data['SPY'])
+        # (optional, default is 'column')
+        group_by='ticker',
+
+        # adjust all OHLC automatically
+        # (optional, default is False)
+        auto_adjust=True,
+
+        # download pre/post regular market hours data
+        # (optional, default is False)
+        prepost=False,
+
+        # use threads for mass downloading? (True/False/Integer)
+        # (optional, default is True)
+        threads=True,
+
+        # proxy URL scheme use use when downloading?
+        # (optional, default is None)
+        proxy=None
+    )
+
+    if folderName is not None:
+        Helper().gradientAppliedXLSX(df, "YahooData", ['close'])
+
+    return bt.feeds.PandasData(dataname=df, openinterest=None)
+
+def getAlphaVantageDataFeeds(symbol_list, compact=False, debug=False, folderName = None, *args, **kwargs):
     '''
     Helper function to download Alpha Vantage Data.
 
@@ -52,14 +108,18 @@ def getAlphaVantageFeeds(symbol_list, compact=False, debug=False, *args, **kwarg
 
     dataFeeds = list()
     for i in range(len(data_list)):
+        symbolName= data_list[i][1]
         data = bt.feeds.PandasData(
             dataname=data_list[i][0],  # This is the Pandas DataFrame
-            name=data_list[i][1],  # This is the symbol
+            name= symbolName,  # This is the symbol
             timeframe=bt.TimeFrame.Days,
             compression=1,
             fromdate=datetime(2018, 1, 1),
             todate=datetime(2019, 1, 1)
         )
+        if folderName is not None:
+            Helper().gradientAppliedXLSX(data, "AlphaVantageData-{}".format(symbolName), ['close'])
+
         dataFeeds.append(data)
 
     return dataFeeds
