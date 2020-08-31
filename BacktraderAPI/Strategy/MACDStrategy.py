@@ -1,5 +1,5 @@
-from .BTStrategyBase import *
-from .BTStrategyExit import *
+from BacktraderAPI.BTStrategyBase import *
+from BacktraderAPI.BTStrategyExit import *
 
 #TODO: Update to Strategy Base and Strategy Exit
 class MACDStrategyWithATRExit(MACDStrategyBase, ATRDistanceStrategyExit):

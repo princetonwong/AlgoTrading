@@ -17,7 +17,7 @@ TIMERANGE = None
 INITIALCASH = 60000
 OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
 
-STRATEGY = BTStrategy.SICrossStrategy
+STRATEGY = BTStrategy.MACDStrategy.ZeroLagMACDStrategy
 PARAMS = dict(lookback=19, upperband=100, lowerband=-100)
 PARAMS = dict()
 

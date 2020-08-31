@@ -1,5 +1,5 @@
-from .BTStrategyBase import *
-from .BTStrategyExit import *
+from BacktraderAPI.BTStrategyBase import *
+from BacktraderAPI.BTStrategyExit import *
 
 class StochRSIStrategy(StochRSIStrategyBase):
     def next(self):

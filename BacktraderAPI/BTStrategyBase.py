@@ -37,7 +37,7 @@ class DonchianStrategyBase(bt.Strategy):
         super(DonchianStrategyBase, self).__init__()
         self.donchian = BTIndicator.DonchianChannels(period= self.p.donchianPeriod, lookback=self.p.lookback)
 
-#Strength of Trend
+#Oscillator (Strength of Trend)
 class AroonStrategyBase(bt.Strategy):
     '''  Amount of time between highs and lows
     Aroon Up: Strength of uptrend
@@ -86,6 +86,23 @@ class CCIStrategyBase(bt.Strategy):
         self.cciCrossUpperband.csv = True
         self.cciCrossLowerband = bt.ind.CrossDown(self.cci, self.lowerband, plot=False)
         self.cciCrossLowerband.csv = True
+
+class TTFStrategyBase(bt.Strategy):
+    params = dict(lookback=15, upperband=100, lowerband=-100)
+
+    def __init__(self):
+        super(TTFStrategyBase, self).__init__()
+        self.ttf = BTIndicator.TrendTriggerFactor(lookback=self.p.lookback, upperband=self.p.upperband, lowerband=self.p.lowerband)
+        self.ttfCxLower = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.lowerband, plot=False)
+        self.ttfCxUpper = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.upperband, plot=False)
+
+class StochasticTTFStrategyBase(TTFStrategyBase):
+    params = dict(kPeriod=9, dPeriod=5)
+
+    def __init__(self):
+        super(StochasticTTFStrategyBase, self).__init__()
+        self.stochTTF = BTIndicator.StochasticTTF(kPeriod=self.p.kPeriod, dPeriod=self.p.dPeriod)
+        self.kCxd = bt.indicators.CrossOver(self.stochTTF.k, self.stochTTF.d, plot=False)
 
 #Resistance, Support
 class SMAStrategyBase(bt.Strategy):
@@ -157,7 +174,7 @@ class StochRSIStrategyBase(bt.Strategy):
                                              upperband=self.p.upperband, lowerband=self.p.lowerband)
         self.stochRSIKXD = bt.ind.CrossOver(self.stochRSI.k, self.stochRSI.d, plot=False)
 
-class AbsoluteStrengthOscillatorStrategyBase(bt.Strategy):
+class ASOStrategyBase(bt.Strategy):
     params = dict(period=21, smoothing=34, rsiFactor=30, asoThreshold = 5)
 
     def __init__(self):
