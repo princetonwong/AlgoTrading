@@ -4,6 +4,19 @@ from BacktraderAPI import BTIndicator
 #All backtrader indicators: https://www.backtrader.com/docu/indautoref/
 
 #Channel
+class AroonStrategyBase(bt.Strategy):
+
+    params = dict(aroonPeriod=25,
+                  aroonUpBand=100,
+                  aroonLowBand=0
+                  )
+
+    def __init__(self):
+        super(AroonStrategyBase, self).__init__()
+        self.aroon = bt.indicators.AroonUpDownOscillator(self.data, period=self.p.aroonPeriod)
+        self.aroonMidBand = int((self.p.aroonUpBand + self.p.aroonLowBand)/2)
+        self.aroonCross = bt.indicators.CrossOver(self.aroon.aroonup, self.aroon.aroondown, subplot=True)
+
 class BBandsStrategyBase(bt.Strategy):
 
     #https://backtest-rookies.com/2018/02/23/backtrader-bollinger-mean-reversion-strategy/
@@ -16,6 +29,8 @@ class BBandsStrategyBase(bt.Strategy):
         self.crossUpBollTop = bt.indicators.CrossUp(self.data, self.boll.lines.top, plot = False)
         self.crossDownBollBottom = bt.indicators.CrossDown(self.data, self.boll.lines.bot, plot=False)
         self.crossOverBollMid = bt.indicators.CrossOver(self.data, self.boll.lines.mid, plot = False)
+        self.crossDownBollBottom.csv = True
+        self.crossUpBollTop.csv = True
 
 class KeltnerChannelStrategyBase(bt.Strategy):
     params = dict(movAvPeriod=20, kChanSD=1.5)
@@ -32,6 +47,7 @@ class BBandsKChanSqueezeStrategyBase(BBandsStrategyBase, KeltnerChannelStrategyB
         super(BBandsKChanSqueezeStrategyBase, self).__init__()
         self.squeeze = BTIndicator.KeltnerChannelBBSqueeze()
         self.bBandCxKChan = bt.ind.CrossOver(self.squeeze.squeeze, 0, plot=False)
+
 
 class CCIStrategyBase(bt.Strategy):
     params = dict(cciPeriod=26, cciFactor=0.015, cciThreshold=100)
@@ -50,6 +66,36 @@ class CCIStrategyBase(bt.Strategy):
         self.cciCrossUpperband.csv = True
         self.cciCrossLowerband = bt.ind.CrossDown(self.cci, self.lowerband, plot=False)
         self.cciCrossLowerband.csv = True
+
+class ChandelierStrategyExit(bt.Strategy):
+    params = dict(chandelierPeriod=22, multiplier=3)
+
+    def __init__(self):
+        super(ChandelierStrategyExit, self).__init__()
+        self.chandelier = BTIndicator.ChandelierExit(period=self.p.chandelierPeriod, multip=self.p.multiplier)
+        self.crossOverChandelierLong = bt.ind.CrossOver(self.data, self.chandelier.long, plot=False)
+        self.crossOverChandelierLong.csv = True
+        self.crossOverChandelierShort = bt.ind.CrossOver(self.data, self.chandelier.short, plot=False)
+        self.crossOverChandelierShort.csv = True
+
+class DMIStrategyBase(bt.Strategy):
+
+    params = dict(dmiperiod=14, adxBenchmark=30)
+
+    def __init__(self):
+        super(DMIStrategyBase, self).__init__()
+        self.dmi = bt.indicators.DirectionalMovementIndex(self.data, period=self.p.dmiperiod)
+        self.dicross = bt.indicators.CrossOver(self.dmi.plusDI, self.dmi.minusDI, subplot=True)
+        self.dmi.csv = True
+        self.dicross.csv=True
+
+class EMAStrategyBase(bt.Strategy):
+
+    params = dict(emaPeriod=30)
+
+    def __init__(self):
+        super(EMAStrategyBase,self).__init__()
+        self.ema = bt.indicators.ExponentialMovingAverage(self.data,period=self.p.emaPeriod)
 
 class StochasticStrategyBase(bt.Strategy):
     '''
@@ -78,6 +124,7 @@ class SMAStrategyBase(bt.Strategy):
         super(SMAStrategyBase, self).__init__()
         self.sma1, self.sma2 = bt.ind.SMA(period=self.p.SMAFastPeriod), bt.ind.SMA(period=self.p.SMASlowPeriod)
         self.smaFastCrossoverSlow = bt.ind.CrossOver(self.sma1, self.sma2, plot=False)
+        self.sma2.csv = True
 
 #RSI
 class RSIStrategyBase(bt.Strategy):
@@ -118,6 +165,7 @@ class MACDStrategyBase(bt.Strategy):
         self.macd.csv = True
         self.macdHistogram = BTIndicator.MACDHistogram(period_me1=self.p.macdFast, period_me2=self.p.macdSlow, period_signal=self.p.diffPeriod)
         self.mcross = bt.indicators.CrossOver(self.macd.macd, self.macd.signal, subplot= False)
+        self.mcross.csv = True
 
 class ZeroLagMACDStrategyBase(bt.Strategy):
     params = dict(macdFastPeriod=12, macdSlowPeriod=26, macdSignalPeriod=9)

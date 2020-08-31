@@ -75,3 +75,50 @@ class ZeroLagMACDStrategy(ZeroLagMACDStrategyBase):
         elif self.position.size < 0:
             if self.macdHistoXZero == 1:
                 self.buy()
+
+class MACDxDMIxBBandsStrategy(MACDStrategyBase, BBandsStrategyBase, DMIStrategyBase, SMAStrategyBase):
+
+    '''
+             Entry Critria:
+              - Long:
+                  1. Price close > MA
+                  2. +DI > -DI
+                  3. ADX > Benchmark
+                  4. Price crosses above the upper BBand
+              - Short:
+                  1. Price close < MA
+                  2. +DI < -DI
+                  3. ADX > Benchmark
+                  4. Price crosses below the lower BBand
+
+             Exit Critria
+              - Long/Short: Same as opposite
+    '''
+    dict(macdFast=12, macdSlow=26, diffPeriod=9)
+    dict(movAvPeriod=20, bBandSD=2, bBandExit="median",)
+    dict(dmiperiod=14, adxBenchmark=30)
+    dict(SMAFastPeriod=10, SMASlowPeriod=20)
+
+    def next(self):
+
+        orders = self.broker.get_orders_open()
+
+        if self.dmi.adx > self.p.adxBenchmark:
+
+            if self.position.size == 0:  # not in the market
+                if self.dmi.plusDI > self.dmi.minusDI and self.data.close > self.sma2 and self.mcross == 1:
+                    if self.crossUpBollTop:
+                        self.buy(exectype=bt.Order.Stop, price=self.data.close)
+                if self.dmi.plusDI < self.dmi.minusDI and self.data.close < self.sma2 and self.mcross == -1:
+                    if self.crossDownBollBottom:
+                        self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+            elif self.position.size > 0:  # longing in the market
+                if self.dmi.plusDI < self.dmi.minusDI and self.data.close < self.sma2 and self.mcross == -1:
+                    if self.crossDownBollBottom:
+                        self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+            elif self.position.size < 0:  # shorting in the market
+                if self.dmi.plusDI > self.dmi.minusDI and self.data.close > self.sma2 and self.mcross == 1:
+                    if self.crossUpBollTop:
+                        self.buy(exectype=bt.Order.Stop, price=self.data.close)
