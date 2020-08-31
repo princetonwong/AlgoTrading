@@ -9,17 +9,17 @@ from tqdm.contrib.concurrent import process_map
 helper = Helper()
 SYMBOL = "BAC"
 SYMBOL = "HK.MHImain"
-SUBTYPE = SubType.K_15M
-TIMERANGE = ("2018-03-29", "00:00:00", "2020-08-25", "23:59:00") #TODO: Create CSV Writer to store Stock Info
+SUBTYPE = SubType.K_30M
+TIMERANGE = ("2019-03-29", "00:00:00", "2020-08-25", "23:59:00") #TODO: Create CSV Writer to store Stock Info
 TIMERANGE = None
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2016")
 
 INITIALCASH = 60000
 OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
 
-STRATEGY = BTStrategy.TTFStrategy
+STRATEGY = BTStrategy.MACDStrategy.ZeroLagMACDStrategy
 PARAMS = dict(lookback=19, upperband=100, lowerband=-100)
-# PARAMS = dict()
+PARAMS = dict()
 
 FOLDERNAME = helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
 DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)

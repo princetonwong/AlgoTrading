@@ -1,4 +1,5 @@
-from .BTStrategyBase import *
+from BacktraderAPI.BTStrategyBase import *
+from BacktraderAPI.BTStrategyExit import *
 
 class SMAReversionStrategy(SMAStrategyBase):
     def next(self):

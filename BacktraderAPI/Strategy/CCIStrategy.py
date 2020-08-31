@@ -1,5 +1,5 @@
-from .BTStrategyBase import *
-from .BTStrategyExit import *
+from BacktraderAPI.BTStrategyBase import *
+from BacktraderAPI.BTStrategyExit import *
 
 class CCICrossStrategy(CCIStrategyBase, HoldStrategyExit, BBandsKChanSqueezeStrategyBase):
     def next(self):

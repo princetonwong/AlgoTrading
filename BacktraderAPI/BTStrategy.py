@@ -4,120 +4,25 @@ import backtrader as bt
 from BacktraderAPI import BTIndicator
 from .BTStrategyExit import *
 from .BTStrategyBase import *
-from .CCIStrategy import *
-from .MACDStrategy import *
-from .MeanReversionStrategy import *
-from .TrendFollowingStrategy import *
-from .BTStrategy_Failed import *
-from .CandleStrategy import *
-from .RSIStrategy import *
+from .Strategy import CandleStrategy, CCIStrategy, MACDStrategy, MeanReversionStrategy, RSIStrategy, TrendFollowingStrategy, BTStrategy_Failed
+
 
 class EmptyStrategy(bt.Strategy):
     def __init__(self):
         super(EmptyStrategy, self).__init__()
 
-class StochasticTTFStrategy(bt.Strategy):
-    def __init__(self):
-        super(StochasticTTFStrategy, self).__init__()
-        self.ttf = BTIndicator.TrendTriggerFactor()
-        self.stochTTF = BTIndicator.StochasticTTF()
-        self.ttfCxLower = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.lowerband, plot=False)
-        self.ttfCxUpper = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.upperband, plot=False)
-        self.kCxd = bt.indicators.CrossOver(self.stochTTF.k, self.stochTTF.d, plot=False)
-
+class SICrossStrategy(ASIStrategyBase):
     def next(self):
         if self.position.size == 0:
-            if self.kCxd == -1:
+            if self.siXZero == 1:
                 self.buy()
-
-            elif self.kCxd == 1:
-                self.sell()
-
-        elif self.position.size > 0:
-            if self.stochTTF.k <= -100:
-                self.sell()
-
-        elif self.position.size < 0:
-            if self.stochTTF.k >= 100:
-                self.buy()
-
-class AroonCrossStrategy(AroonStrategyBase,EMAStrategyBase):
-
-    '''
-        - Long:
-        - close is above 200 EMA
-        - Aroon Long touches upper & Short touches lower
-
-        - Short:
-        - close is below 200 EMA
-        - Aroon Short touches upper & Long touches lower
-
-        - Exit Criteria:
-        - Long: Close Buy when Aroon Long crosses below Aroon Short below 50
-        - Short: Close Sell when Aroon Short crosses below Aroon Long below 50
-    '''
-
-    def next(self):
-        orders = self.broker.get_orders_open()
-
-        if self.position.size == 0:  # not in the market
-            if self.data.close > self.ema:
-                if self.aroonCross == 1 and self.aroon.aroondown < self.aroonMidBand:
-                # if self.aroon.aroonup == self.p.aroonUpBand and self.aroon.aroondown == self.p.aroonLowBand:
-                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
-            if self.data.close < self.ema:
-                if self.aroonCross == -1 and self.aroon.aroonup < self.aroonMidBand:
-                # if self.aroon.aroondown == self.p.aroonUpBand and self.aroon.aroonup == self.p.aroonLowBand:
-                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
-
-        elif self.position.size > 0:  # longing in the market
-            if self.aroonCross == -1 and self.aroon.aroonup < self.aroonMidBand:
-                self.sell(exectype=bt.Order.Stop, price=self.data.close)
-
-        elif self.position.size < 0:  # shorting in the market
-            if self.aroonCross == 1 and self.aroon.aroondown < self.aroonMidBand:
-                self.buy(exectype=bt.Order.Stop, price=self.data.close)
-
-
-
-
-class TTFStrategy(bt.Strategy):
-    params = dict(lookback=15, upperband=100, lowerband=-100)
-
-    def __init__(self):
-        super(TTFStrategy, self).__init__()
-        self.ttf = BTIndicator.TrendTriggerFactor(lookback=self.p.lookback, upperband=self.p.upperband, lowerband=self.p.lowerband)
-        self.ttfCxLower = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.lowerband, plot=False)
-        self.ttfCxUpper = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.upperband, plot=False)
-
-    def next(self):
-        if self.position.size == 0:
-            if self.ttfCxUpper == -1:
-                self.sell()
-
-            elif self.ttfCxLower == 1:
-                self.buy()
-
-        elif self.position.size > 0:
-            if self.ttfCxUpper == 1:
-                self.sell()
-
-        elif self.position.size < 0:
-            if self.ttfCxLower == -1:
-                self.buy()
-
-class ASOCrossStrategy(AbsoluteStrengthOscillatorStrategyBase):
-    def next(self):
-        if self.position.size == 0:
-            if self.asoBullsCrossoverBears == 1:
-                self.buy()
-            elif self.asoBullsCrossoverBears == -1:
+            elif self.siXZero == -1:
                 self.sell()
         elif self.position.size > 0:
-            if self.asoBullsCrossoverBears == -1:
+            if self.siXZero == -1:
                 self.sell()
         elif self.position.size < 0:
-            if self.asoBullsCrossoverBears == 1:
+            if self.siXZero == 1:
                 self.buy()
 
 class ClenowTrendFollowingStrategy(bt.Strategy):
@@ -213,44 +118,177 @@ class ClenowTrendFollowingStrategy(bt.Strategy):
                     else:
                         self.sl_order = self.order_target_value(target=0.0, exectype=bt.Order.Stop, price=self.sl_price)
 
-class DMICrossStrategy(DMIStrategyBase):
-
+class IchimokuCloudStrategy(bt.Strategy):
     '''
-         Entry Critria:
-          - Long:
-              - +DI > -DI
-              - ADX > Benchmark
-          - Short:
-              - +DI < -DI
-              - ADX > Benchmark
 
-         Exit Critria
-          - Long/Short: Same as opposite
+    https://medium.com/@harrynicholls/7-popular-technical-indicators-and-how-to-use-them-to-increase-your-trading-profits-7f13ffeb8d05
+    https://tradingtools.net/simplified-ichimoku-strategy/
+    https://school.stockcharts.com/doku.php?id=technical_indicators:ichimoku_cloud
+
+            Kijun Sen (blue line, confirm future trends): standard line/base line, averaging highest high and lowest low for past 26 periods
+            Tenkan Sen (red line, confirm trending/ranging): turning line, averaging highest high and lowest low for past 9 periods
+            Chikou Span (green line, confirm future trends): lagging line, today’s closing price plotted 26 periods behind
+            Senkou Span (red/green band, support and resistance levels):
+            - first Senkou line (fast): averaging Tenkan Sen and Kijun Sen, plotted 26 periods ahead
+            - second Senkou line (slow): averaging highest high and lowest low over past 52 periods, plotted 26 periods ahead
+
+            Entry Criteria:
+
+             - Long:
+                 - The price above the green cloud (price > 1st Senkou line > 2nd Senkou line) (Trend)
+                 - Tenkan Sen crosses above Kijun Sen (momentum)
+                 - Price crosses above Kijun Sen (momentum)
+                 optional: Chikou Span crossing above the price
+             - Short:
+                 - The price below the red cloud (price < 1st Senkou line < 2nd Senkou line) (Trend)
+                 - Tenkan Sen crosses below Kijun Sen (momentum)
+                 - Price crosses below Kijun Sen (momentum)
+                 Optional: Chikou Span crossing down the price
+
+
+            Exit Criteria
+             - Long/Short: Same as opposite
     '''
+
+
+    params = dict(kijun=26,
+                  tenkan=9,
+                  chikou=26,
+                  senkou=52,
+                  senkou_lead=26
+                  )
+
+    def __init__(self):
+        self.ichimoku = bt.indicators.Ichimoku(self.data,
+                                               kijun=self.p.kijun,
+                                               tenkan=self.p.tenkan,
+                                               chikou = self.p.chikou,
+                                               senkou=self.p.senkou,
+                                               senkou_lead=self.p.senkou_lead
+                                               )
+        self.tKCross = bt.indicators.CrossOver(self.ichimoku.l.tenkan_sen, self.ichimoku.l.kijun_sen)
+        self.priceKCross = bt.indicators.CrossOver(self.data.close, self.ichimoku.l.kijun_sen)
 
     def next(self):
 
         orders = self.broker.get_orders_open()
 
-        if self.dmi.adx > self.p.adxBenchmark:
-
-            if self.position.size == 0:  # not in the market
-
-                if self.dicross == 1:
+        if self.position.size == 0:  # not in the market
+            if self.data.close > self.ichimoku.l.senkou_span_a > self.ichimoku.l.senkou_span_b:
+                if self.tKCross == 1 and self.priceKCross == 1:
                     self.buy(exectype=bt.Order.Stop, price=self.data.close)
-                if self.dicross == -1:
+            if self.data.close < self.ichimoku.l.senkou_span_a < self.ichimoku.l.senkou_span_b:
+                if self.tKCross == -1 and self.priceKCross == -1:
                     self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
-            elif self.position.size > 0:  # longing in the market
+        elif self.position.size > 0:  # longing in the market
 
-                if self.dicross == -1:
+            if self.data.close < self.ichimoku.l.senkou_span_a < self.ichimoku.l.senkou_span_b:
+                if self.tKCross == -1 and self.priceKCross == -1:
                     self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
-            elif self.position.size < 0:  # shorting in the market
+        elif self.position.size < 0:  # shorting in the market
 
-                if self.dicross == 1:
+            if self.data.close > self.ichimoku.l.senkou_span_a > self.ichimoku.l.senkou_span_b:
+                if self.tKCross == 1 and self.priceKCross == 1:
                     self.buy(exectype=bt.Order.Stop, price=self.data.close)
 
+
+#Trend Changing, Stochastic Strategy
+        
+class StochasticStrategy(bt.Strategy):
+
+    '''
+    https://tradingstrategyguides.com/best-stochastic-trading-strategy/
+
+    Entry Criteria:
+
+    1. Check the daily chart and make sure the Stochastic indicator < 20 and the %K line crossed above %D line.
+    2. Move Down to the 15-Minute Time Frame and Wait for the Stochastic Indicator to hit the 20 level. %K line crossed above %D line.
+    3. Wait for the Stochastic %K line (blue moving average) to cross above the 20 level
+    4. Wait for a Swing Low Pattern to develop on the 15-Minute Chart
+    5. Entry Long When the Highest Point of the Swing Low Pattern is Broken to the Upside
+    6. Use Protective Stop Loss placed below the most recent 15-minute Swing Low
+    7. Take Profit at 2xSL
+
+             - Long:
+                 -
+             - Short:
+                 -
+
+
+            Exit Criteria
+             - Long/Short: Same as opposite
+    '''
+
+    params = (
+        ('period', 14),
+        ('period_dfast', 3),
+        ('period_dslow', 3),
+        ('upperband', 80.0),
+        ('lowerband', 20.0),
+    )
+
+    def __init__(self):
+        self.stochastic = bt.indicators.Stochastic(self.data,
+                                                   period=self.p.period,
+                                                   period_dfast=self.p.period_dfast,
+                                                   period_dslow=self.p.period_dslow,
+                                                   safediv=True
+                                                   )
+        self.kCrosslower = bt.indicators.CrossOver(self.stochastic.l.percK,self.p.lowerband)
+        self.kCrossupper = bt.indicators.CrossOver(self.stochastic.l.percK,self.p.upperband)
+        self.kCrossD = bt.indicators.CrossOver(self.stochastic.l.percK,self.stochastic.l.percD)
+
+    def next(self):
+        if self.position.size == 0:
+            if self.kCrosslower == 1 and self.kCrossD == 1:
+                self.buy(exectype=bt.Order.Stop, price=self.data.close)
+            if self.kCrossupper == -1 and self.kCrossD == -1:
+                self.sell(exectype=bt.Order.Stop, price=self.data.close)
+
+        elif self.position.size > 0:
+            if self.kCrossupper == -1 and self.kCrossD == -1:
+                self.close(exectype=bt.Order.Stop, price=self.data.close)
+
+        elif self.position.size < 0:
+            if self.kCrosslower == 1 and self.kCrossD == 1:
+                self.close(exectype=bt.Order.Stop, price=self.data.close)
+
+class ASOCrossStrategy(ASOStrategyBase):
+    def next(self):
+        if self.position.size == 0:
+            if self.ashXLower == 1:
+                self.buy()
+            elif self.ashXUpper == -1:
+                self.sell()
+        elif self.position.size > 0:
+            if self.ashXUpper == -1:
+                self.sell()
+        elif self.position.size < 0:
+            if self.ashXLower == 1:
+                self.buy()
+
+
+#Channel Strategy
+
+class KeltnerChannelStrategy(KeltnerChannelStrategyBase):
+    def next(self):
+        if self.position.size == 0:
+            if self.cxKChanTop == 1:
+                self.order = self.buy()
+
+            elif self.cxKChanBot == -1:
+                self.order = self.sell()
+
+
+        elif self.position.size > 0:
+            if self.cxKChanTop == -1:
+                self.sell()
+
+        elif self.position.size < 0:
+            if self.cxKChanBot == 1:
+                self.buy()
 
 class ChandelierStrategy(bt.Strategy):
     params = dict(period=22, multip=3)
@@ -339,155 +377,111 @@ class ChandelierStrategy(bt.Strategy):
             if self.cross == -1:
                 self.sell()
 
-class IchimokuCloudStrategy(bt.Strategy):
+
+#Strength of Trend Strategy
+
+class AroonCrossStrategy(AroonStrategyBase,EMAStrategyBase):
+
+    '''
+        - Long:
+        - close is above 200 EMA
+        - Aroon Long touches upper & Short touches lower
+
+        - Short:
+        - close is below 200 EMA
+        - Aroon Short touches upper & Long touches lower
+
+        - Exit Criteria:
+        - Long: Close Buy when Aroon Long crosses below Aroon Short below 50
+        - Short: Close Sell when Aroon Short crosses below Aroon Long below 50
     '''
 
-    https://medium.com/@harrynicholls/7-popular-technical-indicators-and-how-to-use-them-to-increase-your-trading-profits-7f13ffeb8d05
-    https://tradingtools.net/simplified-ichimoku-strategy/
-    https://school.stockcharts.com/doku.php?id=technical_indicators:ichimoku_cloud
+    def next(self):
+        orders = self.broker.get_orders_open()
 
-            Kijun Sen (blue line, confirm future trends): standard line/base line, averaging highest high and lowest low for past 26 periods
-            Tenkan Sen (red line, confirm trending/ranging): turning line, averaging highest high and lowest low for past 9 periods
-            Chikou Span (green line, confirm future trends): lagging line, today’s closing price plotted 26 periods behind
-            Senkou Span (red/green band, support and resistance levels):
-            - first Senkou line (fast): averaging Tenkan Sen and Kijun Sen, plotted 26 periods ahead
-            - second Senkou line (slow): averaging highest high and lowest low over past 52 periods, plotted 26 periods ahead
+        if self.position.size == 0:  # not in the market
+            if self.data.close > self.ema:
+                if self.aroonCross == 1 and self.aroon.aroondown < self.aroonMidBand:
+                # if self.aroon.aroonup == self.p.aroonUpBand and self.aroon.aroondown == self.p.aroonLowBand:
+                    self.buy(exectype=bt.Order.Stop, price=self.data.close)
+            if self.data.close < self.ema:
+                if self.aroonCross == -1 and self.aroon.aroonup < self.aroonMidBand:
+                # if self.aroon.aroondown == self.p.aroonUpBand and self.aroon.aroonup == self.p.aroonLowBand:
+                    self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
-            Entry Criteria:
+        elif self.position.size > 0:  # longing in the market
+            if self.aroonCross == -1 and self.aroon.aroonup < self.aroonMidBand:
+                self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
-             - Long:
-                 - The price above the green cloud (price > 1st Senkou line > 2nd Senkou line) (Trend)
-                 - Tenkan Sen crosses above Kijun Sen (momentum)
-                 - Price crosses above Kijun Sen (momentum)
-                 optional: Chikou Span crossing above the price
-             - Short:
-                 - The price below the red cloud (price < 1st Senkou line < 2nd Senkou line) (Trend)
-                 - Tenkan Sen crosses below Kijun Sen (momentum)
-                 - Price crosses below Kijun Sen (momentum)
-                 Optional: Chikou Span crossing down the price
+        elif self.position.size < 0:  # shorting in the market
+            if self.aroonCross == 1 and self.aroon.aroondown < self.aroonMidBand:
+                self.buy(exectype=bt.Order.Stop, price=self.data.close)
 
+class DMICrossStrategy(DMIStrategyBase):
 
-            Exit Criteria
-             - Long/Short: Same as opposite
     '''
+         Entry Critria:
+          - Long:
+              - +DI > -DI
+              - ADX > Benchmark
+          - Short:
+              - +DI < -DI
+              - ADX > Benchmark
 
-
-    params = dict(kijun=26,
-                  tenkan=9,
-                  chikou=26,
-                  senkou=52,
-                  senkou_lead=26
-                  )
-
-    def __init__(self):
-        self.ichimoku = bt.indicators.Ichimoku(self.data,
-                                               kijun=self.p.kijun,
-                                               tenkan=self.p.tenkan,
-                                               chikou = self.p.chikou,
-                                               senkou=self.p.senkou,
-                                               senkou_lead=self.p.senkou_lead
-                                               )
-        self.tKCross = bt.indicators.CrossOver(self.ichimoku.l.tenkan_sen, self.ichimoku.l.kijun_sen)
-        self.priceKCross = bt.indicators.CrossOver(self.data.close, self.ichimoku.l.kijun_sen)
+         Exit Critria
+          - Long/Short: Same as opposite
+    '''
 
     def next(self):
 
         orders = self.broker.get_orders_open()
 
-        if self.position.size == 0:  # not in the market
-            if self.data.close > self.ichimoku.l.senkou_span_a > self.ichimoku.l.senkou_span_b:
-                if self.tKCross == 1 and self.priceKCross == 1:
+        if self.dmi.adx > self.p.adxBenchmark:
+
+            if self.position.size == 0:  # not in the market
+
+                if self.plusDIXminusDI == 1:
                     self.buy(exectype=bt.Order.Stop, price=self.data.close)
-            if self.data.close < self.ichimoku.l.senkou_span_a < self.ichimoku.l.senkou_span_b:
-                if self.tKCross == -1 and self.priceKCross == -1:
+                if self.plusDIXminusDI == -1:
                     self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
-        elif self.position.size > 0:  # longing in the market
+            elif self.position.size > 0:  # longing in the market
 
-            if self.data.close < self.ichimoku.l.senkou_span_a < self.ichimoku.l.senkou_span_b:
-                if self.tKCross == -1 and self.priceKCross == -1:
+                if self.plusDIXminusDI == -1:
                     self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
-        elif self.position.size < 0:  # shorting in the market
+            elif self.position.size < 0:  # shorting in the market
 
-            if self.data.close > self.ichimoku.l.senkou_span_a > self.ichimoku.l.senkou_span_b:
-                if self.tKCross == 1 and self.priceKCross == 1:
+                if self.plusDIXminusDI == 1:
                     self.buy(exectype=bt.Order.Stop, price=self.data.close)
-        
-class StochasticStrategy(bt.Strategy):
 
-    '''
-    https://tradingstrategyguides.com/best-stochastic-trading-strategy/
-
-    Entry Criteria:
-
-    1. Check the daily chart and make sure the Stochastic indicator < 20 and the %K line crossed above %D line.
-    2. Move Down to the 15-Minute Time Frame and Wait for the Stochastic Indicator to hit the 20 level. %K line crossed above %D line.
-    3. Wait for the Stochastic %K line (blue moving average) to cross above the 20 level
-    4. Wait for a Swing Low Pattern to develop on the 15-Minute Chart
-    5. Entry Long When the Highest Point of the Swing Low Pattern is Broken to the Upside
-    6. Use Protective Stop Loss placed below the most recent 15-minute Swing Low
-    7. Take Profit at 2xSL
-
-             - Long:
-                 -
-             - Short:
-                 -
-
-
-            Exit Criteria
-             - Long/Short: Same as opposite
-    '''
-
-    params = (
-        ('period', 14),
-        ('period_dfast', 3),
-        ('period_dslow', 3),
-        ('upperband', 80.0),
-        ('lowerband', 20.0),
-    )
-
-    def __init__(self):
-        self.stochastic = bt.indicators.Stochastic(self.data,
-                                                   period=self.p.period,
-                                                   period_dfast=self.p.period_dfast,
-                                                   period_dslow=self.p.period_dslow,
-                                                   safediv=True
-                                                   )
-        self.kCrosslower = bt.indicators.CrossOver(self.stochastic.l.percK,self.p.lowerband)
-        self.kCrossupper = bt.indicators.CrossOver(self.stochastic.l.percK,self.p.upperband)
-        self.kCrossD = bt.indicators.CrossOver(self.stochastic.l.percK,self.stochastic.l.percD)
-
+class TTFStrategy(TTFStrategyBase):
     def next(self):
         if self.position.size == 0:
-            if self.kCrosslower == 1 and self.kCrossD == 1:
-                self.buy(exectype=bt.Order.Stop, price=self.data.close)
-            if self.kCrossupper == -1 and self.kCrossD == -1:
-                self.sell(exectype=bt.Order.Stop, price=self.data.close)
-
+            if self.ttfCxUpper == -1:
+                self.sell()
+            elif self.ttfCxLower == 1:
+                self.buy()
         elif self.position.size > 0:
-            if self.kCrossupper == -1 and self.kCrossD == -1:
-                self.close(exectype=bt.Order.Stop, price=self.data.close)
-
+            if self.ttfCxUpper == 1:
+                self.sell()
         elif self.position.size < 0:
-            if self.kCrosslower == 1 and self.kCrossD == 1:
-                self.close(exectype=bt.Order.Stop, price=self.data.close)
+            if self.ttfCxLower == -1:
+                self.buy()
 
-class KeltnerChannelStrategy(KeltnerChannelStrategyBase):
+class StochasticTTFStrategy(StochasticTTFStrategyBase):
     def next(self):
         if self.position.size == 0:
-            if self.cxKChanTop == 1:
-                self.order = self.buy()
+            if self.kCxd == -1:
+                self.buy()
 
-            elif self.cxKChanBot == -1:
-                self.order = self.sell()
-
+            elif self.kCxd == 1:
+                self.sell()
 
         elif self.position.size > 0:
-            if self.cxKChanTop == -1:
+            if self.stochTTF.k <= -100:
                 self.sell()
 
         elif self.position.size < 0:
-            if self.cxKChanBot == 1:
+            if self.stochTTF.k >= 100:
                 self.buy()
-
