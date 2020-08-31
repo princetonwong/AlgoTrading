@@ -1,52 +1,50 @@
 from backtrader.indicators import *
-import numpy as np
 
-class StochRSI(bt.Indicator):
-    lines = ('stochrsi',)
-    params = dict(
-        period=14,  # to apply to RSI
-        pperiod=None,  # if passed apply to HighestN/LowestN, else "period"
-    )
+#RSI
+class DynamicTradeOscillator(bt.Indicator):
+    lines = ('dto', )
+    params = dict(rsiPeriod=10, pPeriod=8, upperband=70, lowerband=30)
 
-    def __init__(self):
-        rsi = bt.ind.RSI(self.data, period=self.p.period)
-
-        pperiod = self.p.pperiod or self.p.period
-        maxrsi = bt.ind.Highest(rsi, period=pperiod)
-        minrsi = bt.ind.Lowest(rsi, period=pperiod)
-
-        self.l.stochrsi = (rsi - minrsi) / (maxrsi - minrsi)
-
-class CCICloseSignal(bt.Indicator):
-    lines = ("CCI",)
-    params = dict(n= 20,
-                  a= 0.015,
-                  threshold= 100,
-                  m= 7
-                  )
-
-    def cal_meandev(self, tp, matp):
-        mean_dev = (self.p.n - 1) * [np.nan]
-        for i in range(len(tp) - self.p.n + 1):
-            mean_dev.append(np.mean(abs(tp[i:i + self.p.n] - matp[i + self.p.n - 1])))
-        return np.array(mean_dev)
+    def _plotinit(self):
+        self.plotinfo.plotyhlines = [self.p.upperband, self.p.lowerband]
 
     def __init__(self):
-        tp = (self.data.close + self.data.high + self.data.low) / 3
-        matp = MovingAverageSimple(tp, period=self.p.n)
-        mean_dev = self.cal_meandev(tp, matp)
-        cci = (tp - matp) / (self.p.a * mean_dev)
+        rsi = bt.ind.RSI(period=self.p.rsiPeriod, safediv=True)
+        maxrsi = bt.ind.Highest(rsi, period=self.p.pPeriod)
+        minrsi = bt.ind.Lowest(rsi, period=self.p.pPeriod)
+        self.l.dto = DivByZero(rsi - minrsi , maxrsi - minrsi) * 100
 
-        self.l.cci = cci
-
-class CCIExitSignal(bt.Indicator):
-    lines = ("signal",)
-    params = (("cciParameters",(20,0.015,100,5)),)
-
+class StochRSI(DynamicTradeOscillator):
+    lines = ('k', "d",)
+    params = dict(kPeriod=5, dPeriod=3)
 
     def __init__(self):
-        n, a, cciThreshold, m = self.p.cciParameters
-        cci = bt.ind.CommodityChannelIndex(n, a, cciThreshold, -cciThreshold)
+        super(StochRSI, self).__init__()
+        self.l.k = bt.ind.MovingAverageSimple(self.l.dto, period= self.p.kPeriod)
+        self.l.d = bt.ind.MovingAverageSimple(self.k, period= self.p.dPeriod)
+
+class ConnorsRSI(bt.Indicator):
+    '''
+    Calculates the ConnorsRSI as:
+        - (RSI(per_rsi) + RSI(Streak, per_streak) + PctRank(per_rank)) / 3
+    '''
+    lines = ('crsi',)
+    params = dict(prsi=3, pstreak=2, prank=100, upperband=90, lowerband=10)
+
+    def _plotinit(self):
+        self.plotinfo.plotyhlines = [self.p.upperband, self.p.lowerband]
+
+    def __init__(self):
+        # Calculate the components
+        rsi = bt.ind.RSI(self.data, period=self.p.prsi, safediv=True)
+
+        streak = Streak(self.data)
+        rsi_streak = bt.ind.RSI(streak, period=self.p.pstreak)
+
+        prank = bt.ind.PercentRank(self.data, period=self.p.prank)
+
+        # Apply the formula
+        self.l.crsi = (rsi + rsi_streak + prank) / 3.0
 
 class DonchianChannels(bt.Indicator):
     '''
@@ -82,11 +80,6 @@ class DonchianChannels(bt.Indicator):
         self.l.dch = bt.ind.Highest(hi, period=self.p.period)
         self.l.dcl = bt.ind.Lowest(lo, period=self.p.period)
         self.l.dcm = (self.l.dch + self.l.dcl) / 2.0  # avg of the above
-
-class MACDHistogram(bt.ind.MACDHisto):
-    def __init__(self):
-        super(bt.ind.MACDHisto, self).__init__()
-        self.lines.histo = (self.lines.macd - self.lines.signal) * 2
 
 class talibCCI(bt.Indicator):
     '''
@@ -188,8 +181,8 @@ class AbsoluteStrengthOscilator(bt.Indicator):
 
         # choose smoothing average and smooth the already averaged values
         smoothav = self.p.smoothav or self.p.movav  # choose smoothav
-        smoothbulls = smoothav(avbulls, period=self.p.smoothing)
-        smoothbears = smoothav(avbears, period=self.p.smoothing)
+        smoothbulls = smoothav(avbulls, period=self.p.smoothing, plot=False)
+        smoothbears = smoothav(avbears, period=self.p.smoothing, plot=False)
 
         if self.p.pointsize:  # apply only if it makes sense
             smoothbulls /= self.p.pointsize
@@ -200,47 +193,33 @@ class AbsoluteStrengthOscilator(bt.Indicator):
         self.l.bears = smoothbears
         self.l.ash = smoothbulls - smoothbears
 
-class Streak(bt.ind.PeriodN):
-    '''
-    Keeps a counter of the current upwards/downwards/neutral streak
-    '''
-    lines = ('streak',)
-    params = dict(period=2)  # need prev/cur days (2) for comparisons
-
-    curstreak = 0
-
-    def next(self):
-        d0, d1 = self.data[0], self.data[-1]
-
-        if d0 > d1:
-            self.l.streak[0] = self.curstreak = max(1, self.curstreak + 1)
-        elif d0 < d1:
-            self.l.streak[0] = self.curstreak = min(-1, self.curstreak - 1)
-        else:
-            self.l.streak[0] = self.curstreak = 0
-
-class ConnorsRSI(bt.Indicator):
-    '''
-    Calculates the ConnorsRSI as:
-        - (RSI(per_rsi) + RSI(Streak, per_streak) + PctRank(per_rank)) / 3
-    '''
-    lines = ('crsi',)
-    params = dict(prsi=3, pstreak=2, prank=100, upperband=90, lowerband=10)
+class TrendTriggerFactor(bt.Indicator):
+    lines = ('ttf', 'upperband', "lowerband")
+    params = dict(lookback=15, upperband=100, lowerband=-100)
 
     def _plotinit(self):
-        self.plotinfo.plotyhlines = [self.p.upperband, self.p.lowerband]
+        self.plotinfo.plotyhlines = [0.0, self.p.upperband, self.p.lowerband]
 
     def __init__(self):
-        # Calculate the components
-        rsi = bt.ind.RSI(self.data, period=self.p.prsi, safediv=True)
+        high = self.data.high
+        low= self.data.low
+        lookback = self.p.lookback
+        bp = Highest(high, period= lookback) - Lowest(low(-15), period= lookback)
+        sp = Highest(high(-15), period= lookback) - Lowest(low, period= lookback)
+        self.l.ttf = DivByZero(bp-sp, 0.5 * (bp +sp)) * 100
 
-        streak = Streak(self.data)
-        rsi_streak = bt.ind.RSI(streak, period=self.p.pstreak)
+    def next(self):
+        self.l.upperband[0] = self.p.upperband
+        self.l.lowerband[0] = self.p.lowerband
 
-        prank = bt.ind.PercentRank(self.data, period=self.p.prank)
+class StochasticTTF(TrendTriggerFactor):
+    lines = ('k', "d",)
+    params = dict(kPeriod=9, dPeriod=5)
 
-        # Apply the formula
-        self.l.crsi = (rsi + rsi_streak + prank) / 3.0
+    def __init__(self):
+        super(StochasticTTF, self).__init__()
+        self.l.k = bt.ind.MovingAverageSimple(self.l.ttf, period= self.p.kPeriod)
+        self.l.d = bt.ind.MovingAverageSimple(self.k, period= self.p.dPeriod)
 
 class ChandelierExit(bt.Indicator):
 
@@ -319,6 +298,7 @@ class KeltnerChannelBBSqueeze(bt.Indicator):
 
     lines = ('squeeze',)
     params = (('period', 20), ('bbdevs', 2.0), ('kcdevs', 1.5), ('movav', bt.ind.MovAv.Simple),)
+    plotlines = dict(squeeze=dict(_method='bar', alpha=0.50, width=1.0))
 
     plotinfo = dict(subplot=True)
 
@@ -332,7 +312,9 @@ class KeltnerChannelBBSqueeze(bt.Indicator):
             period=self.p.period, devfactor=self.p.bbdevs, movav=self.p.movav)
         kc = KeltnerChannel(
             period=self.p.period, devfactor=self.p.kcdevs, movav=self.p.movav)
-        self.lines.squeeze = bb.top - kc.top
+        bbavg = bt.ind.MovingAverageSimple(bb.top, period= 3)
+        kcavg = bt.ind.MovingAverageSimple(kc.top, period= 3)
+        self.lines.squeeze = bbavg - kcavg
 
 class VolumeWeightedAveragePrice(bt.Indicator):
     plotinfo = dict(subplot=False)
@@ -417,3 +399,125 @@ class HeiKinAshiStochasticFull(HeiKinAshiStochasticBase):
         self.lines.percD = self.d
         self.l.percDSlow = self.p.movav(
             self.l.percD, period=self.p.period_dslow)
+
+class TwoBarPiercingCandle(bt.Indicator):
+    '''
+        The Piercing: in a downtrend, O1 >C1, O2 <C2, O2 ≤C1, C2<O1, and C2>C1+0.5(O1−C1).
+
+        High winning rate in bullish market, and oscillating market, rare occurence
+
+        See:
+        - Profitable candlestick trading strategies—The evidence from a new perspective
+        doi:10.1016/j.rfe.2012.02.001
+      '''
+    lines = ('pattern', )
+
+    def __init__(self):
+        self.l.pattern = bt.talib.CDLPIERCING(self.data.open, self.data.high, self.data.low, self.data.close)
+
+
+#MACD
+class ZeroLagMACD(bt.Indicator):
+    lines = ('macd', "signal", "histo",)
+    params = dict(fastPeriod=12, slowPeriod=26, signalPeriod=9)
+    plotlines = dict(histo=dict(_method='bar', alpha=0.50, width=1.0))
+
+    def __init__(self):
+        self.emaFast = bt.ind.ExponentialMovingAverage(self.data, period= self.p.fastPeriod)
+        self.emaSlow = bt.ind.ExponentialMovingAverage(self.data, period= self.p.slowPeriod)
+        self.emaemaFast = bt.ind.ExponentialMovingAverage(self.emaFast.ema, period=self.p.fastPeriod)
+        self.emaemaSlow = bt.ind.ExponentialMovingAverage(self.emaSlow.ema, period=self.p.slowPeriod)
+        self.l.macd = (self.emaFast.ema * 2 - self.emaemaFast.ema) - (self.emaSlow.ema * 2 - self.emaemaSlow.ema)
+
+        self.l.signal = bt.ind.ExponentialMovingAverage(self.l.macd, period=self.p.signalPeriod)
+        # self.l.signal = (bt.ind.ExponentialMovingAverage(self.l.macd).ema * 2 - bt.ind.ExponentialMovingAverage(self.emaLineMACD.ema, period=self.p.signalPeriod).ema)
+
+        self.l.histo = (self.l.macd - self.l.signal)
+
+class SwingIndex(bt.Indicator):
+    lines = ('si',)
+    def nextstart(self):
+        self.line[0] = 0
+
+    def next(self):
+        high = self.data.high
+        low = self.data.low
+        dataopen = self.data.open
+        close = self.data.close
+        if abs(high[0] - close[-1]) >= abs(low[0] - close[-1]):
+            if abs(high[0] - close[-1]) >= (high[0] - low[0]):
+                self.r = abs(high[0] - close[-1]) - .5 * (abs(low[0] - close[-1])) + .25 * (abs(close[-1] - dataopen[-1]))
+            else:
+                self.r = (high[0] - low[0]) + .25 * (abs(close[-1] - dataopen[-1]))
+        else:
+            if abs(low[0] - close[-1]) >= (high[0] - low[0]):
+                self.r = abs(low[0] - close[-1]) - .5 * (abs(high[0] - close[-1])) + .25 * (abs(close[-1] - dataopen[-1]))
+            else:
+                self.r = (high[0] - low[0]) + .25 * (abs(close[-1] - dataopen[-1]))
+
+        self.k = max(abs(high[0] - close[-1]), abs(low[0] - close[-1]))
+
+        self.nominator = (close[0] - close[-1]) + .5 * (close[0] - dataopen[0]) + .25 * (close[-1] - dataopen[-1])
+
+        if self.r == 0:
+            self.l.si[0] = 0
+        else:
+            self.l.si[0] = 50 * self.nominator/ self.r * self.k / 3
+
+class AccumulationSwingIndex(bt.Indicator):
+    lines = ('asi',)
+    def __init__(self):
+        self.l.asi = bt.ind.Accum(SwingIndex().si)
+
+
+#Streak
+class Streak(bt.ind.PeriodN):
+    '''
+    Keeps a counter of the current upwards/downwards/neutral streak
+    '''
+    lines = ('streak',)
+    params = dict(period=2)  # need prev/cur days (2) for comparisons
+    plotlines = dict(streak=dict(_method='bar', alpha=0.50, width=1.0))
+
+    curstreak = 0
+
+    def next(self):
+        d0, d1 = self.data[0], self.data[-1]
+
+        if d0 > d1:
+            self.l.streak[0] = self.curstreak = max(1, self.curstreak + 1)
+        elif d0 < d1:
+            self.l.streak[0] = self.curstreak = min(-1, self.curstreak - 1)
+        else:
+            self.l.streak[0] = self.curstreak = 0
+
+class StreakBySMA(bt.Indicator):
+    lines = ('trend',"streak",)
+    params = dict(smaPeriod=5, lookback=6)
+    plotlines = dict(trend=dict(_method='bar', alpha=0.50, width=1.0))
+
+    curstreak = 0
+
+    def _plotinit(self):
+        self.plotinfo.plotyhlines = [self.p.lookback, -self.p.lookback]
+
+    def __init__(self):
+        self.sma = bt.ind.MovingAverageSimple(period= self.p.smaPeriod, plot=False)
+        self.addminperiod(self.p.smaPeriod + self.p.lookback)
+
+    def next(self):
+        d0, d1 = self.sma[0], self.sma[-1]
+
+        if d0 > d1:
+            self.l.streak[0] = self.curstreak = max(1, self.curstreak + 1)
+        elif d0 < d1:
+            self.l.streak[0] = self.curstreak = min(-1, self.curstreak - 1)
+        else:
+            self.l.streak[0] = self.curstreak = 0
+
+        if self.curstreak >= self.p.lookback:
+            self.l.trend[0] = 1
+        elif self.curstreak <= -self.p.lookback:
+            self.l.trend[0] = -1
+        else:
+            self.l.trend[0] = 0

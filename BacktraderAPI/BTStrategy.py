@@ -8,6 +8,38 @@ from .CCIStrategy import *
 from .MACDStrategy import *
 from .MeanReversionStrategy import *
 from .TrendFollowingStrategy import *
+from .BTStrategy_Failed import *
+from .CandleStrategy import *
+from .RSIStrategy import *
+
+class EmptyStrategy(bt.Strategy):
+    def __init__(self):
+        super(EmptyStrategy, self).__init__()
+
+class StochasticTTFStrategy(bt.Strategy):
+    def __init__(self):
+        super(StochasticTTFStrategy, self).__init__()
+        self.ttf = BTIndicator.TrendTriggerFactor()
+        self.stochTTF = BTIndicator.StochasticTTF()
+        self.ttfCxLower = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.lowerband, plot=False)
+        self.ttfCxUpper = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.upperband, plot=False)
+        self.kCxd = bt.indicators.CrossOver(self.stochTTF.k, self.stochTTF.d, plot=False)
+
+    def next(self):
+        if self.position.size == 0:
+            if self.kCxd == -1:
+                self.buy()
+
+            elif self.kCxd == 1:
+                self.sell()
+
+        elif self.position.size > 0:
+            if self.stochTTF.k <= -100:
+                self.sell()
+
+        elif self.position.size < 0:
+            if self.stochTTF.k >= 100:
+                self.buy()
 
 class AroonCrossStrategy(AroonStrategyBase,EMAStrategyBase):
 
@@ -46,31 +78,47 @@ class AroonCrossStrategy(AroonStrategyBase,EMAStrategyBase):
             if self.aroonCross == 1 and self.aroon.aroondown < self.aroonMidBand:
                 self.buy(exectype=bt.Order.Stop, price=self.data.close)
 
-class ASOCrossStrategy(bt.Strategy):
-    params = (
-        ("period", 9),
-        ('smoothing', 70.0),
-        ('rsiFactor', 30.0),
-    )
+
+
+
+class TTFStrategy(bt.Strategy):
+    params = dict(lookback=15, upperband=100, lowerband=-100)
 
     def __init__(self):
-        self.aso = BTIndicator.AbsoluteStrengthOscilator(period=self.p.period,
-                                                         smoothing=self.p.smoothing,
-                                                         rsifactor=self.p.rsiFactor)
-        self.crossover = bt.ind.CrossOver(self.aso.bulls, self.aso.bears, subplot=False)
+        super(TTFStrategy, self).__init__()
+        self.ttf = BTIndicator.TrendTriggerFactor(lookback=self.p.lookback, upperband=self.p.upperband, lowerband=self.p.lowerband)
+        self.ttfCxLower = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.lowerband, plot=False)
+        self.ttfCxUpper = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.upperband, plot=False)
 
     def next(self):
         if self.position.size == 0:
-            if self.crossover == 1:
+            if self.ttfCxUpper == -1:
+                self.sell()
+
+            elif self.ttfCxLower == 1:
                 self.buy()
-            elif self.crossover == -1:
+
+        elif self.position.size > 0:
+            if self.ttfCxUpper == 1:
+                self.sell()
+
+        elif self.position.size < 0:
+            if self.ttfCxLower == -1:
+                self.buy()
+
+class ASOCrossStrategy(AbsoluteStrengthOscillatorStrategyBase):
+    def next(self):
+        if self.position.size == 0:
+            if self.asoBullsCrossoverBears == 1:
+                self.buy()
+            elif self.asoBullsCrossoverBears == -1:
                 self.sell()
         elif self.position.size > 0:
-            if self.crossover == -1:
-                self.close()
+            if self.asoBullsCrossoverBears == -1:
+                self.sell()
         elif self.position.size < 0:
-            if self.crossover == 1:
-                self.close()
+            if self.asoBullsCrossoverBears == 1:
+                self.buy()
 
 class ClenowTrendFollowingStrategy(bt.Strategy):
     """The trend following strategy from the book "Following the trend" by Andreas Clenow."""
@@ -291,15 +339,6 @@ class ChandelierStrategy(bt.Strategy):
             if self.cross == -1:
                 self.sell()
 
-class CCICrossStrategyWithSLOWKDExitHeikinAshi(CCICrossStrategyWithStochasticExit):
-    def __init__(self):
-        super(CCICrossStrategyWithSLOWKDExitHeikinAshi, self).__init__()
-        # self.heiKinAshi = bt.ind.HeikinAshi(subplot=False)
-        self.stoch = BTIndicator.HeiKinAshiStochasticFull()
-        self.stoch.csv = True
-        self.kCrossupD = bt.ind.CrossUp(self.stoch.percK, self.stoch.percD, subplot=False)
-        self.kCrossdownD = bt.ind.CrossDown(self.stoch.percK, self.stoch.percD, subplot=False)
-        
 class IchimokuCloudStrategy(bt.Strategy):
     '''
 
@@ -420,7 +459,6 @@ class StochasticStrategy(bt.Strategy):
         self.kCrossD = bt.indicators.CrossOver(self.stochastic.l.percK,self.stochastic.l.percD)
 
     def next(self):
-
         if self.position.size == 0:
             if self.kCrosslower == 1 and self.kCrossD == 1:
                 self.buy(exectype=bt.Order.Stop, price=self.data.close)
@@ -434,3 +472,22 @@ class StochasticStrategy(bt.Strategy):
         elif self.position.size < 0:
             if self.kCrosslower == 1 and self.kCrossD == 1:
                 self.close(exectype=bt.Order.Stop, price=self.data.close)
+
+class KeltnerChannelStrategy(KeltnerChannelStrategyBase):
+    def next(self):
+        if self.position.size == 0:
+            if self.cxKChanTop == 1:
+                self.order = self.buy()
+
+            elif self.cxKChanBot == -1:
+                self.order = self.sell()
+
+
+        elif self.position.size > 0:
+            if self.cxKChanTop == -1:
+                self.sell()
+
+        elif self.position.size < 0:
+            if self.cxKChanBot == 1:
+                self.buy()
+

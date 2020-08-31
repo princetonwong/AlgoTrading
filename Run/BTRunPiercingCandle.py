@@ -6,18 +6,19 @@ import copy
 from typing import Dict, Union
 from tqdm.contrib.concurrent import process_map
 
-SYMBOL = "HK.MHImain"
-SUBTYPE = SubType.K_15M
+
+SYMBOL = "HK.00700"
+SUBTYPE = SubType.K_DAY
 TIMERANGE = ("2017-08-01", "00:00:00", "2020-08-25", "23:59:00")
 # TIMERANGE = None
 DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2015")
 
-INITIALCASH = 60000
+INITIALCASH = 30000
 OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
 
-STRATEGY = BTStrategy.CCICrossStrategyWithChandelierExit
-PARAMS = dict(cciPeriod=26, cciFactor=0.015, cciThreshold=100, hold=9, chandelierPeriod=21, multiplier=3) #(26,0.015,100,9)
+STRATEGY = BTStrategy.PiercingCandleHoldingStrategy
+PARAMS = dict(hold= 5)
 
 helper = Helper()
 
@@ -53,10 +54,7 @@ def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.Da
 
     #Strategy
     cerebro.addstrategy(STRATEGY, **params)
-    # cerebro.addindicator(BTIndicator.AbsoluteStrengthOscilator)
-    # cerebro.addindicator(BTIndicator.KeltnerChannel)
-    # cerebro.addindicator(BTIndicator.KeltnerChannelBBSqueeze)
-    # cerebro.addindicator(BTIndicator.VolumeWeightedAveragePrice)
+    cerebro.addindicator(BTIndicator.StreakBySMA)
 
     #Analyzer
     if outputsettings["analyzer"]:
@@ -164,7 +162,7 @@ def grid_search(sortKey: str) -> pd.DataFrame:
     for x in range(60, 80, 2):
         for y in range(20, 40, 2):
             outputsettings = dict(bokeh=False,plot=False,observer=True,analyzer=True, optimization=True)
-            optimizationParams = dict(period=x, factor=0.015, threshold=100, hold=y, chandelierPeriod=21, multip=3)
+            optimizationParams = dict(rsiPeriod=21, rsiUpperband=x, rsiLowerband=y)
 
             params_list.append({**optimizationParams})
             outputsettings_list.append({**outputsettings})

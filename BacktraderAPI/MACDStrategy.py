@@ -62,6 +62,20 @@ class MACDStrategyWithATRExit(MACDStrategyBase, ATRDistanceStrategyExit):
         #         # Update only if greater than
         #         self.pstop = max(pstop, pclose - pdist)
 
+class ZeroLagMACDStrategy(ZeroLagMACDStrategyBase):
+    def next(self):
+        if self.position.size == 0:
+            if self.macdHistoXZero == 1:
+                self.buy()
+            elif self.macdHistoXZero == -1:
+                self.sell()
+        elif self.position.size > 0:
+            if self.macdHistoXZero == -1:
+                self.sell()
+        elif self.position.size < 0:
+            if self.macdHistoXZero == 1:
+                self.buy()
+
 class MACDxDMIxBBandsStrategy(MACDStrategyBase, BBandsStrategyBase, DMIStrategyBase, SMAStrategyBase):
 
     '''
