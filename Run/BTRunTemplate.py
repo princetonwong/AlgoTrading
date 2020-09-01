@@ -8,26 +8,34 @@ from tqdm.contrib.concurrent import process_map
 
 helper = Helper()
 
-INITIALCASH = 60000
+INITIALCASH = 30000
 OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
 
 SYMBOL_LIST = ["AAPL"]  #AlphaVantage
 SYMBOL = SYMBOL_LIST[0]
 SYMBOL = "BAC"      #HDFWiki
 SYMBOL = "HK.MHImain"   #Futu
-SUBTYPE = SubType.K_5M
+SUBTYPE = SubType.K_15M
 
-TIMERANGE = ("2020-08-22", "00:00:00", "2020-08-25", "23:59:00") #TODO: Create CSV Writer to store Stock Info
+TIMERANGE = ("2020-04-22", "00:00:00", "2020-07-25", "23:59:00") #TODO: Create CSV Writer to store Stock Info
 # TIMERANGE = None
 
-STRATEGY = BTStrategy.EmptyStrategy
+STRATEGY = BTStrategy.ASOCrossStrategy
+PARAMS = dict(period=21, smoothing=34, rsiFactor=30, asoThreshold= 5)
+
+STRATEGY = BTStrategy.TTFStrategy
 PARAMS = dict(lookback=19, upperband=100, lowerband=-100)
-PARAMS = dict()
+
+STRATEGY = BTStrategy.TTFwithStopTrail
+PARAMS = dict(lookback=19, upperband=100, lowerband=-100, stoptype=bt.Order.StopTrail, trailamount = 202)
+
+STRATEGY = BTStrategy.TTFHOLD
+PARAMS = dict(hold = 10)
 
 FOLDERNAME = helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
 
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2016")
-# DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
+DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
 # DATA0 = BTDataFeed.getAlphaVantageDataFeeds(SYMBOL_LIST, compact=False, debug=False,
 #                                             fromdate=datetime(2018, 1, 1), todate=datetime(2019, 1, 1))[0]
 # DATA0 = BTDataFeed.getYahooDataFeeds(SYMBOL_LIST, SUBTYPE, TIMERANGE)
