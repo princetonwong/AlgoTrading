@@ -8,16 +8,16 @@ from tqdm.contrib.concurrent import process_map
 
 helper = Helper()
 
-INITIALCASH = 30000
-OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
+INITIALCASH = 60000
+OUTPUTSETTINGS = dict(bokeh=True,plot=True,observer=True,analyzer=True, optimization=False)
 
-SYMBOL_LIST = ["AAPL"]  #AlphaVantage
+SYMBOL_LIST = ["AAPL"]  #AlphaVantage, Yahoo
 SYMBOL = SYMBOL_LIST[0]
 SYMBOL = "BAC"      #HDFWiki
 SYMBOL = "HK.MHImain"   #Futu
-SUBTYPE = SubType.K_15M
+SUBTYPE = SubType.K_30M
 
-TIMERANGE = ("2020-04-22", "00:00:00", "2020-07-25", "23:59:00") #TODO: Create CSV Writer to store Stock Info
+TIMERANGE = ("2019-04-23", "00:00:00", "2019-12-24", "23:59:00") #TODO: Create CSV Writer to store Stock Info
 # TIMERANGE = None
 
 STRATEGY = BTStrategy.ASOCrossStrategy
@@ -26,11 +26,11 @@ PARAMS = dict(period=21, smoothing=34, rsiFactor=30, asoThreshold= 5)
 STRATEGY = BTStrategy.TTFStrategy
 PARAMS = dict(lookback=19, upperband=100, lowerband=-100)
 
-STRATEGY = BTStrategy.TTFwithStopTrail
-PARAMS = dict(lookback=19, upperband=100, lowerband=-100, stoptype=bt.Order.StopTrail, trailamount = 202)
-
-STRATEGY = BTStrategy.TTFHOLD
-PARAMS = dict(hold = 10)
+STRATEGY = BTStrategy.TTFwithStopTrail2
+PARAMS = dict(lookback=19, upperband=100, lowerband=-100, stoptype=bt.Order.StopTrail, trailpercent = 0.05)
+#
+# STRATEGY = BTStrategy.TTFHOLD
+# PARAMS = dict(hold = 10)
 
 FOLDERNAME = helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
 
