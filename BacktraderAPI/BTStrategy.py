@@ -487,6 +487,54 @@ class StochasticTTFStrategy(StochasticTTFStrategyBase):
             if self.stochTTF.k >= 100:
                 self.buy()
 
+class TTFwithStopTrail2(TTFStrategyBase):
+    params = dict(stoptype=bt.Order.StopTrail, trailamount=0.0,trailpercent=0.0)
+
+    def __init__(self):
+        super(TTFwithStopTrail2, self).__init__()
+        self.order = None
+
+    def next(self):
+        if self.position.size == 0:
+            if self.ttfCxUpper == -1:
+                self.sell()
+                self.order = None
+            elif self.ttfCxLower == 1:
+                self.buy()
+                self.order = None
+        elif self.position.size > 0:
+            if self.ttfCxUpper == 1:
+                self.sell()
+        elif self.position.size < 0:
+            if self.ttfCxLower == -1:
+                self.buy()
+
+        if self.order is None:
+            if self.position.size > 0:
+                self.order = self.sell(exectype=self.p.stoptype,
+                                       trailamount=self.p.trailamount,
+                                       trailpercent=self.p.trailpercent)
+            elif self.position.size < 0:
+                self.order = self.buy(exectype=self.p.stoptype,
+                                       trailamount=self.p.trailamount,
+                                       trailpercent=self.p.trailpercent)
+
+
+            if self.p.trailamount != 0:
+                tcheck = self.data.close - self.p.trailamount
+            else:
+                tcheck = self.data.close * (1.0 - self.p.trailpercent)
+            # print(','.join(
+            #     map(str, [self.datetime.date(), self.data.close[0],
+            #               self.order.created.price, tcheck])
+            #     )
+            # )
+        else:
+            if self.p.trailamount != 0:
+                tcheck = self.data.close - self.p.trailamount
+            else:
+                tcheck = self.data.close * (1.0 - self.p.trailpercent)
+
 class TTFwithStopTrail(TTFStrategyBase):
     params = dict(stoptype=bt.Order.StopTrail, trailamount=0.0,trailpercent=0.0)
 
@@ -495,18 +543,18 @@ class TTFwithStopTrail(TTFStrategyBase):
         self.order = None
 
     def next(self):
-        if self.position.size > 0:
+        if self.position.size == 0:
+            if self.ttfCxUpper == -1:
+                self.sell()
+                self.order = None
+            elif self.ttfCxLower == 1:
+                self.buy()
+                self.order = None
+        elif self.position.size > 0:
             if self.ttfCxUpper == 1:
                 self.sell()
         elif self.position.size < 0:
             if self.ttfCxLower == -1:
-                self.buy()
-        elif self.position.size == 0:
-            if self.ttfCxUpper == -1:
-                # self.sell_bracket(stopprice= self.p.trailamount)
-                self.sell()
-            elif self.ttfCxLower == 1:
-                # self.buy_bracket(stopprice=self.data.close[0] - self.p.trailamount)
                 self.buy()
 
 
