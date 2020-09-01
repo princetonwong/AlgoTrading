@@ -196,7 +196,7 @@ class StochRSIStrategyBase(bt.Strategy):
         self.stochRSIKXD = bt.ind.CrossOver(self.stochRSI.k, self.stochRSI.d, plot=False)
 
 class ASOStrategyBase(bt.Strategy):
-    params = dict(period=21, smoothing=34, rsiFactor=30, asoThreshold = 5)
+    params = dict(period=21, smoothing=34, rsiFactor=30, asoThreshold= 5)
 
     def __init__(self):
         self.aso = BTIndicator.AbsoluteStrengthOscilator(period=self.p.period,

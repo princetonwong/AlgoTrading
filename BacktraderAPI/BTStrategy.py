@@ -5,6 +5,7 @@ from BacktraderAPI import BTIndicator
 from .BTStrategyExit import *
 from .BTStrategyBase import *
 from .Strategy import CandleStrategy, CCIStrategy, MACDStrategy, MeanReversionStrategy, RSIStrategy, TrendFollowingStrategy, BTStrategy_Failed
+import math
 
 
 class EmptyStrategy(bt.Strategy):
@@ -469,3 +470,87 @@ class StochasticTTFStrategy(StochasticTTFStrategyBase):
         elif self.position.size < 0:
             if self.stochTTF.k >= 100:
                 self.buy()
+
+class TTFwithStopTrail(TTFStrategyBase):
+    params = dict(stoptype=bt.Order.StopTrail, trailamount=0.0,trailpercent=0.0)
+
+    def __init__(self):
+        super(TTFwithStopTrail, self).__init__()
+        self.order = None
+
+    def next(self):
+        if self.position.size > 0:
+            if self.ttfCxUpper == 1:
+                self.sell()
+        elif self.position.size < 0:
+            if self.ttfCxLower == -1:
+                self.buy()
+        elif self.position.size == 0:
+            if self.ttfCxUpper == -1:
+                # self.sell_bracket(stopprice= self.p.trailamount)
+                self.sell()
+            elif self.ttfCxLower == 1:
+                # self.buy_bracket(stopprice=self.data.close[0] - self.p.trailamount)
+                self.buy()
+
+
+        if self.order is None:
+            if self.position.size > 0:
+                self.order = self.sell(exectype=self.p.stoptype,
+                                       trailamount=self.p.trailamount,
+                                       trailpercent=self.p.trailpercent)
+            elif self.position.size < 0:
+                self.order = self.buy(exectype=self.p.stoptype,
+                                       trailamount=self.p.trailamount,
+                                       trailpercent=self.p.trailpercent)
+
+
+            if self.p.trailamount != 0:
+                tcheck = self.data.close - self.p.trailamount
+            else:
+                tcheck = self.data.close * (1.0 - self.p.trailpercent)
+            # print(','.join(
+            #     map(str, [self.datetime.date(), self.data.close[0],
+            #               self.order.created.price, tcheck])
+            #     )
+            # )
+        else:
+            if self.p.trailamount != 0:
+                tcheck = self.data.close - self.p.trailamount
+            else:
+                tcheck = self.data.close * (1.0 - self.p.trailpercent)
+            # print(','.join(
+            #     map(str, [self.datetime.date(), self.data.close[0],
+            #               self.order.created.price, tcheck])
+            #     )
+            # )
+
+class TTFHOLD(TTFStrategyBase, HoldStrategyExit):
+    params = (('risk', 0.1),  # risk 10%
+              ('stop_dist', 200))  # stoploss distance 5%
+
+    def __init__(self):
+        super(EmptyStrategy, self).__init__()
+
+    def next(self):
+        cash = self.broker.get_cash()
+        stop_price = (self.data.close[0] - self.p.stop_dist)
+        if self.position.size > 0:
+            if self.ttfCxUpper == 1:
+                if (len(self) - self.holdstart) >= self.p.hold:
+                    self.order = self.sell()
+        elif self.position.size < 0:
+            if self.ttfCxLower == -1:
+                if (len(self) - self.holdstart) >= self.p.hold:
+                    self.order = self.buy()
+        elif self.position.size == 0:
+            if self.ttfCxUpper == -1:
+                # self.sell_bracket(stopprice= self.p.trailamount)
+                self.order = self.sell()
+                self.order = self.buy(exectype=bt.Order.Stop, price=stop_price)
+            elif self.ttfCxLower == 1:
+                # self.buy_bracket(stopprice=self.data.close[0] - self.p.trailamount)
+                self.order = self.buy()
+                self.order = self.sell(exectype=bt.Order.Stop, price=stop_price)
+
+                # qty = math.floor((cash * self.p.risk) / (self.data.close[0] - stop_price))
