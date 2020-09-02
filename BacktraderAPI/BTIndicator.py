@@ -296,7 +296,7 @@ class KeltnerChannelBBSqueeze(bt.Indicator):
         Squeeze = (BBDevs X StdDev(close, period)) – (KCDevs X ATR(period))
     '''
 
-    lines = ('squeeze',)
+    lines = ('squeeze', 'squeezePerc')
     params = (('period', 20), ('bbdevs', 2.0), ('kcdevs', 1.5), ('movav', bt.ind.MovAv.Simple),)
     plotlines = dict(squeeze=dict(_method='bar', alpha=0.50, width=1.0))
 
@@ -315,6 +315,7 @@ class KeltnerChannelBBSqueeze(bt.Indicator):
         bbavg = bt.ind.MovingAverageSimple(bb.top, period= 3)
         kcavg = bt.ind.MovingAverageSimple(kc.top, period= 3)
         self.lines.squeeze = bbavg - kcavg
+        self.lines.squeezePerc = (bbavg - kcavg) / kcavg * 10000
 
 class VolumeWeightedAveragePrice(bt.Indicator):
     plotinfo = dict(subplot=False)

@@ -25,9 +25,12 @@ class KeltnerChannelStrategyBase(bt.Strategy):
         self.cxKChanMid = bt.indicators.CrossOver(self.data, self.kChan.mid, plot=False)
 
 class BBandsKChanSqueezeStrategyBase(BBandsStrategyBase, KeltnerChannelStrategyBase):
+    params = dict(squeezeThreshold= 20)
+
     def __init__(self):
         super(BBandsKChanSqueezeStrategyBase, self).__init__()
         self.squeeze = BTIndicator.KeltnerChannelBBSqueeze()
+        self.squeeze.csv = True
         self.bBandCxKChan = bt.ind.CrossOver(self.squeeze.squeeze, 0, plot=False)
 
 class DonchianStrategyBase(bt.Strategy):
@@ -82,10 +85,10 @@ class CCIStrategyBase(bt.Strategy):
         self.cci = BTIndicator.talibCCI(period=self.p.cciPeriod, factor=self.p.cciFactor, upperband=self.upperband, lowerband=self.lowerband)
         self.cci.csv = True
 
-        self.cciCrossUpperband = bt.ind.CrossUp(self.cci, self.upperband, plot=False)
-        self.cciCrossUpperband.csv = True
-        self.cciCrossLowerband = bt.ind.CrossDown(self.cci, self.lowerband, plot=False)
-        self.cciCrossLowerband.csv = True
+        self.cciXUpperband = bt.ind.CrossOver(self.cci, self.upperband, plot=False)
+        self.cciXUpperband.csv = True
+        self.cciXLowerband = bt.ind.CrossOver(self.cci, self.lowerband, plot=False)
+        self.cciXLowerband.csv = True
 
 class TTFStrategyBase(bt.Strategy):
     params = dict(lookback=15, upperband=100, lowerband=-100)
@@ -93,6 +96,7 @@ class TTFStrategyBase(bt.Strategy):
     def __init__(self):
         super(TTFStrategyBase, self).__init__()
         self.ttf = BTIndicator.TrendTriggerFactor(lookback=self.p.lookback, upperband=self.p.upperband, lowerband=self.p.lowerband)
+        self.ttf.csv = True
         self.ttfCxLower = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.lowerband, plot=False)
         self.ttfCxUpper = bt.indicators.CrossOver(self.ttf.ttf, self.ttf.upperband, plot=False)
 
@@ -175,12 +179,14 @@ class StochRSIStrategyBase(bt.Strategy):
         self.stochRSIKXD = bt.ind.CrossOver(self.stochRSI.k, self.stochRSI.d, plot=False)
 
 class ASOStrategyBase(bt.Strategy):
-    params = dict(period=21, smoothing=34, rsiFactor=30, asoThreshold= 5)
+    params = dict(period=21, smoothing=34, rsiFactor=30, asoThreshold= 0)
 
     def __init__(self):
+        super(ASOStrategyBase, self).__init__()
         self.aso = BTIndicator.AbsoluteStrengthOscilator(period=self.p.period,
                                                          smoothing=self.p.smoothing,
                                                          rsifactor=self.p.rsiFactor)
+        self.aso.csv = True
         self.ashXZero = bt.ind.CrossOver(self.aso.ash, 0, plot=False)
         self.ashXUpper = bt.ind.CrossOver(self.aso.ash, self.p.asoThreshold, plot=False)
         self.ashXLower = bt.ind.CrossOver(self.aso.ash, -self.p.asoThreshold, plot=False)
