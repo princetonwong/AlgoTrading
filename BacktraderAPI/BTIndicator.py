@@ -536,3 +536,13 @@ class StreakBySMA(bt.Indicator):
             self.l.trend[0] = -1
         else:
             self.l.trend[0] = 0
+
+
+class StochasticCCI(talibCCI):
+    lines = ('k',)
+    params = dict(kPeriod=9, dPeriod=5)
+
+    def __init__(self):
+        super(StochasticCCI, self).__init__()
+        self.l.k = bt.ind.MovingAverageSimple(self.l.cci, period= self.p.kPeriod)
+        # self.l.d = bt.ind.MovingAverageSimple(self.k, period= self.p.dPeriod)

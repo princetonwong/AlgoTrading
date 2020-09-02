@@ -10,8 +10,8 @@ import numpy as np
 sns.set(color_codes=True, font_scale=1.2)
 rcParams['figure.figsize'] = 10,10
 
-STRATEGYColumns = ["ttf"]
-CSVPATH = "/Users/princetonwong/PycharmProjects/AlgoTrading/Output/HK.MHImain-K_30M [2018-03-04,2020-03-26] TTFHOLD 10/BackTraderData-HK.MHImain-K_30M [2018-03-04,2020-03-26] TTFHOLD 10.csv"
+STRATEGYColumns = ["cci", "squeezePerc"]
+CSVPATH = "/Users/princetonwong/PycharmProjects/AlgoTrading/Output/HK.MHImain-K_30M [09-02 22-03] CMOCrossStrategyWithSqueezePercCCI /BackTraderData-HK.MHImain-K_30M [09-02 22-03] CMOCrossStrategyWithSqueezePercCCI .csv"
 
 
 def getOrders(csvpath = CSVPATH, output = False):
@@ -60,7 +60,7 @@ def plotScatterMatrix(df, selectedColumns = None):
 orders = getOrders()
 # orders["cci"] = abs(orders["cci"])
 # orders["ash"] = abs(orders["ash"])
-entryexit = getEntryExit(orders)
+entryexit = getEntryExit(orders, output= True)
 plotCorrelogram(entryexit)
 plotScatterMatrix(entryexit)
 

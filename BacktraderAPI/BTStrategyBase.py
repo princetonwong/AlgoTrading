@@ -25,7 +25,7 @@ class KeltnerChannelStrategyBase(bt.Strategy):
         self.cxKChanMid = bt.indicators.CrossOver(self.data, self.kChan.mid, plot=False)
 
 class BBandsKChanSqueezeStrategyBase(BBandsStrategyBase, KeltnerChannelStrategyBase):
-    params = dict(squeezeThreshold= 20)
+    params = dict(squeezeThreshold= 0)
 
     def __init__(self):
         super(BBandsKChanSqueezeStrategyBase, self).__init__()
@@ -89,6 +89,35 @@ class CCIStrategyBase(bt.Strategy):
         self.cciXUpperband.csv = True
         self.cciXLowerband = bt.ind.CrossOver(self.cci, self.lowerband, plot=False)
         self.cciXLowerband.csv = True
+
+class StochasticCCIStrategyBase(CCIStrategyBase):
+    params = dict(kPeriod=5, dPeriod=3)
+
+    def __init__(self):
+        super(StochasticCCIStrategyBase, self).__init__()
+        self.stochCCI = BTIndicator.StochasticCCI(kPeriod=self.p.kPeriod, dPeriod=self.p.dPeriod)
+        # self.kCxd = bt.indicators.CrossOver(self.stochCCI.k, self.stochCCI.d, plot=False)
+        self.stochcciXUpperband = bt.ind.CrossOver(self.stochCCI.k, self.upperband, plot=False)
+        self.stochcciXUpperband.csv = True
+        self.stochcciXLowerband = bt.ind.CrossOver(self.stochCCI.k, self.lowerband, plot=False)
+        self.stochcciXLowerband.csv = True
+
+class CCIHeikinAshiStrategyBase(bt.Strategy):
+    params = dict(cciPeriod=26, cciFactor=0.015, cciThreshold=100)
+
+    def __init__(self):
+        super(CCIHeikinAshiStrategyBase, self).__init__()
+        self.dataclose = bt.ind.HeikinAshi(self.data1)
+
+        self.upperband = self.p.cciThreshold
+        self.lowerband = -self.p.cciThreshold
+        self.hkacci = BTIndicator.talibCCI(self.dataclose, period=self.p.cciPeriod, factor=self.p.cciFactor, upperband=self.upperband, lowerband=self.lowerband)
+        self.hkacci.csv = True
+
+        self.hkacciXUpperband = bt.ind.CrossOver(self.hkacci, self.upperband, plot=False)
+        self.hkacciXUpperband.csv = True
+        self.hkacciXLowerband = bt.ind.CrossOver(self.hkacci, self.lowerband, plot=False)
+        self.hkacciXLowerband.csv = True
 
 class TTFStrategyBase(bt.Strategy):
     params = dict(lookback=15, upperband=100, lowerband=-100)
@@ -190,6 +219,18 @@ class ASOStrategyBase(bt.Strategy):
         self.ashXZero = bt.ind.CrossOver(self.aso.ash, 0, plot=False)
         self.ashXUpper = bt.ind.CrossOver(self.aso.ash, self.p.asoThreshold, plot=False)
         self.ashXLower = bt.ind.CrossOver(self.aso.ash, -self.p.asoThreshold, plot=False)
+
+class CMOStrategyBase(bt.Strategy):
+    params = dict(period=21, cmoThreshold= 30)
+
+    def __init__(self):
+        super(CMOStrategyBase, self).__init__()
+        self.cmo = bt.ind.MovingAverageSimple(bt.talib.CMO(timeperiod=self.p.period), period=3)
+        self.cmo.plotinfo.plotyhlines = [0.0, self.p.cmoThreshold, -self.p.cmoThreshold]
+        self.cmo.csv = True
+        self.cmoXZero = bt.ind.CrossOver(self.cmo, 0, plot=False)
+        self.cmoXUpper = bt.ind.CrossOver(self.cmo, self.p.cmoThreshold, plot=False)
+        self.cmoXLower = bt.ind.CrossOver(self.cmo, -self.p.cmoThreshold, plot=False)
 
 #MACD
 class MACDStrategyBase(bt.Strategy):

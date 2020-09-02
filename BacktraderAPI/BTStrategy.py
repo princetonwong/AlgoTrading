@@ -256,19 +256,34 @@ class StochasticStrategy(bt.Strategy):
             if self.kCrosslower == 1 and self.kCrossD == 1:
                 self.close(exectype=bt.Order.Stop, price=self.data.close)
 
-class ASOCrossStrategyWithSqueezePercCCI (ASOStrategyBase, BBandsKChanSqueezeStrategyBase, CCIStrategyBase):
+class ASOCrossStrategyWithSqueezePercCCI (ASOStrategyBase, BBandsKChanSqueezeStrategyBase, StochasticCCIStrategyBase, SMAStrategyBase):
     def next(self):
         if self.position.size == 0:
-            if self.squeeze.squeezePerc < self.p.squeezeThreshold:
-                if self.ashXLower == 1 or self.cciXUpperband == 1:
+            if self.squeeze.squeezePerc > self.p.squeezeThreshold:
+                if self.ashXLower == 1 :
                     self.buy()
-                elif self.ashXUpper == -1 or self.cciXLowerband == -1:
+                elif self.ashXUpper == -1 :
                     self.sell()
         elif self.position.size > 0:
-            if self.ashXUpper == -1 or self.cciXUpperband == -1:
+            if self.ashXUpper == -1 :
                 self.sell()
         elif self.position.size < 0 :
-            if self.ashXLower == 1 or self.cciXLowerband == 1:
+            if self.ashXLower == 1 :
+                self.buy()
+
+class CMOCrossStrategyWithSqueezePercCCI (StochasticCCIStrategyBase, BBandsKChanSqueezeStrategyBase):
+    def next(self):
+        if self.position.size == 0:
+            if self.squeeze.squeezePerc > self.p.squeezeThreshold:
+                if self.stochcciXUpperband == 1:
+                    self.buy()
+                elif self.stochcciXLowerband == -1:
+                    self.sell()
+        elif self.position.size > 0:
+            if self.stochcciXUpperband == -1:
+                self.sell()
+        elif self.position.size < 0 :
+            if self.stochcciXLowerband == 1:
                 self.buy()
 
 #Channel Strategy
@@ -618,3 +633,22 @@ class TTFHOLD(TTFStrategyBase, HoldStrategyExit):
                 self.order = self.sell(exectype=bt.Order.Stop, price=stop_price)
 
                 # qty = math.floor((cash * self.p.risk) / (self.data.close[0] - stop_price))
+
+class HeikinAshiStrategy(bt.Strategy):
+    def __init__(self):
+        self.newdata = self.data1
+        self.hkarsi = BTIndicator.talibCCI(self.data1.close)
+        self.up = self.data1.close > self.data1.open
+
+    def next(self):
+        if self.position.size == 0:
+            if self.up:
+                self.buy()
+            elif not self.up:
+                self.sell()
+        elif self.position.size > 0:
+            if not self.up:
+                self.sell()
+        elif self.position.size < 0:
+            if self.up:
+                self.buy()
