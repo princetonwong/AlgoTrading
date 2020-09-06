@@ -9,35 +9,37 @@ from tqdm.contrib.concurrent import process_map
 helper = Helper()
 
 INITIALCASH = 60000
-OUTPUTSETTINGS = dict(bokeh=True,plot=True,observer=True,analyzer=True, optimization=False)
+OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
 
-SYMBOL_LIST = ["AAPL"]  #AlphaVantage, Yahoo
+SYMBOL_LIST = ["KO"]  #AlphaVantage, Yahoo
 SYMBOL = SYMBOL_LIST[0]
 SYMBOL = "BAC"      #HDFWiki
 SYMBOL = "HK.MHImain"   #Futu
 SUBTYPE = SubType.K_30M
 
-TIMERANGE = ("2019-04-23", "00:00:00", "2019-12-24", "23:59:00") #TODO: Create CSV Writer to store Stock Info
+TIMERANGE = ("2018-03-04", "00:00:00", "2020-03-26", "23:59:00") #TODO: Create CSV Writer to store Stock Info
 # TIMERANGE = None
 
-STRATEGY = BTStrategy.ASOCrossStrategy
-PARAMS = dict(period=21, smoothing=34, rsiFactor=30, asoThreshold= 5)
+STRATEGY = BTStrategy.ASOCrossStrategyWithSqueezePercCCI
+PARAMS = dict(period=8, smoothing=16, rsiFactor=30, asoThreshold= 0, squeezeThreshold= 10, cciThreshold = 110)
 
-STRATEGY = BTStrategy.TTFStrategy
-PARAMS = dict(lookback=19, upperband=100, lowerband=-100)
-
-STRATEGY = BTStrategy.TTFwithStopTrail2
-PARAMS = dict(lookback=19, upperband=100, lowerband=-100, stoptype=bt.Order.StopTrail, trailpercent = 0.05)
+# STRATEGY = BTStrategy.TTFStrategy
+# PARAMS = dict(lookback=19, upperband=100, lowerband=-100)
 #
-# STRATEGY = BTStrategy.TTFHOLD
-# PARAMS = dict(hold = 10)
+# STRATEGY = BTStrategy.TTFwithStopTrail2
+# PARAMS = dict(lookback=19, upperband=100, lowerband=-100, stoptype=bt.Order.StopTrail, trailpercent = 0.05)
+#
+STRATEGY = BTStrategy.TTFHOLD
+PARAMS = dict(hold = 10)
+#
+# STRATEGY = BTStrategy.CCIStrategy.CCICrossHoldStrategy
+# PARAMS = dict(cciPeriod=26, cciFactor=0.015, cciThreshold=100, hold = 6)
 
 FOLDERNAME = helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
 
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2016")
 DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
-# DATA0 = BTDataFeed.getAlphaVantageDataFeeds(SYMBOL_LIST, compact=False, debug=False,
-#                                             fromdate=datetime(2018, 1, 1), todate=datetime(2019, 1, 1))[0]
+# DATA0 = BTDataFeed.getAlphaVantageDataFeeds(SYMBOL_LIST, compact=False, debug=False, fromdate=datetime(2018, 1, 1), todate=datetime(2019, 1, 1))[0]
 # DATA0 = BTDataFeed.getYahooDataFeeds(SYMBOL_LIST, SUBTYPE, TIMERANGE)
 
 def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.DataFrame:
@@ -181,13 +183,15 @@ def grid_search(sortKey: str) -> pd.DataFrame:
     params_list = []
     outputsettings_list = []
 
-    for x in range(5, 30, 1):
-        y=100
-        outputsettings = dict(bokeh=False,plot=False,observer=True,analyzer=True, optimization=True)
-        optimizationParams = dict(lookback=x, upperband=y, lowerband=-y)
+    for x in range(4, 14, 2):
+        for y in range(6, 24, 2):
+            for z in range(-20, 21, 5):
+                for aa in range(80, 121, 5):
+                    outputsettings = dict(bokeh=False,plot=False,observer=True,analyzer=True, optimization=True)
+                    optimizationParams = dict(period=x, smoothing=y, rsiFactor=30, asoThreshold= 0, squeezeThreshold= z, cciThreshold = aa)
 
-        params_list.append({**optimizationParams})
-        outputsettings_list.append({**outputsettings})
+                    params_list.append({**optimizationParams})
+                    outputsettings_list.append({**outputsettings})
 
     helper.folderName = "[Opt]" + helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, optimizationParams)
     stats = process_map(run_strategy, params_list, outputsettings_list, max_workers=os.cpu_count())
@@ -195,7 +199,7 @@ def grid_search(sortKey: str) -> pd.DataFrame:
     df = pd.DataFrame(stats)
     df.sort_values(sortKey, ascending=False, inplace=True)
     helper.gradientAppliedXLSX(df, "Optimization",
-                               ["Kelly Percent", "Max DrawDown", "PnL Net", "SQN", "Sharpe Ratio", "VWR"])
+                               ["Kelly Percent", "Max DrawDown", "PnL Net", "SQN", "Sharpe Ratio", "VWR", "Strike Rate"])
     return df
 
 # df = grid_search(sortKey = ["VWR"])

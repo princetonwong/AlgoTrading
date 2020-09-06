@@ -180,20 +180,20 @@ class StochasticStrategy(bt.Strategy):
             if self.kCrosslower == 1 and self.kCrossD == 1:
                 self.close(exectype=bt.Order.Stop, price=self.data.close)
 
-class ASOCrossStrategy(ASOStrategyBase):
+class ASOCrossStrategyWithSqueezePercCCI (ASOStrategyBase, BBandsKChanSqueezeStrategyBase, CCIStrategyBase):
     def next(self):
         if self.position.size == 0:
-            if self.ashXLower == 1:
-                self.buy()
-            elif self.ashXUpper == -1:
-                self.sell()
+            if self.squeeze.squeezePerc < self.p.squeezeThreshold:
+                if self.ashXLower == 1 or self.cciXUpperband == 1:
+                    self.buy()
+                elif self.ashXUpper == -1 or self.cciXLowerband == -1:
+                    self.sell()
         elif self.position.size > 0:
-            if self.ashXUpper == -1:
+            if self.ashXUpper == -1 or self.cciXUpperband == -1:
                 self.sell()
-        elif self.position.size < 0:
-            if self.ashXLower == 1:
+        elif self.position.size < 0 :
+            if self.ashXLower == 1 or self.cciXLowerband == 1:
                 self.buy()
-
 
 #Channel Strategy
 
@@ -578,7 +578,7 @@ class TTFHOLD(TTFStrategyBase, HoldStrategyExit):
               ('stop_dist', 200))  # stoploss distance 5%
 
     def __init__(self):
-        super(EmptyStrategy, self).__init__()
+        super(TTFHOLD, self).__init__()
 
     def next(self):
         cash = self.broker.get_cash()
