@@ -6,7 +6,7 @@ from .BTStrategyExit import *
 from .BTStrategyBase import *
 from .Strategy import CandleStrategy, CCIStrategy, MACDStrategy, MeanReversionStrategy, RSIStrategy, TrendFollowingStrategy, BTStrategy_Failed
 import math
-
+import datetime
 
 class EmptyStrategy(bt.Strategy):
     def __init__(self):
@@ -472,7 +472,7 @@ class StochasticTTFStrategy(StochasticTTFStrategyBase):
                 self.buy()
 
 class TTFwithStopTrail2(TTFStrategyBase):
-    params = dict(stoptype=bt.Order.StopTrail, trailamount=0.0,trailpercent=0.0)
+    params = dict(size=0,stoptype=bt.Order.StopTrail, trailamount=0.0,trailpercent=0.0)
 
     def __init__(self):
         super(TTFwithStopTrail2, self).__init__()
@@ -488,10 +488,10 @@ class TTFwithStopTrail2(TTFStrategyBase):
                 self.order = None
         elif self.position.size > 0:
             if self.ttfCxUpper == 1:
-                self.sell()
+                self.close()
         elif self.position.size < 0:
             if self.ttfCxLower == -1:
-                self.buy()
+                self.close()
 
         if self.order is None:
             if self.position.size > 0:
@@ -527,6 +527,7 @@ class TTFwithStopTrail(TTFStrategyBase):
         self.order = None
 
     def next(self):
+
         if self.position.size == 0:
             if self.ttfCxUpper == -1:
                 self.sell()
@@ -534,9 +535,11 @@ class TTFwithStopTrail(TTFStrategyBase):
             elif self.ttfCxLower == 1:
                 self.buy()
                 self.order = None
+
         elif self.position.size > 0:
             if self.ttfCxUpper == 1:
                 self.sell()
+
         elif self.position.size < 0:
             if self.ttfCxLower == -1:
                 self.buy()
@@ -573,6 +576,149 @@ class TTFwithStopTrail(TTFStrategyBase):
             #     )
             # )
 
+#TODO: TBC
+class TTFwithBracket(TTFStrategyBase):
+
+    params = dict(
+                  limit=0.005,
+                  limdays=3,
+                  limdays2=1000,
+                  hold=10,
+                  usebracket=False,  # use order_target_size
+                  switchp1p2=False,  # switch prices of order1 and order2
+                )
+
+    def notify_order(self, order):
+        print('{}: Order ref: {} / Type {} / Status {}'.format(
+            self.data.datetime.date(0),
+            order.ref, 'Buy' * order.isbuy() or 'Sell',
+            order.getstatusname()))
+
+        if order.status == order.Completed:
+            self.holdstart = len(self)
+
+        if not order.alive() and order.ref in self.orefs:
+            self.orefs.remove(order.ref)
+
+    def __init__(self):
+        super(TTFwithBracket , self).__init__()
+        self.orefs = list()
+        self.holdstart = int()
+        if self.p.usebracket:
+            print('-' * 5, 'Using buy_bracket')
+
+    def next(self):
+
+        if self.orefs:
+            return
+
+        elif self.position.size == 0:
+
+            if self.ttfCxLower == 1:
+                close = self.data.close[0]
+                p1 = close * (1.0 - self.p.limit)
+                p2 = p1 - 0.02 * close
+                p3 = p1 + 0.02 * close
+
+                valid1 = datetime.timedelta(self.p.limdays)
+                valid2 = valid3 = datetime.timedelta(self.p.limdays2)
+
+                if self.p.switchp1p2:
+                    p1, p2 = p2, p1
+                    valid1, valid2 = valid2, valid1
+
+                if not self.p.usebracket:
+                    o1 = self.buy(exectype=bt.Order.Limit,
+                                  price=p1,
+                                  valid=valid1,
+                                  transmit=False)
+
+                    print('{}: Oref {} / Buy at {}'.format(
+                        self.datetime.date(), o1.ref, p1))
+
+                    o2 = self.sell(exectype=bt.Order.Stop,
+                                   price=p2,
+                                   valid=valid2,
+                                   parent=o1,
+                                   transmit=False)
+
+                    print('{}: Oref {} / Sell Stop at {}'.format(
+                        self.datetime.date(), o2.ref, p2))
+
+                    o3 = self.sell(exectype=bt.Order.Limit,
+                                   price=p3,
+                                   valid=valid3,
+                                   parent=o1,
+                                   transmit=True)
+
+                    print('{}: Oref {} / Sell Limit at {}'.format(
+                        self.datetime.date(), o3.ref, p3))
+
+                    self.orefs = [o1.ref, o2.ref, o3.ref]
+
+                else:
+                    os = self.buy_bracket(
+                        price=p1, valid=valid1,
+                        stopprice=p2, stopargs=dict(valid=valid2),
+                        limitprice=p3, limitargs=dict(valid=valid3), )
+
+                    self.orefs = [o.ref for o in os]
+
+            elif self.ttfCxUpper == -1:
+
+                close = self.data.close[0]
+                p1 = close * (1.0 - self.p.limit)
+                p2 = p1 + 0.02 * close
+                p3 = p1 - 0.02 * close
+
+                valid1 = datetime.timedelta(self.p.limdays)
+                valid2 = valid3 = datetime.timedelta(self.p.limdays2)
+
+                if self.p.switchp1p2:
+                    p1, p2 = p2, p1
+                    valid1, valid2 = valid2, valid1
+
+                if not self.p.usebracket:
+                    o1 = self.sell(exectype=bt.Order.Limit,
+                                  price=p1,
+                                  valid=valid1,
+                                  transmit=False)
+
+                    print('{}: Oref {} / Buy at {}'.format(
+                        self.datetime.date(), o1.ref, p1))
+
+                    o2 = self.buy(exectype=bt.Order.Stop,
+                                   price=p2,
+                                   valid=valid2,
+                                   parent=o1,
+                                   transmit=False)
+
+                    print('{}: Oref {} / Sell Stop at {}'.format(
+                        self.datetime.date(), o2.ref, p2))
+
+                    o3 = self.buy(exectype=bt.Order.Limit,
+                                   price=p3,
+                                   valid=valid3,
+                                   parent=o1,
+                                   transmit=True)
+
+                    print('{}: Oref {} / Sell Limit at {}'.format(
+                        self.datetime.date(), o3.ref, p3))
+
+                    self.orefs = [o1.ref, o2.ref, o3.ref]
+
+                else:
+                    os = self.sell_bracket(
+                        price=p1, valid=valid1,
+                        stopprice=p2, stopargs=dict(valid=valid2),
+                        limitprice=p3, limitargs=dict(valid=valid3), )
+
+                    self.orefs = [o.ref for o in os]
+
+        else:  # in the market
+            if (len(self) - self.holdstart) >= self.p.hold:
+                pass  # do nothing in this case #TODO: Multiple data feeds#TODO: Multiple data feeds
+
 class TTFHOLD(TTFStrategyBase, HoldStrategyExit):
     params = (('risk', 0.1),  # risk 10%
               ('stop_dist', 200))  # stoploss distance 5%
@@ -593,7 +739,7 @@ class TTFHOLD(TTFStrategyBase, HoldStrategyExit):
                     self.order = self.buy()
         elif self.position.size == 0:
             if self.ttfCxUpper == -1:
-                # self.sell_bracket(stopprice= self.p.trailamount)
+                self.sell_bracket(stopprice= self.p.trailamount)
                 self.order = self.sell()
                 self.order = self.buy(exectype=bt.Order.Stop, price=stop_price)
             elif self.ttfCxLower == 1:
