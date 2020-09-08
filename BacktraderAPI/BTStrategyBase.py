@@ -129,6 +129,27 @@ class EMAStrategyBase(bt.Strategy):
         self.emaFast.csv = True
         self.emaSlow.csv = True
 
+class IchimokuCloudStrategyBase(bt.Strategy):
+    '''
+       https://medium.com/@harrynicholls/7-popular-technical-indicators-and-how-to-use-them-to-increase-your-trading-profits-7f13ffeb8d05
+       https://tradingtools.net/simplified-ichimoku-strategy/
+       https://school.stockcharts.com/doku.php?id=technical_indicators:ichimoku_cloud
+    '''
+
+    params = dict(kijun=26, tenkan=9, chikou=26, senkou=52, senkou_lead=26)
+
+    def __init__(self):
+        super(IchimokuCloudStrategyBase, self).__init__()
+        self.ichimoku = bt.indicators.Ichimoku(self.data,
+                                               kijun=self.p.kijun,
+                                               tenkan=self.p.tenkan,
+                                               chikou = self.p.chikou,
+                                               senkou=self.p.senkou,
+                                               senkou_lead=self.p.senkou_lead
+                                               )
+        self.tKCross = bt.indicators.CrossOver(self.ichimoku.l.tenkan_sen, self.ichimoku.l.kijun_sen, plot=False)
+        self.priceKCross = bt.indicators.CrossOver(self.data.close, self.ichimoku.l.kijun_sen, plot=False)
+
 #Trend Changing, RSI, Stochastic
 class RSIStrategyBase(bt.Strategy):
     params = dict(rsiPeriod=21, rsiUpperband=70, rsiLowerband=30)
