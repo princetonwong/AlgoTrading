@@ -10,8 +10,8 @@ import numpy as np
 sns.set(color_codes=True, font_scale=1.2)
 rcParams['figure.figsize'] = 10,10
 
-STRATEGYColumns = ["cci", "squeezePerc"]
-CSVPATH = "/Users/princetonwong/PycharmProjects/AlgoTrading/Output/HK.MHImain-K_30M [09-02 22-03] CMOCrossStrategyWithSqueezePercCCI /BackTraderData-HK.MHImain-K_30M [09-02 22-03] CMOCrossStrategyWithSqueezePercCCI .csv"
+STRATEGYColumns = ["kama", "cci"]
+CSVPATH =
 
 
 def getOrders(csvpath = CSVPATH, output = False):

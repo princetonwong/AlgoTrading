@@ -8,6 +8,7 @@ class BBandsStrategyBase(bt.Strategy):
     def __init__(self):
         super(BBandsStrategyBase, self).__init__()
         self.boll = bt.indicators.BollingerBands(period=self.p.movAvPeriod, devfactor=self.p.bBandSD)
+        self.bollWidth = (self.boll.top - self.boll.bot) / self.boll.mid
         self.crossUpBollTop = bt.indicators.CrossUp(self.data, self.boll.lines.top, plot = False)
         self.crossDownBollBottom = bt.indicators.CrossDown(self.data, self.boll.lines.bot, plot=False)
         self.crossOverBollMid = bt.indicators.CrossOver(self.data, self.boll.lines.mid, plot = False)
@@ -39,6 +40,13 @@ class DonchianStrategyBase(bt.Strategy):
     def __init__(self):
         super(DonchianStrategyBase, self).__init__()
         self.donchian = BTIndicator.DonchianChannels(period= self.p.donchianPeriod, lookback=self.p.lookback)
+
+class VLIStrategyBase(bt.Strategy):
+    def __init__(self):
+        super(VLIStrategyBase, self).__init__()
+        self.vli = BTIndicator.VolatilityLevelIndicator()
+        self.volatilityLevel = self.vli.fast > self.vli.slow
+        self.extremeVolatiliy = self.vli.bollWidth > self.vli.top
 
 #Oscillator (Strength of Trend)
 class AroonStrategyBase(bt.Strategy):
@@ -157,6 +165,17 @@ class EMAStrategyBase(bt.Strategy):
         self.emaFastXemaSlow = bt.ind.CrossOver(self.emaFast, self.emaSlow, plot=False)
         self.emaFast.csv = True
         self.emaSlow.csv = True
+
+class KAMAStrategyBase(bt.Strategy):
+    params = dict(smaPeriod=30, kamaPeriod=30, kamaFast=2, kamaSlow=30)
+
+    def __init__(self):
+        super(KAMAStrategyBase, self).__init__()
+        self.kama = BTIndicator.AdaptiveMovingAverage(period=self.p.kamaPeriod, fast=self.p.kamaFast, slow= self.p.kamaSlow)
+        self.sma = bt.ind.MovingAverageSimple(self.kama, period= self.p.smaPeriod)
+        self.sma.plotinfo.plotmaster = self.data
+        self.kama.csv = True
+        self.kamaXsma = bt.ind.CrossOver(self.kama, self.sma)
 
 #Trend Changing, RSI, Stochastic
 class RSIStrategyBase(bt.Strategy):

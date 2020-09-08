@@ -9,34 +9,34 @@ from tqdm.contrib.concurrent import process_map
 helper = Helper()
 
 INITIALCASH = 60000
-OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
+OUTPUTSETTINGS = dict(bokeh=False,plot=True,observer=True,analyzer=True, optimization=False)
 
 SYMBOL_LIST = ["KO"]  #AlphaVantage, Yahoo
 SYMBOL = SYMBOL_LIST[0]
 SYMBOL = "BAC"      #HDFWiki
 SYMBOL = "HK.MHImain"   #Futu
-SUBTYPE = SubType.K_30M
+SUBTYPE = SubType.K_60M
 
-TIMERANGE = ("2018-03-04", "00:00:00", "2020-03-26", "23:59:00") #TODO: Create CSV Writer to store Stock Info
-TIMERANGE = None
+TIMERANGE = ("2018-07-01", "00:00:00", "2020-09-02", "23:59:00") #TODO: Create CSV Writer to store Stock Info
+# TIMERANGE = None
 
 STRATEGY = BTStrategy.ASOCrossStrategyWithSqueezePercCCI
 PARAMS = dict(period=8, smoothing=16, rsiFactor=30, asoThreshold= 10, squeezeThreshold= 0, cciThreshold = 100)
 
-# STRATEGY = BTStrategy.TTFStrategy
-# PARAMS = dict(lookback=19, upperband=100, lowerband=-100)
-#
-# STRATEGY = BTStrategy.TTFwithStopTrail2
-# PARAMS = dict(lookback=19, upperband=100, lowerband=-100, stoptype=bt.Order.StopTrail, trailpercent = 0.05)
-#
-# STRATEGY = BTStrategy.TTFHOLD
-# PARAMS = dict(hold = 10)
-#
-# STRATEGY = BTStrategy.CCIStrategy.CCICrossHoldHKAStrategy
-# PARAMS = dict(cciPeriod=29, cciFactor=0.015, cciThreshold=100, hold = 6)
-#
-# STRATEGY = BTStrategy.CMOCrossStrategyWithSqueezePercCCI
-# PARAMS = dict()
+STRATEGY = BTStrategy.TTFStrategy
+PARAMS = dict(lookback=19, upperband=100, lowerband=-100)
+
+STRATEGY = BTStrategy.TTFwithStopTrail2
+PARAMS = dict(lookback=19, upperband=100, lowerband=-100, stoptype=bt.Order.StopTrail, trailpercent = 0.05)
+
+STRATEGY = BTStrategy.TTFHOLD
+PARAMS = dict(hold = 10)
+
+STRATEGY = BTStrategy.CCIStrategy.CCICrossHoldStrategy
+PARAMS = dict(cciPeriod=20, cciFactor=0.015, cciThreshold=100, hold = 6)
+
+STRATEGY = BTStrategy.CzechStrategy
+PARAMS = dict()
 
 FOLDERNAME = helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
 

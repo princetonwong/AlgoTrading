@@ -1,7 +1,7 @@
 from BacktraderAPI.BTStrategyBase import *
 from BacktraderAPI.BTStrategyExit import *
 
-class CCICrossHoldStrategy(CCIStrategyBase, HoldStrategyExit, BBandsKChanSqueezeStrategyBase):
+class CCICrossHoldStrategy(CCIStrategyBase, HoldStrategyExit, ZeroLagMACDStrategyBase):
     def next(self):
         if self.position.size == 0:
             if self.cciXUpperband:
