@@ -8,9 +8,55 @@ from .Strategy import CandleStrategy, CCIStrategy, MACDStrategy, MeanReversionSt
 import math
 import datetime
 
-class EmptyStrategy(bt.Strategy):
+# class EmptyStrategy(bt.Strategy):
+
+class CzechStrategy(BBandsStrategyBase, VLIStrategyBase):
     def __init__(self):
-        super(EmptyStrategy, self).__init__()
+        super(CzechStrategy, self).__init__()
+        self.BBWcondition = bt.ind.SMA(self.bollWidth, period=10) > bt.ind.SMA(self.bollWidth, period=50)
+        self.VOLcondition = bt.ind.SMA(self.data.volume, period=10) > bt.ind.SMA(self.data.volume, period=50)
+        self.XOverBollTop = bt.ind.CrossOver(self.data, self.boll.top)
+        self.XOverBollBot = bt.ind.CrossOver(self.data, self.boll.bot, plot=False)
+        self.smaVeryFast = bt.ind.SMA(self.data, period=10)
+        self.smaFast = bt.ind.SMA(self.data, period=20)
+        self.smaMid = bt.ind.SMA(self.data, period=50)
+        self.smaSlow = bt.ind.SMA(self.data, period=100)
+        self.smaVerySlow = bt.ind.SMA(self.data, period=200)
+        self.smaCrossDown = bt.ind.CrossDown(self.smaSlow, self.smaMid)
+        self.waitingToShort = False
+
+    def next(self):
+        if self.position.size == 0:
+
+            if self.XOverBollTop == -1 and self.VOLcondition:
+                if self.data > self.smaFast:
+                    if not self.extremeVolatiliy:
+                        if not self.volatilityLevel:
+                            if self.smaMid > self.smaVerySlow:
+                                    self.buy()
+                        elif not self.smaVerySlow > self.smaSlow > self.smaMid:
+                            self.buy()
+                    elif self.smaSlow > self.smaVerySlow:
+                        self.buy()
+                        #TODO: stop loss at low of last candle
+                        #TODO: if trade profit > 3%, add stop win at 1%
+            elif self.XOverBollBot == 1:
+                if self.bollWidth < self.vli.slow:
+                    self.waitingToShort = True
+
+            # if self.waitingToShort:
+            #     if self.smaCrossDown:  # wait for
+            #         if self.bollWidth < self.vli.top:
+            #             self.sell()
+            #             self.waitingToShort = False
+
+        elif self.position.size > 0:
+            if self.XOverBollBot == -1 and self.VOLcondition:
+                self.close()
+        elif self.position.size < 0:
+            if self.XOverBollTop == 1 and self.VOLcondition:
+                self.close()
+
 
 class SICrossStrategy(ASIStrategyBase):
     def next(self):
@@ -25,6 +71,21 @@ class SICrossStrategy(ASIStrategyBase):
         elif self.position.size < 0:
             if self.siXZero == 1:
                 self.buy()
+
+class KAMAXStrategy(KAMAStrategyBase, BBandsKChanSqueezeStrategyBase):
+    def next(self):
+        if self.position.size == 0:
+            if self.squeeze.squeezePerc > self.p.squeezeThreshold:
+                if self.kamaXsma == 1:
+                    self.buy()
+                # elif self.siXZero == -1:
+                #     self.sell()
+        elif self.position.size > 0:
+            if self.kamaXsma == -1:
+                self.sell()
+        # elif self.position.size < 0:
+            # if self.kamaXsma == 1:
+            #     self.buy()
 
 class ClenowTrendFollowingStrategy(bt.Strategy):
     """The trend following strategy from the book "Following the trend" by Andreas Clenow."""
@@ -180,19 +241,34 @@ class StochasticStrategy(bt.Strategy):
             if self.kCrosslower == 1 and self.kCrossD == 1:
                 self.close(exectype=bt.Order.Stop, price=self.data.close)
 
-class ASOCrossStrategyWithSqueezePercCCI (ASOStrategyBase, BBandsKChanSqueezeStrategyBase, CCIStrategyBase):
+class ASOCrossStrategyWithSqueezePercCCI (ASOStrategyBase, BBandsKChanSqueezeStrategyBase, StochasticCCIStrategyBase, SMAStrategyBase):
     def next(self):
         if self.position.size == 0:
-            if self.squeeze.squeezePerc < self.p.squeezeThreshold:
-                if self.ashXLower == 1 or self.cciXUpperband == 1:
+            if self.squeeze.squeezePerc > self.p.squeezeThreshold:
+                if self.ashXLower == 1 :
                     self.buy()
-                elif self.ashXUpper == -1 or self.cciXLowerband == -1:
+                elif self.ashXUpper == -1 :
                     self.sell()
         elif self.position.size > 0:
-            if self.ashXUpper == -1 or self.cciXUpperband == -1:
+            if self.ashXUpper == -1 :
                 self.sell()
         elif self.position.size < 0 :
-            if self.ashXLower == 1 or self.cciXLowerband == 1:
+            if self.ashXLower == 1 :
+                self.buy()
+
+class CMOCrossStrategyWithSqueezePercCCI (StochasticCCIStrategyBase, BBandsKChanSqueezeStrategyBase):
+    def next(self):
+        if self.position.size == 0:
+            if self.squeeze.squeezePerc > self.p.squeezeThreshold:
+                if self.stochcciXUpperband == 1:
+                    self.buy()
+                elif self.stochcciXLowerband == -1:
+                    self.sell()
+        elif self.position.size > 0:
+            if self.stochcciXUpperband == -1:
+                self.sell()
+        elif self.position.size < 0 :
+            if self.stochcciXLowerband == 1:
                 self.buy()
 
 #Channel Strategy
@@ -748,3 +824,22 @@ class TTFHOLD(TTFStrategyBase, HoldStrategyExit):
                 self.order = self.sell(exectype=bt.Order.Stop, price=stop_price)
 
                 # qty = math.floor((cash * self.p.risk) / (self.data.close[0] - stop_price))
+
+class HeikinAshiStrategy(bt.Strategy):
+    def __init__(self):
+        self.newdata = self.data1
+        self.hkarsi = BTIndicator.talibCCI(self.data1.close)
+        self.up = self.data1.close > self.data1.open
+
+    def next(self):
+        if self.position.size == 0:
+            if self.up:
+                self.buy()
+            elif not self.up:
+                self.sell()
+        elif self.position.size > 0:
+            if not self.up:
+                self.sell()
+        elif self.position.size < 0:
+            if self.up:
+                self.buy()
