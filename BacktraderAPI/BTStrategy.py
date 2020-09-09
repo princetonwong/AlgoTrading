@@ -563,20 +563,22 @@ class TTFwithStopTrail2(TTFStrategyBase):
                 self.buy()
                 self.order = None
         elif self.position.size > 0:
+            assert self.order is None
             if self.ttfCxUpper == 1:
                 self.close()
         elif self.position.size < 0:
+            assert self.order is None
             if self.ttfCxLower == -1:
                 self.close()
 
         if self.order is None:
             if self.position.size > 0:
-                self.order = self.sell(exectype=self.p.stoptype,
-                                       trailamount=self.p.trailamount,
+                self.order = self.close(size=1, exectype=self.p.stoptype,
+                                       trailamount=self.p.trailamount)
                                        trailpercent=self.p.trailpercent)
-            elif self.position.size < 0:
-                self.order = self.buy(exectype=self.p.stoptype,
-                                       trailamount=self.p.trailamount,
+            if self.position.size < 0:
+                self.order = self.buy(size=1, exectype=self.p.stoptype,
+                                       trailamount=self.p.trailamount)
                                        trailpercent=self.p.trailpercent)
 
 
@@ -652,6 +654,64 @@ class TTFwithStopTrail(TTFStrategyBase):
             #     )
             # )
 
+class MyStrategy(TTFStrategyBase):
+
+    def __init__(self):
+        super(MyStrategy, self).__init__()
+        # init stop loss and take profit order variables
+        self.sl_order, self.tp_order = None, None
+
+    def notify_trade(self, trade):
+
+        if trade.isclosed:
+            # clear stop loss and take profit order variables for no position state
+            if self.sl_order:
+                self.broker.cancel(self.sl_order)
+                self.sl_order = None
+
+            if self.tp_order:
+                self.broker.cancel(self.tp_order)
+                self.tp_order = None
+
+    def next(self):
+
+        if self.position.size == 0:
+            if self.ttfCxUpper == -1:
+                self.sell()
+
+        # process stop loss and take profit signals
+        if self.position:
+
+            # set stop loss and take profit prices
+            # in case of trailing stops stop loss prices can be assigned based on current indicator value
+            price_sl_long = self.position.price * 0.98
+            price_sl_short = self.position.price * 1.02
+            price_tp_long = self.position.price * 1.06
+            price_tp_short = self.position.price * 0.94
+
+            # cancel existing stop loss and take profit orders
+            if self.sl_order:
+                self.broker.cancel(self.sl_order)
+
+            if self.tp_order:
+                self.broker.cancel(self.tp_order)
+
+            # check & update stop loss order
+            sl_price = 0.0
+            if self.position.size > 0 and price_sl_long != 0: sl_price = price_sl_long
+            if self.position.size < 0 and price_sl_short != 0: sl_price = price_sl_short
+
+            if sl_price != 0.0:
+                self.sl_order = self.order_target_value(target=0.0, exectype=bt.Order.Stop, price=sl_price)
+
+            # check & update take profit order
+            tp_price = 0.0
+            if self.position.size > 0 and price_tp_long != 0: tp_price = price_tp_long
+            if self.position.size < 0 and price_tp_short != 0: tp_price = price_tp_short
+
+            if tp_price != 0.0:
+                self.tp_order = self.order_target_value(target=0.0, exectype=bt.Order.Limit, price=tp_price)
+
 #TODO: TBC
 class TTFwithBracket(TTFStrategyBase):
 
@@ -712,8 +772,8 @@ class TTFwithBracket(TTFStrategyBase):
                     print('{}: Oref {} / Buy at {}'.format(
                         self.datetime.date(), o1.ref, p1))
 
-                    o2 = self.sell(exectype=bt.Order.Stop,
-                                   price=p2,
+                    o2 = self.sell(exectype=bt.Order.StopTrail,
+                                   trailpercent=0.05,
                                    valid=valid2,
                                    parent=o1,
                                    transmit=False)
@@ -764,10 +824,10 @@ class TTFwithBracket(TTFStrategyBase):
                         self.datetime.date(), o1.ref, p1))
 
                     o2 = self.buy(exectype=bt.Order.Stop,
-                                   price=p2,
-                                   valid=valid2,
-                                   parent=o1,
-                                   transmit=False)
+                                  trailpercent=0.05,
+                                  valid=valid2,
+                                  parent=o1,
+                                  transmit=False)
 
                     print('{}: Oref {} / Sell Stop at {}'.format(
                         self.datetime.date(), o2.ref, p2))
