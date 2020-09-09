@@ -9,31 +9,34 @@ from tqdm.contrib.concurrent import process_map
 helper = Helper()
 
 INITIALCASH = 60000
-OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False)
+OUTPUTSETTINGS = dict(bokeh=False,plot=True,observer=True,analyzer=True, optimization=False)
 
 SYMBOL_LIST = ["KO"]  #AlphaVantage, Yahoo
 SYMBOL = SYMBOL_LIST[0]
 SYMBOL = "BAC"      #HDFWiki
 SYMBOL = "HK.MHImain"   #Futu
-SUBTYPE = SubType.K_30M
+SUBTYPE = SubType.K_60M
 
-TIMERANGE = ("2018-03-04", "00:00:00", "2020-03-26", "23:59:00") #TODO: Create CSV Writer to store Stock Info
+TIMERANGE = ("2018-07-01", "00:00:00", "2020-09-02", "23:59:00") #TODO: Create CSV Writer to store Stock Info
 # TIMERANGE = None
 
 STRATEGY = BTStrategy.ASOCrossStrategyWithSqueezePercCCI
-PARAMS = dict(period=8, smoothing=16, rsiFactor=30, asoThreshold= 0, squeezeThreshold= 10, cciThreshold = 110)
+PARAMS = dict(period=8, smoothing=16, rsiFactor=30, asoThreshold= 10, squeezeThreshold= 0, cciThreshold = 100)
 
-# STRATEGY = BTStrategy.TTFStrategy
-# PARAMS = dict(lookback=19, upperband=100, lowerband=-100)
-#
-# STRATEGY = BTStrategy.TTFwithStopTrail2
-# PARAMS = dict(lookback=19, upperband=100, lowerband=-100, stoptype=bt.Order.StopTrail, trailpercent = 0.05)
-#
+STRATEGY = BTStrategy.TTFStrategy
+PARAMS = dict(lookback=19, upperband=100, lowerband=-100)
+
+STRATEGY = BTStrategy.TTFwithStopTrail2
+PARAMS = dict(lookback=19, upperband=100, lowerband=-100, stoptype=bt.Order.StopTrail, trailpercent = 0.05)
+
 STRATEGY = BTStrategy.TTFHOLD
 PARAMS = dict(hold = 10)
-#
-# STRATEGY = BTStrategy.CCIStrategy.CCICrossHoldStrategy
-# PARAMS = dict(cciPeriod=26, cciFactor=0.015, cciThreshold=100, hold = 6)
+
+STRATEGY = BTStrategy.CCIStrategy.CCICrossHoldStrategy
+PARAMS = dict(cciPeriod=20, cciFactor=0.015, cciThreshold=100, hold = 6)
+
+STRATEGY = BTStrategy.CzechStrategy
+PARAMS = dict()
 
 FOLDERNAME = helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
 
@@ -56,13 +59,13 @@ def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.Da
     else:
         cerebro.addwriter(bt.WriterFile, rounding=3)
 
-    #Multi-data feeds
-    # data1 = copy.deepcopy(data0)
-    # data1.plotinfo.plotmaster = data0
-    # cerebro.adddata(data1, name="TRADE")
+    # Multi-data feeds
+    # data1 = copy.deepcopy(DATA0)
+    # # data1.plotinfo.plotmaster = DATA0
+    # cerebro.adddata(data1, name="HKA")
 
     #Data Filter
-    # DATA0.addfilter(bt.filters.HeikinAshi(DATA0))
+    # data1.addfilter(bt.filters.HeikinAshi(data1))
 
     #Sizer
     cerebro.addsizer(BTSizer.FixedSizer)
@@ -74,9 +77,6 @@ def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.Da
 
     #Strategy
     cerebro.addstrategy(STRATEGY, **params)
-    # cerebro.addindicator(BTIndicator.KeltnerChannel)
-    # cerebro.addindicator(BTIndicator.KeltnerChannelBBSqueeze)
-    # cerebro.addindicator(BTIndicator.VolumeWeightedAveragePrice)
 
     #Analyzer
     if outputsettings["analyzer"]:
@@ -99,7 +99,6 @@ def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.Da
 
     #Run
     results = cerebro.run(stdstats=False)
-    assert len(results) == 1
     finalPortfolioValue = cerebro.broker.getvalue()
     print('Final Portfolio Value: %.2f' % finalPortfolioValue)
 

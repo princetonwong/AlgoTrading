@@ -1,7 +1,7 @@
 from BacktraderAPI.BTStrategyBase import *
 from BacktraderAPI.BTStrategyExit import *
 
-class CCICrossHoldStrategy(CCIStrategyBase, HoldStrategyExit, BBandsKChanSqueezeStrategyBase):
+class CCICrossHoldStrategy(CCIStrategyBase, HoldStrategyExit, ZeroLagMACDStrategyBase):
     def next(self):
         if self.position.size == 0:
             if self.cciXUpperband:
@@ -89,3 +89,23 @@ class CCICrossStrategyWithBBandKChanExit(CCICrossHoldStrategy, HoldStrategyExit,
             if (len(self) - self.holdstart) >= self.p.hold:
                 if self.cci > self.lowerband:
                     self.buy()
+
+class CCICrossHoldHKAStrategy(HoldStrategyExit, BBandsKChanSqueezeStrategyBase, CCIHeikinAshiStrategyBase):
+    def next(self):
+        if self.position.size == 0:
+            if self.hkacciXUpperband:
+                self.buy()
+
+            elif self.hkacciXLowerband:
+                self.sell()
+
+        elif self.position.size > 0:
+            if (len(self) - self.holdstart) >= self.p.hold:  # HOLD FOR AT LEAST FEW BARS
+                if self.hkacci < self.upperband:
+                    self.sell()
+
+        elif self.position.size < 0:
+            if (len(self) - self.holdstart) >= self.p.hold:
+                if self.hkacci > self.lowerband:
+                    self.buy()
+
