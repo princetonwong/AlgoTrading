@@ -11,7 +11,7 @@ sns.set(color_codes=True, font_scale=1.2)
 rcParams['figure.figsize'] = 10,10
 
 STRATEGYColumns = ["kama", "cci"]
-CSVPATH =
+CSVPATH = ""
 
 
 def getOrders(csvpath = CSVPATH, output = False):

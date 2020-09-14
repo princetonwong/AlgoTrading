@@ -145,6 +145,16 @@ class StochasticTTFStrategyBase(TTFStrategyBase):
         self.stochTTF = BTIndicator.StochasticTTF(kPeriod=self.p.kPeriod, dPeriod=self.p.dPeriod)
         self.kCxd = bt.indicators.CrossOver(self.stochTTF.k, self.stochTTF.d, plot=False)
 
+class AwesomeOscillatorStrategyBase(bt.Strategy):
+    params = dict(aoFast=5, aoSlow=34, lookback= 2)
+
+    def __init__(self):
+        super(AwesomeOscillatorStrategyBase, self).__init__()
+        self.ao = bt.ind.AwesomeOscillator(fast= self.p.aoFast, slow= self.p.aoSlow)
+        self.aoXZero = bt.ind.CrossOver(self.ao, 0, plot= False)
+        self.aoStreak = BTIndicator.StreakByAwesomeOscillator(aoFast= self.p.aoFast, aoSlow= self.p.aoSlow, lookback= self.p.lookback)
+        self.aoStreakXZero = bt.ind.CrossOver(self.aoStreak.streak, 0, plot=False)
+
 #Resistance, Support
 class SMAStrategyBase(bt.Strategy):
     params = dict(SMAFastPeriod=10, SMASlowPeriod=20)
@@ -189,15 +199,20 @@ class IchimokuCloudStrategyBase(bt.Strategy):
 
     def __init__(self):
         super(IchimokuCloudStrategyBase, self).__init__()
-        self.ichimoku = bt.indicators.Ichimoku(self.data,
-                                               kijun=self.p.kijun,
+        self.ichimoku = bt.indicators.Ichimoku(kijun=self.p.kijun,
                                                tenkan=self.p.tenkan,
                                                chikou = self.p.chikou,
                                                senkou=self.p.senkou,
                                                senkou_lead=self.p.senkou_lead
                                                )
-        self.tKCross = bt.indicators.CrossOver(self.ichimoku.l.tenkan_sen, self.ichimoku.l.kijun_sen, plot=False)
-        self.priceKCross = bt.indicators.CrossOver(self.data.close, self.ichimoku.l.kijun_sen, plot=False)
+        self.tenkanXKijun = bt.indicators.CrossOver(self.ichimoku.tenkan_sen, self.ichimoku.kijun_sen, plot=False)
+        self.XKijun = bt.indicators.CrossOver(self.data, self.ichimoku.kijun_sen, plot=False)
+        self.XSenkouA = bt.indicators.CrossOver(self.data, self.ichimoku.senkou_span_a, plot=False)
+        self.XSenkouB = bt.indicators.CrossOver(self.data, self.ichimoku.senkou_span_b, plot=False)
+        # self.ichimokuCloud = self.ichimoku.senkou_span_a - self.ichimoku.senkou_span_b
+        # self.tenkanGreaterKijun = self.ichimoku.tenkan_sen - self.ichimoku.kijun_sen
+        # # self.ichimokuCloud = self.ichimoku.senkou_span_a > self.ichimoku.senkou_span_b
+        # self.tenkanGreaterKijun = self.ichimoku.tenkan_sen > self.ichimoku.kijun_sen
 
 
 #Trend Changing, RSI, Stochastic

@@ -10,7 +10,22 @@ import datetime
 
 # class EmptyStrategy(bt.Strategy):
 
-class CzechStrategy(BBandsStrategyBase, VLIStrategyBase):
+class AOStrategy(AwesomeOscillatorStrategyBase, StopTrailStrategyBase):
+    def next(self):
+        super(AOStrategy, self).next()
+        if self.position.size == 0:
+            if self.aoStreakXZero == 1:
+                self.sell()
+            elif self.aoStreakXZero == -1:
+                self.buy()
+        elif self.position.size > 0:
+            if self.aoStreak.streak == -2:
+                self.close()
+        elif self.position.size < 0:
+            if self.aoStreak.streak == 2:
+                self.close()
+
+class CzechStrategy(BBandsStrategyBase, VLIStrategyBase, StopTrailStrategyBase):
     def __init__(self):
         super(CzechStrategy, self).__init__()
         self.BBWcondition = bt.ind.SMA(self.bollWidth, period=10) > bt.ind.SMA(self.bollWidth, period=50)
@@ -456,6 +471,33 @@ class DMICrossStrategy(DMIStrategyBase):
                 if self.plusDIXminusDI == 1:
                     self.buy(exectype=bt.Order.Stop, price=self.data.close)
 
+class IchimokuStrategy(IchimokuCloudStrategyBase, StopTrailStrategyBase, HoldStrategyExit):
+    def next(self):
+        cloud = self.ichimoku.senkou_span_a - self.ichimoku.senkou_span_b
+        tenkanGreaterKijun = self.ichimoku.tenkan_sen - self.ichimoku.kijun_sen
+        if self.position.size == 0:  # not in the market
+
+            if tenkanGreaterKijun > 0:
+               if (cloud > 0 and self.data > self.ichimoku.senkou_span_a) or (cloud < 0 and self.data > self.ichimoku.senkou_span_b):
+                    if self.tenkanXKijun == 1 or self.XSenkouB == 1:
+                        self.buy()
+
+            elif tenkanGreaterKijun < 0:
+                if (cloud < 0 and self.data < self.ichimoku.senkou_span_b) or (cloud > 0 and self.data < self.ichimoku.senkou_span_a):
+                    if self.tenkanXKijun == -1 or self.XSenkouA == -1:
+                        self.sell()
+
+        elif self.position.size > 0:
+            if (len(self) - self.holdstart) >= self.p.hold:
+                if self.tenkanXKijun == -1:
+                    self.close()
+
+        elif self.position.size < 0:
+            if (len(self) - self.holdstart) >= self.p.hold:
+                if self.tenkanXKijun == 1:
+                    self.close()
+        super(IchimokuStrategy, self).next()
+
 class IchimokuCloudxDMIStrategy(IchimokuCloudStrategyBase, DMIStrategyBase):
     '''
              Kijun Sen (blue line, confirm future trends): standard line/base line, averaging highest high and lowest low for past 26 periods
@@ -487,32 +529,29 @@ class IchimokuCloudxDMIStrategy(IchimokuCloudStrategyBase, DMIStrategyBase):
      '''
 
     def next(self):
-
-        orders = self.broker.get_orders_open()
-
         if self.position.size == 0:  # not in the market
 
             if self.data.close > self.ichimoku.l.senkou_span_a > self.ichimoku.l.senkou_span_b:
-                if self.tKCross == 1 and self.priceKCross == 1:
+                if self.tenkanXKijun == 1 and self.XKijun == 1:
                     if self.dmi.adx > self.p.adxBenchmark:
                         self.buy(exectype=bt.Order.Stop, price=self.data.close)
 
             if self.data.close < self.ichimoku.l.senkou_span_a < self.ichimoku.l.senkou_span_b:
-                if self.tKCross == -1 and self.priceKCross == -1:
+                if self.tenkanXKijun == -1 and self.XKijun == -1:
                     if self.dmi.adx > self.p.adxBenchmark:
                         self.sell(exectype=bt.Order.Stop, price=self.data.close)
 
         elif self.position.size > 0:  # longing in the market
 
             if self.data.close < self.ichimoku.l.senkou_span_a < self.ichimoku.l.senkou_span_b:
-                if self.tKCross == -1 and self.priceKCross == -1:
+                if self.tenkanXKijun == -1 and self.XKijun == -1:
                     if self.dmi.adx > self.p.adxBenchmark:
                         self.close(exectype=bt.Order.Stop, price=self.data.close)
 
         elif self.position.size < 0:  # shorting in the market
 
             if self.data.close > self.ichimoku.l.senkou_span_a > self.ichimoku.l.senkou_span_b:
-                if self.tKCross == 1 and self.priceKCross == 1:
+                if self.tenkanXKijun == 1 and self.XKijun == 1:
                     if self.dmi.adx > self.p.adxBenchmark:
                         self.close(exectype=bt.Order.Stop, price=self.data.close)
 
@@ -575,11 +614,11 @@ class TTFwithStopTrail2(TTFStrategyBase):
             if self.position.size > 0:
                 self.order = self.close(size=1, exectype=self.p.stoptype,
                                        trailamount=self.p.trailamount)
-                                       trailpercent=self.p.trailpercent)
+                                       # trailpercent=self.p.trailpercent)
             if self.position.size < 0:
                 self.order = self.buy(size=1, exectype=self.p.stoptype,
                                        trailamount=self.p.trailamount)
-                                       trailpercent=self.p.trailpercent)
+                                       # trailpercent=self.p.trailpercent)
 
 
             if self.p.trailamount != 0:
@@ -597,15 +636,11 @@ class TTFwithStopTrail2(TTFStrategyBase):
             else:
                 tcheck = self.data.close * (1.0 - self.p.trailpercent)
 
-class TTFwithStopTrail(TTFStrategyBase):
-    params = dict(stoptype=bt.Order.StopTrail, trailamount=0.0,trailpercent=0.0)
-
-    def __init__(self):
-        super(TTFwithStopTrail, self).__init__()
-        self.order = None
+class TTFwithStopTrail(TTFStrategyBase, StopTrailStrategyBase):
+    params = dict()
 
     def next(self):
-
+        super(TTFwithStopTrail, self).next()
         if self.position.size == 0:
             if self.ttfCxUpper == -1:
                 self.sell()
@@ -623,36 +658,36 @@ class TTFwithStopTrail(TTFStrategyBase):
                 self.buy()
 
 
-        if self.order is None:
-            if self.position.size > 0:
-                self.order = self.sell(exectype=self.p.stoptype,
-                                       trailamount=self.p.trailamount,
-                                       trailpercent=self.p.trailpercent)
-            elif self.position.size < 0:
-                self.order = self.buy(exectype=self.p.stoptype,
-                                       trailamount=self.p.trailamount,
-                                       trailpercent=self.p.trailpercent)
-
-
-            if self.p.trailamount != 0:
-                tcheck = self.data.close - self.p.trailamount
-            else:
-                tcheck = self.data.close * (1.0 - self.p.trailpercent)
-            # print(','.join(
-            #     map(str, [self.datetime.date(), self.data.close[0],
-            #               self.order.created.price, tcheck])
-            #     )
-            # )
-        else:
-            if self.p.trailamount != 0:
-                tcheck = self.data.close - self.p.trailamount
-            else:
-                tcheck = self.data.close * (1.0 - self.p.trailpercent)
-            # print(','.join(
-            #     map(str, [self.datetime.date(), self.data.close[0],
-            #               self.order.created.price, tcheck])
-            #     )
-            # )
+        # if self.order is None:
+        #     if self.position.size > 0:
+        #         self.order = self.sell(exectype=self.p.stoptype,
+        #                                trailamount=self.p.trailamount,
+        #                                trailpercent=self.p.trailpercent)
+        #     elif self.position.size < 0:
+        #         self.order = self.buy(exectype=self.p.stoptype,
+        #                                trailamount=self.p.trailamount,
+        #                                trailpercent=self.p.trailpercent)
+        #
+        #
+        #     if self.p.trailamount != 0:
+        #         tcheck = self.data.close - self.p.trailamount
+        #     else:
+        #         tcheck = self.data.close * (1.0 - self.p.trailpercent)
+        #     # print(','.join(
+        #     #     map(str, [self.datetime.date(), self.data.close[0],
+        #     #               self.order.created.price, tcheck])
+        #     #     )
+        #     # )
+        # else:
+        #     if self.p.trailamount != 0:
+        #         tcheck = self.data.close - self.p.trailamount
+        #     else:
+        #         tcheck = self.data.close * (1.0 - self.p.trailpercent)
+        #     # print(','.join(
+        #     #     map(str, [self.datetime.date(), self.data.close[0],
+        #     #               self.order.created.price, tcheck])
+        #     #     )
+        #     # )
 
 class MyStrategy(TTFStrategyBase):
 
@@ -662,7 +697,6 @@ class MyStrategy(TTFStrategyBase):
         self.sl_order, self.tp_order = None, None
 
     def notify_trade(self, trade):
-
         if trade.isclosed:
             # clear stop loss and take profit order variables for no position state
             if self.sl_order:
@@ -711,6 +745,7 @@ class MyStrategy(TTFStrategyBase):
 
             if tp_price != 0.0:
                 self.tp_order = self.order_target_value(target=0.0, exectype=bt.Order.Limit, price=tp_price)
+
 
 #TODO: TBC
 class TTFwithBracket(TTFStrategyBase):

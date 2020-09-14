@@ -2,6 +2,21 @@ import pandas as pd
 from CustomAPI.Helper import Helper
 from backtrader.utils.py3 import iteritems
 
+def getTimeReturnDf(analyzer, xlsx=False):
+    index = []
+    result = []
+
+    for date, value in analyzer.items():
+        index.append(date)
+        result.append(value)
+
+    resultDF = pd.Series(result, index=index)
+
+    if xlsx:
+        Helper().outputXLSX(resultDF, fileName="TimeReturn")
+
+    return resultDF
+
 def getVWRDf(analyzer, xlsx=False):
 
     '''
@@ -252,3 +267,13 @@ class Kelly(Analyzer):
 
         self.rets.kellyRatio = kellyPercent             # e.g. 0.215
         self.rets.kellyPercent = kellyPercent * 100     # e.g. 21.5
+
+def getQuantStatsReport(df):
+    import quantstats as qs
+    qs.extend_pandas()
+    # stock = qs.utils.download_returns('FB')
+    # stock.to_csv("fb.csv")
+    qs.stats.sharpe(df)
+    # qs.plots.snapshot(df, title='Performance')
+    qs.reports.html(df, output="qs.html")
+    # webbrowser.open('qs.html')

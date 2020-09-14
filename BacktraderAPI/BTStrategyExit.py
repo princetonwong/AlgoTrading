@@ -52,3 +52,80 @@ class ChandelierStrategyExit(bt.Strategy):
         self.xChandLong.csv = True
         self.xChandShort = bt.ind.CrossOver(self.data, self.chandelier.chandShort, plot=False)
         self.xChandShort.csv = True
+
+class StopTrailStrategyBase(HoldStrategyExit):
+    params = dict(trailHold=5, takeProfitPerc= 0.06, stopLossPerc= 0.002, takeProfitAmount= None, stopLossAmount= None)
+
+    def __init__(self):
+        print (self.params)
+        super(StopTrailStrategyBase, self).__init__()
+        # init stop loss and take profit order variables
+        self.sl_order, self.tp_order = None, None
+        self.sl_price = 0.0
+        self.tp_price = 0.0
+        self.holding = dict()
+
+    def notify_order(self, order):
+        super(StopTrailStrategyBase, self).notify_order(order)
+        if order.status in [order.Completed]:  # HOLD FOR AT LEAST FEW BARS
+            self.bar_executed = 0
+            self.holdstart = len(self)
+
+    def notify_trade(self, trade):
+        super(StopTrailStrategyBase, self).notify_trade(trade, debug= False)
+        if trade.isclosed:
+            # clear stop loss and take profit order variables for no position state
+            if self.sl_order:
+                self.broker.cancel(self.sl_order)
+                self.sl_order = None
+
+            if self.tp_order:
+                self.broker.cancel(self.tp_order)
+                self.tp_order = None
+
+    def next(self):
+        super(StopTrailStrategyBase, self).next()
+        # process stop loss and take profit signals
+        if self.position:
+            # set stop loss and take profit prices
+            # in case of trailing stops stop loss prices can be assigned based on current indicator value
+            if self.p.takeProfitAmount != None:
+                price_takeProfit_long = self.position.price + self.p.takeProfitAmount
+                price_takeProfit_short = self.position.price - self.p.takeProfitAmount
+            else:
+                price_takeProfit_long = self.position.price * (1 + self.p.takeProfitPerc)
+                price_takeProfit_short = self.position.price * (1 - self.p.takeProfitPerc)
+
+            if self.p.stopLossAmount != None:
+                price_stopLoss_long = self.position.price - self.p.stopLossAmount
+                price_stopLoss_short = self.position.price + self.p.stopLossAmount
+            else:
+                price_stopLoss_long = self.position.price * (1 - self.p.stopLossPerc)
+                price_stopLoss_short = self.position.price * (1 + self.p.stopLossPerc)
+
+
+            # cancel existing stop loss and take profit orders
+            if self.sl_order:
+                self.broker.cancel(self.sl_order)
+
+            if self.tp_order:
+                self.broker.cancel(self.tp_order)
+
+            # check & update stop loss order
+            self.sl_price = 0.0
+            if self.position.size > 0 and price_stopLoss_long != 0: self.sl_price = price_stopLoss_long
+            if self.position.size < 0 and price_stopLoss_short != 0: self.sl_price = price_stopLoss_short
+
+            if self.sl_price != 0.0:
+                if (len(self) - self.holdstart) >= self.p.trailHold:
+                    print ("stop loss triggered")
+                    self.sl_order = self.order_target_value(target=0.0, exectype=bt.Order.Stop, price=self.sl_price)
+
+            # check & update take profit order
+            self.tp_price = 0.0
+            if self.position.size > 0 and price_takeProfit_long != 0: self.tp_price = price_takeProfit_long
+            if self.position.size < 0 and price_takeProfit_short != 0: self.tp_price = price_takeProfit_short
+
+            if self.tp_price != 0.0:
+                if (len(self) - self.holdstart) >= self.p.trailHold:
+                    self.tp_order = self.order_target_value(target=0.0, exectype=bt.Order.Limit, price=self.tp_price)

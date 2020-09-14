@@ -432,6 +432,33 @@ class MoneyFlowIndicator(bt.Indicator):
         mfiratio = bt.ind.DivByZero(flowpos, flowneg, zero=100.0)
         self.l.mfi = 100.0 - 100.0 / (1.0 + mfiratio)
 
+class SSLChannel(bt.Indicator):
+    lines = ('ssld', 'sslu')
+    params = (('period', 30),)
+    plotinfo = dict(
+        plot=True,
+        plotname='SSL Channel',
+        subplot=False,
+        plotlinelabels=True)
+
+    def _plotlabel(self):
+        return [self.p.period]
+
+    def __init__(self):
+        self.addminperiod(self.p.period)
+        self.hma_lo = bt.indicators.SmoothedMovingAverage(self.data.low, period=self.p.period)
+        self.hma_hi = bt.indicators.SmoothedMovingAverage(self.data.high, period=self.p.period)
+
+    def next(self):
+        hlv = 1 if self.data.close > self.hma_hi[0] else -1
+        if hlv == -1:
+            self.lines.ssld[0] = self.hma_hi[0]
+            self.lines.sslu[0] = self.hma_lo[0]
+
+        elif hlv == 1:
+            self.lines.ssld[0] = self.hma_lo[0]
+            self.lines.sslu[0] = self.hma_hi[0]
+
 #MACD
 class ZeroLagMACD(bt.Indicator):
     lines = ('macd', "signal", "histo",)
@@ -522,6 +549,37 @@ class StreakBySMA(bt.Indicator):
 
     def next(self):
         d0, d1 = self.sma[0], self.sma[-1]
+
+        if d0 > d1:
+            self.l.streak[0] = self.curstreak = max(1, self.curstreak + 1)
+        elif d0 < d1:
+            self.l.streak[0] = self.curstreak = min(-1, self.curstreak - 1)
+        else:
+            self.l.streak[0] = self.curstreak = 0
+
+        if self.curstreak >= self.p.lookback:
+            self.l.trend[0] = 1
+        elif self.curstreak <= -self.p.lookback:
+            self.l.trend[0] = -1
+        else:
+            self.l.trend[0] = 0
+
+class StreakByAwesomeOscillator(bt.Indicator):
+    lines = ('trend',"streak",)
+    params = dict(aoFast=5, aoSlow=34, lookback=6)
+    plotlines = dict(trend=dict(_method='bar', alpha=0.50, width=1.0))
+
+    curstreak = 0
+
+    def _plotinit(self):
+        self.plotinfo.plotyhlines = [self.p.lookback, -self.p.lookback]
+
+    def __init__(self):
+        self.ao = bt.ind.AwesomeOscillator(fast=self.p.aoFast, slow=self.p.aoSlow, plot=False)
+        self.addminperiod(self.p.aoSlow + self.p.lookback)
+
+    def next(self):
+        d0, d1 = self.ao[0], self.ao[-1]
 
         if d0 > d1:
             self.l.streak[0] = self.curstreak = max(1, self.curstreak + 1)

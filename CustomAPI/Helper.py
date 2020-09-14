@@ -6,7 +6,7 @@ class Helper():
     field = "open"
     folderName = ""
 
-    def initializeFolderName(self, symbol, subtype, timerange, strategy, params):
+    def initializeFolderName(self, symbol, subtype, timerange, strategy, params, custom):
         if timerange:
             timerange = self.serializeTuple(timerange[0::2])
         else:
@@ -15,7 +15,7 @@ class Helper():
         strategy = strategy.__name__
         params = self.serializeDictValues(params)
 
-        self.folderName = "{}-{} [{}] {} {}".format(symbol, subtype, timerange, strategy, params)
+        self.folderName = "{}-{} [{}] {} {} {}".format(symbol, subtype, timerange, strategy, params, custom)
         Helper.folderName = self.folderName
         return self.folderName
 

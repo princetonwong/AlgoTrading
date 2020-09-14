@@ -1,8 +1,9 @@
 from BacktraderAPI.BTStrategyBase import *
 from BacktraderAPI.BTStrategyExit import *
 
-class CCICrossHoldStrategy(CCIStrategyBase, HoldStrategyExit, ZeroLagMACDStrategyBase):
+class CCICrossHoldStopTrail(CCIStrategyBase, StopTrailStrategyBase):
     def next(self):
+        super(CCICrossHoldStopTrail, self).next()
         if self.position.size == 0:
             if self.cciXUpperband:
                 self.order = self.buy()
@@ -20,7 +21,7 @@ class CCICrossHoldStrategy(CCIStrategyBase, HoldStrategyExit, ZeroLagMACDStrateg
                 if self.cci > self.lowerband:
                     self.buy()
 
-class CCICrossStrategyWithChandelierExit(CCICrossHoldStrategy, ChandelierStrategyExit):
+class CCICrossStrategyWithChandelierExit(CCICrossHoldStopTrail, ChandelierStrategyExit):
     def next(self):
         if self.position.size == 0:
             if self.cciXUpperband:
@@ -44,7 +45,7 @@ class CCICrossStrategyWithChandelierExit(CCICrossHoldStrategy, ChandelierStrateg
                 elif self.cci > self.lowerband:
                     self.buy()
 
-class CCICrossStrategyWithStochasticExit(CCICrossHoldStrategy, StochasticStrategyBase):
+class CCICrossStrategyWithStochasticExit(CCICrossHoldStopTrail, StochasticStrategyBase):
     def next(self):
         if self.position.size == 0:
             if self.cciXUpperband:
@@ -69,7 +70,7 @@ class CCICrossStrategyWithStochasticExit(CCICrossHoldStrategy, StochasticStrateg
                 elif self.cci > self.lowerband:
                     self.close(data=self.data0, exectype=bt.Order.Limit, price=self.data0.close[0])
 
-class CCICrossStrategyWithBBandKChanExit(CCICrossHoldStrategy, HoldStrategyExit, BBandsKChanSqueezeStrategyBase):
+class CCICrossStrategyWithBBandKChanExit(CCICrossHoldStopTrail, HoldStrategyExit, BBandsKChanSqueezeStrategyBase):
     def next(self):
         if self.position.size == 0:
             if self.squeeze.squeeze > 0:
