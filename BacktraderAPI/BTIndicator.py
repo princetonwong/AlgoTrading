@@ -23,6 +23,51 @@ class StochRSI(DynamicTradeOscillator):
         self.l.k = bt.ind.MovingAverageSimple(self.l.dto, period= self.p.kPeriod)
         self.l.d = bt.ind.MovingAverageSimple(self.k, period= self.p.dPeriod)
 
+class KDJIndicator(bt.Indicator):
+    lines = ('percK', 'percD', "percJ")
+    params = dict (kPeriod=9, dPeriod=3, jPeriod=3, movav=MovAv.Simple, upperband=80, lowerband=20, safediv=True, safezero=0)
+
+    plotlines = dict(percD=dict(_name='%D', ls='--'),
+                     percK=dict(_name='%K'),
+                     perJ=dict(_name="%J"))
+
+    def _plotlabel(self):
+        plabels = [self.p.kPeriod, self.p.dPeriod, self.p.jPeriod]
+        plabels += [self.p.movav] * self.p.notdefault('movav')
+        return plabels
+
+    def _plotinit(self):
+        self.plotinfo.plotyhlines = [self.p.upperband, self.p.lowerband]
+
+    def __init__(self):
+        highesthigh = Highest(self.data.high, period=self.p.kPeriod)
+        lowestlow = Lowest(self.data.low, period=self.p.kPeriod)
+        knum = self.data.close - lowestlow
+        kden = highesthigh - lowestlow
+        if self.p.safediv:
+            self.rsv = 100.0 * DivByZero(knum, kden, zero=self.p.safezero)
+        else:
+            self.rsv = 100.0 * (knum / kden)
+        self.d = self.p.movav(self.rsv, period=self.p.dPeriod)
+        #
+        # self.j = self.k * (self.p.jPeriod) - self.d * (self.p.jPeriod - 1)
+        #
+        self.l.percK = self.rsv
+        self.l.percD = self.d
+        # self.l.percJ = self.j
+
+    # def nextstart(self):
+    #     self.l.percD[0] = 50
+
+    def next(self):
+        # self.l.percK[0] = 2 / 3 * self.rsv[-1] + 1 / 3 * self.rsv[0]
+        # self.l.percD[0] = 2 / 3 * self.percD[-1] + 1/ 3 * self.l.percK[0]
+        self.l.percJ[0] = 3 * self.l.percK[0] - 2 * self.l.percD[0]
+        #
+        # self.l.percK[0] = 2 / 3 * self.rsv[-1] + 1 / 3 * self.rsv[0]
+        # self.l.percD[0] = MovAv.Exponential(self.l.percK[0], period= self.p.dPeriod)
+        # self.l.percJ[0] = 3 * self.l.percK[0] - 2 * self.l.percD[0]
+
 class ConnorsRSI(bt.Indicator):
     '''
     Calculates the ConnorsRSI as:
@@ -401,21 +446,6 @@ class HeiKinAshiStochasticFull(HeiKinAshiStochasticBase):
         self.l.percDSlow = self.p.movav(
             self.l.percD, period=self.p.period_dslow)
 
-class TwoBarPiercingCandle(bt.Indicator):
-    '''
-        The Piercing: in a downtrend, O1 >C1, O2 <C2, O2 ≤C1, C2<O1, and C2>C1+0.5(O1−C1).
-
-        High winning rate in bullish market, and oscillating market, rare occurence
-
-        See:
-        - Profitable candlestick trading strategies—The evidence from a new perspective
-        doi:10.1016/j.rfe.2012.02.001
-      '''
-    lines = ('pattern', )
-
-    def __init__(self):
-        self.l.pattern = bt.talib.CDLPIERCING(self.data.open, self.data.high, self.data.low, self.data.close)
-
 class MoneyFlowIndicator(bt.Indicator):
     lines = ('mfi',)
     params = dict(period=14)
@@ -458,6 +488,49 @@ class SSLChannel(bt.Indicator):
         elif hlv == 1:
             self.lines.ssld[0] = self.hma_lo[0]
             self.lines.sslu[0] = self.hma_hi[0]
+
+#candlestick
+class TwoBarPiercingCandle(bt.Indicator):
+    '''
+        The Piercing: in a downtrend, O1 >C1, O2 <C2, O2 ≤C1, C2<O1, and C2>C1+0.5(O1−C1).
+
+        High winning rate in bullish market, and oscillating market, rare occurence
+
+        See:
+        - Profitable candlestick trading strategies—The evidence from a new perspective
+        doi:10.1016/j.rfe.2012.02.001
+      '''
+    lines = ('pattern', )
+
+    def __init__(self):
+        self.l.pattern = bt.talib.CDLPIERCING(self.data.open, self.data.high, self.data.low, self.data.close)
+
+class UpDownNumber(bt.Indicator):
+    '''
+    Counts number of up (positive value) or down (negative value) candles in
+    a row
+    '''
+
+    lines = ('count',)
+
+    plotinfo = dict(plot=True, subplot=True)
+
+
+    def __init__(self):
+
+        c = self.data.close
+        o = self.data.open
+        self.k = (c > o) - (o > c)
+        self.lines.count = bt.LineNum(0)
+
+
+    def next(self):
+
+        if self.k[0] == self.k[-1]:
+            self.lines.count[0] = self.lines.count[-1] + self.k[0]
+        else:
+            self.lines.count[0] = self.k[0]
+
 
 #MACD
 class ZeroLagMACD(bt.Indicator):
@@ -511,6 +584,7 @@ class AccumulationSwingIndex(bt.Indicator):
     lines = ('asi',)
     def __init__(self):
         self.l.asi = bt.ind.Accum(SwingIndex().si)
+
 
 #Streak
 class Streak(bt.ind.PeriodN):
@@ -595,6 +669,36 @@ class StreakByAwesomeOscillator(bt.Indicator):
         else:
             self.l.trend[0] = 0
 
+class StreakByKDJ(bt.Indicator):
+    lines = ('trend',"streak",)
+    params = dict(lookback=6)
+    plotlines = dict(trend=dict(_method='bar', alpha=0.50, width=1.0))
+
+    curstreak = 0
+
+    def _plotinit(self):
+        self.plotinfo.plotyhlines = [self.p.lookback, -self.p.lookback]
+
+    def __init__(self):
+        self.kdj = KDJIndicator(plot=False)
+
+    def next(self):
+        d0, d1 = self.kdj.percJ[0], self.kdj.percJ[-1]
+
+        if d0 > d1:
+            self.l.streak[0] = self.curstreak = max(1, self.curstreak + 1)
+        elif d0 < d1:
+            self.l.streak[0] = self.curstreak = min(-1, self.curstreak - 1)
+        else:
+            self.l.streak[0] = self.curstreak = 0
+
+        if self.curstreak >= self.p.lookback:
+            self.l.trend[0] = 1
+        elif self.curstreak <= -self.p.lookback:
+            self.l.trend[0] = -1
+        else:
+            self.l.trend[0] = 0
+
 class StochasticCCI(talibCCI):
     lines = ('k',)
     params = dict(kPeriod=9, dPeriod=5)
@@ -615,4 +719,165 @@ class VolatilityLevelIndicator(bt.Indicator):
         self.l.slow = bt.ind.SMA(self.l.bollWidth, period=500)
         self.l.top = self.l.slow + 2 * bt.ind.StandardDeviation(self.l.bollWidth, period=500)
 
+
+#cycle analytics
+class genericSuperSmoother(bt.Indicator):
+    '''P.49
+    a=e(−1.414*3.14159 / Period)
+    b=2 * a * Cos(1.414 * 180 / Period)
+    c2=b
+    c3=−a * a
+    c1=1 − c2 − c3
+    Output=c1 * (Input + Input[1]) / 2 + c2 * Output[1] + c3 * Output[2]
+    '''
+    lines = ('outputLine', 'inputLine')
+    params = (
+        ('inputLine', None),
+        ('smoothingPeriod', 60),
+    )
+    plotinfo = dict(subplot=True)
+    plotlines = dict(
+        inputLine=dict(_plotskip=True)
+    )
+
+    def __init__(self):
+        super(genericSuperSmoother, self).__init__()
+        self.l.inputLine = self.p.inputLine
+        a = math.exp(-1.414 * math.pi / self.p.smoothingPeriod)
+        b = 2 * a * math.cos(math.radians(1.414 * 180 / self.p.smoothingPeriod))
+        self.p.c2 = b
+        self.p.c3 = -a * a
+        self.p.c1 = 1 - self.p.c2 - self.p.c3
+
+    def nextstart(self):
+        self.l.outputLine[0] = self.l.outputLine[-1] = self.l.outputLine[-2] = 0
+
+    def next(self):
+        self.l.outputLine[0] = self.p.c1 * (self.l.inputLine[0] + self.l.inputLine[-1]) / 2 + self.p.c2 * \
+                               self.l.outputLine[-1] + self.p.c3 * self.l.outputLine[-2]
+
+class genericTuningClass(bt.Indicator):
+    '''
+    The generic tuning
+    '''
+    lines = ('outputLine', 'inputLine')
+    params = (
+        ('filterType', 'twoPoleHighPass'),
+        ('inputLine', 'self.data.close'),
+        ('K', 1),
+        ('bandwidth', 0),
+        ('period', 60),
+    )
+    plotinfo = dict(subplot=True)
+    plotlines = dict(
+        inputLine=dict(_plotskip=True)
+    )
+
+    def __init__(self):
+        super(genericTuningClass, self).__init__()
+        self.addminperiod(self.p.period)
+        self.l.inputLine = eval(self.p.inputLine)
+        filterType = self.p.filterType
+        radianMapping = {'singlePole': math.radians(360 / self.p.period),
+                         'twoPoleHighPass': math.radians(0.707 * 360 / self.p.period),
+                         'twoPoleLowPass': math.radians(1.414 * 360 / self.p.period)}
+        try:
+            radianSetting = radianMapping[self.p.filterType]
+        except:
+            if self.p.K == 1 and self.p.bandwidth == 0:
+                raise TypeError
+            radianSetting = math.radians(self.p.K * self.p.bandwidth * 360 / self.p.period)
+        alphaValue = (math.cos(radianSetting) + math.sin(radianSetting) - 1) / math.cos(radianSetting)
+        lambdaValue = math.cos(math.radians(360 / self.p.period))
+        sigmaValue = (1 / math.cos(math.radians(360 * self.p.bandwidth / self.p.period))) - math.sqrt(
+            (1 / math.cos(math.radians(360 * self.p.bandwidth / self.p.period))) ** 2 - 1)
+        # P.28 - Below filter set are value for 'b0','b1','b2','a1','a2' ('a0'=1 so skipped)
+        FilterSet = {'EMA': {'b0': alphaValue,
+                             'b1': 0,
+                             'b2': 0,
+                             'a1': -(1 - alphaValue),
+                             'a2': 0},
+                     'twoPoleLowPass': {'b0': alphaValue ** 2,
+                                        'b1': 0,
+                                        'b2': 0,
+                                        'a1': -2 * (1 - alphaValue),
+                                        'a2': 0},
+                     # High Pass Plus has b1=-(1+alpha/2) instead of -1(1-alpha/2)
+                     'highPassPlus': {'b0': (1 + alphaValue / 2),
+                                      'b1': -(1 + alphaValue / 2),
+                                      'b2': 0,
+                                      'a1': -(1 - alphaValue),
+                                      'a2': 0},
+                     'highPass': {'b0': (1 - alphaValue / 2),
+                                  'b1': -(1 - alphaValue / 2),
+                                  'b2': 0,
+                                  'a1': -(1 - alphaValue),
+                                  'a2': 0},
+                     'twoPoleHighPass': {'b0': (1 - alphaValue / 2) ** 2,
+                                         'b1': -2 * (1 - alphaValue / 2) ** 2,
+                                         'b2': (1 - alphaValue / 2) ** 2,
+                                         'a1': -2 * (1 - alphaValue),
+                                         'a2': (1 - alphaValue) ** 2},
+                     'bandPass': {'b0': (1 - sigmaValue) / 2,
+                                  'b1': 0,
+                                  'b2': -(1 - sigmaValue) / 2,
+                                  'a1': -lambdaValue * (1 + sigmaValue),
+                                  'a2': sigmaValue},
+                     'bandStop': {'b0': (1 + sigmaValue) / 2,
+                                  'b1': -2 * lambdaValue * (1 + sigmaValue) / 2,
+                                  'b2': (1 + sigmaValue) / 2,
+                                  'a1': -lambdaValue * (1 + sigmaValue),
+                                  'a2': sigmaValue}}
+        self.p.paramsSet = FilterSet[filterType]
+        if (self.p.filterType == 'bandPass' or self.p.filterType == 'bandStop') and (
+                sigmaValue == 0 or lambdaValue == 0):
+            raise IndexError
+
+    def nextstart(self):
+        # Seed Recursive value
+        self.l.outputLine[0] = self.l.outputLine[-1] = 0
+
+    def next(self):
+        # Formula=b0*input+b1*input[-1]+b2*input[-2]-a1*output[-1]-a2*output[-2]
+        self.l.outputLine[0] = self.p.paramsSet['b0'] * self.l.inputLine[0] \
+                               + self.p.paramsSet['b1'] * self.l.inputLine[-1] \
+                               + self.p.paramsSet['b2'] * self.l.inputLine[-2] \
+                               - self.p.paramsSet['a1'] * self.l.outputLine[-1] \
+                               - self.p.paramsSet['a2'] * self.l.outputLine[-2]
+        ''' #For debug purpose only
+        print('b0:{:.2f}, i0:{:.2f}, b1:{:.2f}, i1:{:.2f}, b2:{:.2f}, i2:{:.2f}, a1:{:.2f}, o1:{:.2f}, a2:{:.2f}, o2:{:.2f}. Output:{:.2f}'.format(
+                            self.p.paramsSet['b0'],self.l.inputLine[0],
+                            self.p.paramsSet['b1'],self.l.inputLine[-1],
+                            self.p.paramsSet['b2'],self.l.inputLine[-2],
+                            self.p.paramsSet['a1'],self.l.outputLine[-1],
+                            self.p.paramsSet['a2'],self.l.outputLine[-2],
+                            self.l.outputLine[0]))
+        '''
+
+class modifiedRSI(bt.Indicator):
+    lines = ('modifiedRSI',)
+    params = (('period', 10),
+              ('HPperiod', 48),
+              ('smoothingPeriod', 10),
+              )
+    plotinfo = dict(subplot=True)
+    plotlines = dict(
+        modifiedRSI=dict(_fill_gt=(70, 'red'),
+                         _fill_lt=(30, 'green')),
+    )
+
+    def _plotinit(self):
+        self.plotinfo.plotyhlines = [10, 30, 70, 90]
+
+    def __init__(self):
+        self.l.HPclose = genericTuningClass(filterType='twoPoleHighPass', inputLine='self.data.close',
+                                            period=self.p.HPperiod)
+        self.l.smoothHPClose = genericSuperSmoother(inputLine=self.l.HPclose, smoothingPeriod=self.p.smoothingPeriod)
+        self.l.upDay = bt.ind.UpDay(self.l.smoothHPClose)
+        self.l.downDay = bt.ind.DownDay(self.l.smoothHPClose)
+        self.l.upSum = bt.ind.SumN(self.l.upDay, period=self.p.period)
+        self.l.downSum = bt.ind.SumN(self.l.downDay, period=self.p.period)
+        self.l.denom = self.l.upSum + self.l.downSum
+        self.l.modRSI = 100 * self.l.upSum / self.l.denom
+        self.l.modifiedRSI = genericSuperSmoother(inputLine=self.l.modRSI, smoothingPeriod=self.p.smoothingPeriod)
 

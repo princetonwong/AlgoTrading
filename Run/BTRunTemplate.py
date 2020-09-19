@@ -1,24 +1,24 @@
 from futu import *
 import backtrader as bt
 from CustomAPI.Helper import Helper
-from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTIndicator, BTObserver
+from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTIndicator, BTObserver, BTCommInfo
 import copy
 from typing import Dict, Union
 from tqdm.contrib.concurrent import process_map
 
 helper = Helper()
 
-INITIALCASH = 60000
-OUTPUTSETTINGS = dict(bokeh=False,plot=True,observer=True,analyzer=True, optimization=False, quantstats=True)
+INITIALCASH = 50000
+OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False, quantstats=True)
 
-SYMBOL_LIST = ["KO"]  #AlphaVantage, Yahoo
+SYMBOL_LIST = ["TSLA"]  #AlphaVantage, Yahoo
 SYMBOL = SYMBOL_LIST[0]
-SYMBOL = "BAC"      #HDFWiki
+# SYMBOL = "BAC"      #HDFWiki
 SYMBOL = "HK.MHImain"   #Futu
-SUBTYPE = SubType.K_15M
+SUBTYPE = SubType.K_1M
 
-# TIMERANGE = ("2020-06-10", "00:00:00", "2020-12-10", "23:59:00") #TODO: Create CSV Writer to store Stock Info
-TIMERANGE = None
+TIMERANGE = ("2020-09-17", "00:00:00", "2020-09-18", "23:59:00") #TODO: Create CSV Writer to store Stock Info
+# TIMERANGE = None
 
 STRATEGY = BTStrategy.ASOCrossStrategyWithSqueezePercCCI
 PARAMS = dict(period=8, smoothing=16, rsiFactor=30, asoThreshold= 10, squeezeThreshold= 0, cciThreshold = 100)
@@ -36,21 +36,25 @@ STRATEGY = BTStrategy.CCIStrategy.CCICrossHoldStopTrail
 PARAMS = dict(cciPeriod=20, cciFactor=0.015, cciThreshold=100, hold = 6, takeProfitAmount= 100, stopLossAmount= 20)
 
 STRATEGY = BTStrategy.IchimokuStrategy
-PARAMS = dict(kijun=6, tenkan=3, chikou=6, senkou=12, senkou_lead=6, trailHold= 3, stopLossPerc= 0.011)
+PARAMS = dict(kijun=6, tenkan=3, chikou=6, senkou=12, senkou_lead=6, trailHold= 1, stopLossPerc= 0.016)
+# PARAMS = dict(trailHold= 3, stopLossPerc= 0.011)
 
-# STRATEGY = BTStrategy.AOStrategy
-# PARAMS = dict(stopLossAmount= 100, trailHold=3, takeProfitPerc= 0.1)
-# PARAMS = dict(takeProfitPerc= 0.1)
-#
-# STRATEGY = BTStrategy.IchimokuCloudStrategyBase
-# PARAMS = dict()
+STRATEGY = BTStrategy.AOStrategy
+PARAMS = dict(stopLossAmount= 100, trailHold=3, takeProfitPerc= 0.1)
+PARAMS = dict(takeProfitPerc= 0.1)
+
+STRATEGY = BTStrategy.PSARStrategy
+PARAMS = dict(kijun=6, tenkan=3, chikou=6, senkou=12, senkou_lead=6, trailHold= 1, stopLossPerc= 0.016)
+
 CUSTOM = "WithStopLoss"
 FOLDERNAME = helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS, CUSTOM)
 
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2016")
-DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
-# DATA0 = BTDataFeed.getAlphaVantageDataFeeds(SYMBOL_LIST, compact=False, debug=False, fromdate=datetime(2018, 1, 1), todate=datetime(2019, 1, 1))[0]
-# DATA0 = BTDataFeed.getYahooDataFeeds(SYMBOL_LIST, SUBTYPE, TIMERANGE)
+# DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
+# DATA0 = BTDataFeed.getAlphaVantageDataFeeds(SYMBOL_LIST, compact=False, debug=False, fromdate=datetime(2019, 9, 10), todate=datetime(2019, 9, 18))[0]
+DATA0 = BTDataFeed.getYahooDataFeeds(SYMBOL_LIST, SUBTYPE, TIMERANGE, period="1d", folderName=None)
+COMMISSIONSCHEME = COMMISSION, MARGIN, MULT = (5, 0, 1)
+COMMISSIONSCHEME = COMMISSION, MARGIN, MULT = (10.6, 25000, 10)
 
 def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.DataFrame:
     print (params)
@@ -79,7 +83,8 @@ def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.Da
 
     #Broker
     cerebro.broker.setcash(INITIALCASH)
-    cerebro.broker.setcommission(commission=10.6, margin=26000.0, mult=10.0)
+    cerebro.broker.setcommission(commission=COMMISSION, margin=MARGIN, mult=MULT)
+    # cerebro.broker.addcommissioninfo(BTCommInfo.FixedCommisionScheme(commission=2))
     print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
     #Strategy
@@ -103,12 +108,13 @@ def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.Da
         cerebro.addobserver(bt.observers.DrawDown)
         cerebro.addobserver(bt.observers.Trades)
         cerebro.addobserver(bt.observers.Broker)
+        cerebro.addobserver(BTObserver.BuySellStop)
         cerebro.addobserver(bt.observers.BuySell, barplot= True, bardist= 0.01)
         # cerebro.addobserver(BTObserver.SLTPTracking)
         cerebro.addobserver(bt.observers.TimeReturn)
 
     #Run
-    results = cerebro.run(stdstats=False)
+    results = cerebro.run(stdstats=False, runonce=False)
     finalPortfolioValue = cerebro.broker.getvalue()
     print('Final Portfolio Value: %.2f' % finalPortfolioValue)
 
@@ -168,36 +174,37 @@ def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.Da
             helper.outputXLSX(transactionsDF, "Transactions")
             helper.outputXLSX(timeReturnDF, "TimeReturn")
 
-    if outputsettings["quantstats"]:
-        import quantstats as qs
-        qs.extend_pandas()
-        qs.stats.sharpe(timeReturnDF)
-        # qs.plots.snapshot(timeReturnDF, title='Facebook Performance')
-        qs.reports.html(timeReturnDF, output="qs.html")
-    #     stock.sharpe()
+        if outputsettings["quantstats"]:
+            import quantstats as qs
+            qs.extend_pandas()
+            qs.stats.sharpe(timeReturnDF)
+            # qs.plots.snapshot(timeReturnDF, title='Facebook Performance')
+            qs.reports.html(timeReturnDF, output="qs.html")
+        #     stock.sharpe()
 
 
-    stats = {
-        "Symbol": SYMBOL,
-        "SubType": SUBTYPE,
-        'Sharpe Ratio': statsDF['Sharpe Ratio'],
-        'Average Return': statsDF['Average Return'],
-        'Annualized Return%': statsDF['Annualized Return%'],
-        'Max DrawDown': statsDF['Max DrawDown'],
-        "Total Open" : statsDF["Total Open"],
-        "Total Closed" : statsDF["Total Closed"],
-        "Total Won" : statsDF["Total Won"],
-        "Total Lost" : statsDF["Total Lost"],
-        "Win Streak" : statsDF["Win Streak"],
-        "Lose Streak" : statsDF["Losing Streak"],
-        "PnL Net" : statsDF["PnL Net"],
-        "Strike Rate" : statsDF["Strike Rate"],
-        "SQN": statsDF["SQN"],
-        "VWR": statsDF["VWR"],
-        "Kelly Percent": statsDF["Kelly Percent"]
-    }
+        stats = {
+            "Symbol": SYMBOL,
+            "SubType": SUBTYPE,
+            'Sharpe Ratio': statsDF['Sharpe Ratio'],
+            'Average Return': statsDF['Average Return'],
+            'Annualized Return%': statsDF['Annualized Return%'],
+            'Max DrawDown': statsDF['Max DrawDown'],
+            "Total Open" : statsDF["Total Open"],
+            "Total Closed" : statsDF["Total Closed"],
+            "Total Won" : statsDF["Total Won"],
+            "Total Lost" : statsDF["Total Lost"],
+            "Win Streak" : statsDF["Win Streak"],
+            "Lose Streak" : statsDF["Losing Streak"],
+            "PnL Net" : statsDF["PnL Net"],
+            "Strike Rate" : statsDF["Strike Rate"],
+            "SQN": statsDF["SQN"],
+            "VWR": statsDF["VWR"],
+            "Kelly Percent": statsDF["Kelly Percent"]
+        }
+        return  {**params, **stats}
 
-    return  {**params, **stats}
+    return  {**params}
 
 def grid_search(sortKey: str) -> pd.DataFrame:
     global optimizationParams
@@ -213,7 +220,7 @@ def grid_search(sortKey: str) -> pd.DataFrame:
         z=3
         stopLoss = a / 1000
         outputsettings = dict(bokeh=False,plot=False,observer=True,analyzer=True, optimization=True, quantstats=False)
-        optimizationParams = dict(kijun=x, tenkan=y, chikou=x, senkou=x * 2, senkou_lead=x, trailHold= z, stopLossPerc= stopLoss)
+        optimizationParams = dict(kijun=6, tenkan=3, chikou=6, senkou=12, senkou_lead=6, trailHold= 1, stopLossPerc= stopLoss)
 
         params_list.append({**optimizationParams})
         outputsettings_list.append({**outputsettings})

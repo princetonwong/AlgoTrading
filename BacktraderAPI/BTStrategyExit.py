@@ -53,26 +53,27 @@ class ChandelierStrategyExit(bt.Strategy):
         self.xChandShort = bt.ind.CrossOver(self.data, self.chandelier.chandShort, plot=False)
         self.xChandShort.csv = True
 
-class StopTrailStrategyBase(HoldStrategyExit):
-    params = dict(trailHold=5, takeProfitPerc= 0.06, stopLossPerc= 0.002, takeProfitAmount= None, stopLossAmount= None)
+class StopTrailStrategyExit(HoldStrategyExit):
+    params = dict(trailHold=1, takeProfitPerc= 0.012, stopLossPerc= 0.002, takeProfitAmount= None, stopLossAmount= None)
 
     def __init__(self):
         print (self.params)
-        super(StopTrailStrategyBase, self).__init__()
+        super(StopTrailStrategyExit, self).__init__()
         # init stop loss and take profit order variables
         self.sl_order, self.tp_order = None, None
         self.sl_price = 0.0
         self.tp_price = 0.0
         self.holding = dict()
+        self.stopLossCount = 0
 
     def notify_order(self, order):
-        super(StopTrailStrategyBase, self).notify_order(order)
+        super(StopTrailStrategyExit, self).notify_order(order)
         if order.status in [order.Completed]:  # HOLD FOR AT LEAST FEW BARS
             self.bar_executed = 0
             self.holdstart = len(self)
 
     def notify_trade(self, trade):
-        super(StopTrailStrategyBase, self).notify_trade(trade, debug= False)
+        super(StopTrailStrategyExit, self).notify_trade(trade, debug= False)
         if trade.isclosed:
             # clear stop loss and take profit order variables for no position state
             if self.sl_order:
@@ -84,7 +85,7 @@ class StopTrailStrategyBase(HoldStrategyExit):
                 self.tp_order = None
 
     def next(self):
-        super(StopTrailStrategyBase, self).next()
+        super(StopTrailStrategyExit, self).next()
         # process stop loss and take profit signals
         if self.position:
             # set stop loss and take profit prices
@@ -118,7 +119,8 @@ class StopTrailStrategyBase(HoldStrategyExit):
 
             if self.sl_price != 0.0:
                 if (len(self) - self.holdstart) >= self.p.trailHold:
-                    print ("stop loss triggered")
+                    # self.stopLossCount += 1
+                    # print ("stop loss triggered {}".format(self.stopLossCount))
                     self.sl_order = self.order_target_value(target=0.0, exectype=bt.Order.Stop, price=self.sl_price)
 
             # check & update take profit order
