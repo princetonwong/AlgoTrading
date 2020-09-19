@@ -48,6 +48,7 @@ class VLIStrategyBase(bt.Strategy):
         self.volatilityLevel = self.vli.fast > self.vli.slow
         self.extremeVolatiliy = self.vli.bollWidth > self.vli.top
 
+
 #Oscillator (Strength of Trend)
 class AroonStrategyBase(bt.Strategy):
     '''  Amount of time between highs and lows
@@ -155,6 +156,14 @@ class AwesomeOscillatorStrategyBase(bt.Strategy):
         self.aoStreak = BTIndicator.StreakByAwesomeOscillator(aoFast= self.p.aoFast, aoSlow= self.p.aoSlow, lookback= self.p.lookback)
         self.aoStreakXZero = bt.ind.CrossOver(self.aoStreak.streak, 0, plot=False)
 
+
+class KDJStrategyBase(bt.Strategy):
+    def __init__(self):
+        super(KDJStrategyBase, self).__init__()
+        self.kdj = BTIndicator.KDJIndicator(kPeriod=9, dPeriod=3, jPeriod=3)
+        self.streakKDJ = BTIndicator.StreakByKDJ()
+
+
 #Resistance, Support
 class SMAStrategyBase(bt.Strategy):
     params = dict(SMAFastPeriod=10, SMASlowPeriod=20)
@@ -175,7 +184,6 @@ class EMAStrategyBase(bt.Strategy):
         self.emaFastXemaSlow = bt.ind.CrossOver(self.emaFast, self.emaSlow, plot=False)
         self.emaFast.csv = True
         self.emaSlow.csv = True
-
 
 class KAMAStrategyBase(bt.Strategy):
     params = dict(smaPeriod=30, kamaPeriod=30, kamaFast=2, kamaSlow=30)
@@ -205,7 +213,7 @@ class IchimokuCloudStrategyBase(bt.Strategy):
                                                senkou=self.p.senkou,
                                                senkou_lead=self.p.senkou_lead
                                                )
-        self.tenkanXKijun = bt.indicators.CrossOver(self.ichimoku.tenkan_sen, self.ichimoku.kijun_sen, plot=False)
+        self.tenkanXKijun = bt.indicators.CrossOver(self.ichimoku.tenkan_sen, self.ichimoku.kijun_sen, plot=True)
         self.XKijun = bt.indicators.CrossOver(self.data, self.ichimoku.kijun_sen, plot=False)
         self.XSenkouA = bt.indicators.CrossOver(self.data, self.ichimoku.senkou_span_a, plot=False)
         self.XSenkouB = bt.indicators.CrossOver(self.data, self.ichimoku.senkou_span_b, plot=False)
@@ -289,6 +297,7 @@ class CMOStrategyBase(bt.Strategy):
         self.cmoXUpper = bt.ind.CrossOver(self.cmo, self.p.cmoThreshold, plot=False)
         self.cmoXLower = bt.ind.CrossOver(self.cmo, -self.p.cmoThreshold, plot=False)
 
+
 #MACD
 class MACDStrategyBase(bt.Strategy):
     params = dict(macdFast=12, macdSlow=26, diffPeriod=9)
@@ -344,3 +353,8 @@ class StreakStrategyBase(bt.Strategy):
         self.streak.csv = True
         self.smaStreak = BTIndicator.StreakBySMA(smaPeriod=5, lookback=self.p.lookback, plot=False)
         self.smaStreak.csv = True
+
+class PSARStrategyBase(bt.Strategy):
+
+    def __init__(self):
+        self.psar = bt.ind.ParabolicSAR()

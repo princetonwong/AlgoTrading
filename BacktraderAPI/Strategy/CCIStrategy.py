@@ -1,7 +1,7 @@
 from BacktraderAPI.BTStrategyBase import *
 from BacktraderAPI.BTStrategyExit import *
 
-class CCICrossHoldStopTrail(CCIStrategyBase, StopTrailStrategyBase):
+class CCICrossHoldStopTrail(CCIStrategyBase, StopTrailStrategyExit):
     def next(self):
         super(CCICrossHoldStopTrail, self).next()
         if self.position.size == 0:

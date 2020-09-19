@@ -8,7 +8,10 @@ from Keys import *
 from alpha_vantage.timeseries import TimeSeries
 import yfinance
 from enum import Enum, unique
-
+import datetime
+from backtrader.feed import DataBase
+from backtrader import date2num
+from sqlalchemy import create_engine
 
 def getFutuDataFeed(symbol: str, subtype: SubType, timeRange, folderName = None):
     if timeRange is None:
@@ -33,46 +36,54 @@ class YahooInterval(Enum):
     K_60M = "60m"
     K_DAY = "1d"
 
-def getYahooDataFeeds(symbol_list, subtype, timerange, folderName = None):
+def getYahooDataFeeds(symbol_list, subtype, timerange, period = None, folderName = None):
     yahooSubtype = YahooInterval[subtype].value
     yahooStart, yahooEnd = timerange[0], timerange[2]
 
-    df = yfinance.download(  # or pdr.get_data_yahoo(...
-        # tickers list or string as well
-        tickers= symbol_list,
+    if period:
+        df = yfinance.download(tickers=symbol_list,
+                               period=period,
+                               interval=yahooSubtype,
+                               group_by='ticker',
+                               )
+        df.to_csv(f"{symbol_list}.csv")
+    else:
 
-        start = yahooStart,
-        end =yahooEnd,
-        # use "period" instead of start/end
-        # valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
-        # (optional, default is '1mo')
-        # period="5d",
+        df = yfinance.download(  # or pdr.get_data_yahoo(...
+            # tickers list or string as well
+            tickers= symbol_list,
+            start = yahooStart,
+            end =yahooEnd,
+            # use "period" instead of start/end
+            # valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
+            # (optional, default is '1mo')
+            # period="5d",
 
-        # fetch data by interval (including intraday if period < 60 days)
-        # valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
-        # (optional, default is '1d')
-        interval= yahooSubtype,
+            # fetch data by interval (including intraday if period < 60 days)
+            # valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
+            # (optional, default is '1d')
+            interval= yahooSubtype,
 
-        # group by ticker (to access via data['SPY'])
-        # (optional, default is 'column')
-        group_by='ticker',
+            # group by ticker (to access via data['SPY'])
+            # (optional, default is 'column')
+            group_by='ticker',
 
-        # adjust all OHLC automatically
-        # (optional, default is False)
-        auto_adjust=True,
+            # adjust all OHLC automatically
+            # (optional, default is False)
+            auto_adjust=True,
 
-        # download pre/post regular market hours data
-        # (optional, default is False)
-        prepost=False,
+            # download pre/post regular market hours data
+            # (optional, default is False)
+            prepost=False,
 
-        # use threads for mass downloading? (True/False/Integer)
-        # (optional, default is True)
-        threads=True,
+            # use threads for mass downloading? (True/False/Integer)
+            # (optional, default is True)
+            threads=True,
 
-        # proxy URL scheme use use when downloading?
-        # (optional, default is None)
-        proxy=None
-    )
+            # proxy URL scheme use use when downloading?
+            # (optional, default is None)
+            proxy=None
+        )
 
     if folderName is not None:
         Helper().gradientAppliedXLSX(df, "YahooData", ['close'])
@@ -157,3 +168,42 @@ def getHDFWikiPriceDataFeed(tickers: [str], startYear="2006", endYear:str = "201
     df.set_index("datetime", inplace=True)
 
     return bt.feeds.PandasData(dataname=df, openinterest=None)
+
+class MySQLData(DataBase): #TODO: How to use this?
+    params = (
+        ('dbHost', None),
+        ('dbUser', None),
+        ('dbPWD', None),
+        ('dbName', None),
+        ('ticker', 'ISL'),
+        ('fromdate', datetime.datetime.min),
+        ('todate', datetime.datetime.max),
+        ('name', ''),
+        )
+
+    def __init__(self):
+        self.engine = create_engine('mysql://'+self.p.dbUser+':'+ self.p.dbPWD +'@'+ self.p.dbHost +'/'+ self.p.dbName +'?charset=utf8mb4', echo=False)
+
+    def start(self):
+        self.conn = self.engine.connect()
+        self.stockdata = self.conn.execute("SELECT id FROM stocks WHERE ticker LIKE '" + self.p.ticker + "' LIMIT 1")
+        self.stock_id = self.stockdata.fetchone()[0]
+        #self.result = self.engine.execute("SELECT `date`,`open`,`high`,`low`,`close`,`volume` FROM `eoddata` WHERE `stock_id` = 10 AND `date` between '"+self.p.fromdate.strftime("%Y-%m-%d")+"' and '"+self.p.todate.strftime("%Y-%m-%d")+"' ORDER BY `date` ASC")
+        self.result = self.conn.execute("SELECT `date`,`open`,`high`,`low`,`close`,`volume` FROM `eoddata` WHERE `stock_id` = " + str(self.stock_id) + " AND `date` between '"+self.p.fromdate.strftime("%Y-%m-%d")+"' and '"+self.p.todate.strftime("%Y-%m-%d")+"' ORDER BY `date` ASC")
+
+    def stop(self):
+        #self.conn.close()
+        self.engine.dispose()
+
+    def _load(self):
+        one_row = self.result.fetchone()
+        if one_row is None:
+            return False
+        self.lines.datetime[0] = date2num(one_row[0])
+        self.lines.open[0] = float(one_row[1])
+        self.lines.high[0] = float(one_row[2])
+        self.lines.low[0] = float(one_row[3])
+        self.lines.close[0] = float(one_row[4])
+        self.lines.volume[0] = int(one_row[5])
+        self.lines.openinterest[0] = -1
+        return True

@@ -8,9 +8,49 @@ from .Strategy import CandleStrategy, CCIStrategy, MACDStrategy, MeanReversionSt
 import math
 import datetime
 
-# class EmptyStrategy(bt.Strategy):
 
-class AOStrategy(AwesomeOscillatorStrategyBase, StopTrailStrategyBase):
+
+class KDJStrategy(StopTrailStrategyExit, KDJStrategyBase):
+    def next(self):
+        super(KDJStrategy, self).next()
+        if self.position.size == 0:
+            if self.kdj.percJ >= 150:
+                self.buy()
+            elif self.kdj.percJ <= -50:
+                self.sell()
+        elif self.position.size > 0:
+            if (len(self) - self.holdstart) >= 6:
+                if self.kdj.percJ >= 100:
+                    self.close()
+        elif self.position.size < 0:
+            if (len(self) - self.holdstart) >= 6:
+                if self.kdj.percJ <= -100:
+                    self.close()
+
+
+class ModifiedRSIStrategy(StopTrailStrategyExit):
+    def __init__(self):
+        super(ModifiedRSIStrategy, self).__init__()
+        self.rsi = BTIndicator.modifiedRSI()
+        self.rsiXUpper = bt.ind.CrossOver(self.rsi.modifiedRSI, 90)
+        self.rsiXLower = bt.ind.CrossOver(self.rsi.modifiedRSI, 10)
+        self.rsiX30 = bt.ind.CrossOver(self.rsi.modifiedRSI, 30)
+
+    def next(self):
+        super(ModifiedRSIStrategy, self).next()
+        if self.position.size == 0:
+            if self.rsiXLower == 1:
+                self.buy()
+            elif self.rsiXUpper == -1:
+                self.sell()
+        elif self.position.size > 0:
+            if self.rsiXUpper == 1:
+                self.close()
+        elif self.position.size < 0:
+            if self.rsiX30 == -1:
+                self.close()
+
+class AOStrategy(AwesomeOscillatorStrategyBase, StopTrailStrategyExit):
     def next(self):
         super(AOStrategy, self).next()
         if self.position.size == 0:
@@ -25,7 +65,7 @@ class AOStrategy(AwesomeOscillatorStrategyBase, StopTrailStrategyBase):
             if self.aoStreak.streak == 2:
                 self.close()
 
-class CzechStrategy(BBandsStrategyBase, VLIStrategyBase, StopTrailStrategyBase):
+class CzechStrategy(BBandsStrategyBase, VLIStrategyBase, StopTrailStrategyExit):
     def __init__(self):
         super(CzechStrategy, self).__init__()
         self.BBWcondition = bt.ind.SMA(self.bollWidth, period=10) > bt.ind.SMA(self.bollWidth, period=50)
@@ -71,7 +111,6 @@ class CzechStrategy(BBandsStrategyBase, VLIStrategyBase, StopTrailStrategyBase):
         elif self.position.size < 0:
             if self.XOverBollTop == 1 and self.VOLcondition:
                 self.close()
-
 
 class SICrossStrategy(ASIStrategyBase):
     def next(self):
@@ -195,6 +234,7 @@ class ClenowTrendFollowingStrategy(bt.Strategy):
                     else:
                         self.sl_order = self.order_target_value(target=0.0, exectype=bt.Order.Stop, price=self.sl_price)
 
+
 #Trend Changing, Stochastic Strategy
         
 class StochasticStrategy(bt.Strategy):
@@ -285,6 +325,7 @@ class CMOCrossStrategyWithSqueezePercCCI (StochasticCCIStrategyBase, BBandsKChan
         elif self.position.size < 0 :
             if self.stochcciXLowerband == 1:
                 self.buy()
+
 
 #Channel Strategy
 
@@ -471,7 +512,7 @@ class DMICrossStrategy(DMIStrategyBase):
                 if self.plusDIXminusDI == 1:
                     self.buy(exectype=bt.Order.Stop, price=self.data.close)
 
-class IchimokuStrategy(IchimokuCloudStrategyBase, StopTrailStrategyBase, HoldStrategyExit):
+class IchimokuStrategy(IchimokuCloudStrategyBase, StopTrailStrategyExit, HoldStrategyExit, CCIStrategyBase, AwesomeOscillatorStrategyBase):
     def next(self):
         cloud = self.ichimoku.senkou_span_a - self.ichimoku.senkou_span_b
         tenkanGreaterKijun = self.ichimoku.tenkan_sen - self.ichimoku.kijun_sen
@@ -483,8 +524,8 @@ class IchimokuStrategy(IchimokuCloudStrategyBase, StopTrailStrategyBase, HoldStr
                         self.buy()
 
             elif tenkanGreaterKijun < 0:
-                if (cloud < 0 and self.data < self.ichimoku.senkou_span_b) or (cloud > 0 and self.data < self.ichimoku.senkou_span_a):
-                    if self.tenkanXKijun == -1 or self.XSenkouA == -1:
+                if (cloud > 0 and self.data < self.ichimoku.senkou_span_b) or (cloud < 0 and self.data < self.ichimoku.senkou_span_a):
+                    if self.tenkanXKijun == -1 or self.XSenkouB == -1:
                         self.sell()
 
         elif self.position.size > 0:
@@ -496,6 +537,7 @@ class IchimokuStrategy(IchimokuCloudStrategyBase, StopTrailStrategyBase, HoldStr
             if (len(self) - self.holdstart) >= self.p.hold:
                 if self.tenkanXKijun == 1:
                     self.close()
+
         super(IchimokuStrategy, self).next()
 
 class IchimokuCloudxDMIStrategy(IchimokuCloudStrategyBase, DMIStrategyBase):
@@ -636,7 +678,7 @@ class TTFwithStopTrail2(TTFStrategyBase):
             else:
                 tcheck = self.data.close * (1.0 - self.p.trailpercent)
 
-class TTFwithStopTrail(TTFStrategyBase, StopTrailStrategyBase):
+class TTFwithStopTrail(TTFStrategyBase, StopTrailStrategyExit):
     params = dict()
 
     def next(self):
@@ -938,3 +980,6 @@ class HeikinAshiStrategy(bt.Strategy):
         elif self.position.size < 0:
             if self.up:
                 self.buy()
+
+class PSARStrategy(IchimokuStrategy, PSARStrategyBase, KDJStrategyBase):
+    pass

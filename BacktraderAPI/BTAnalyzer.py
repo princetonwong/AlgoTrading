@@ -1,6 +1,10 @@
 import pandas as pd
 from CustomAPI.Helper import Helper
 from backtrader.utils.py3 import iteritems
+from backtrader import Analyzer
+from backtrader.mathsupport import average
+from backtrader.utils import AutoOrderedDict
+import backtrader as bt
 
 def getTimeReturnDf(analyzer, xlsx=False):
     index = []
@@ -114,7 +118,7 @@ def getDrawDownDf(analyzer, xlsx= False):
     result = [maxDrawDown]
     resultDF = pd.Series(result, index=index)
 
-    print ("Max Drawdown: {}".format(maxDrawDown))
+    print ("Max Drawdown: {}%".format(maxDrawDown))
 
     if xlsx:
         Helper().outputXLSX(resultDF, fileName="Drawdown")
@@ -150,10 +154,6 @@ def getReturnDf(analyzer, xlsx=False):
         Helper().outputXLSX(resultDF, fileName="Returns")
 
     return resultDF
-
-from backtrader import Analyzer
-from backtrader.mathsupport import average
-from backtrader.utils import AutoOrderedDict
 
 
 class Kelly(Analyzer):
