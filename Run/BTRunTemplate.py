@@ -11,48 +11,51 @@ helper = Helper()
 INITIALCASH = 50000
 OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False, quantstats=True)
 
-SYMBOL_LIST = ["TSLA"]  #AlphaVantage, Yahoo
-SYMBOL = SYMBOL_LIST[0]
+# SYMBOL_LIST = ["SPY"]  #AlphaVantage, Yahoo
+# SYMBOL = SYMBOL_LIST[0]
 # SYMBOL = "BAC"      #HDFWiki
 SYMBOL = "HK.MHImain"   #Futu
-SUBTYPE = SubType.K_1M
+SUBTYPE = SubType.K_15M
 
-TIMERANGE = ("2020-09-17", "00:00:00", "2020-09-18", "23:59:00") #TODO: Create CSV Writer to store Stock Info
+TIMERANGE = ("2020-07-17", "00:00:00", "2020-09-18", "23:59:00") #TODO: Create CSV Writer to store Stock Info
 # TIMERANGE = None
 
-STRATEGY = BTStrategy.ASOCrossStrategyWithSqueezePercCCI
-PARAMS = dict(period=8, smoothing=16, rsiFactor=30, asoThreshold= 10, squeezeThreshold= 0, cciThreshold = 100)
+# STRATEGY = BTStrategy.ASOCrossStrategyWithSqueezePercCCI
+# PARAMS = dict(period=8, smoothing=16, rsiFactor=30, asoThreshold= 10, squeezeThreshold= 0, cciThreshold = 100)
+#
+# STRATEGY = BTStrategy.TTFStrategy ##
+# PARAMS = dict(lookback=19, upperband=100, lowerband=-100)
 
-STRATEGY = BTStrategy.TTFStrategy
-PARAMS = dict(lookback=19, upperband=100, lowerband=-100)
-
-STRATEGY = BTStrategy.TTFwithStopTrail2
-PARAMS = dict(lookback=19, upperband=100, lowerband=-100, stoptype=bt.Order.StopTrail, trailpercent = 0.05)
-
-STRATEGY = BTStrategy.TTFHOLD
-PARAMS = dict(hold = 10)
-
-STRATEGY = BTStrategy.CCIStrategy.CCICrossHoldStopTrail
-PARAMS = dict(cciPeriod=20, cciFactor=0.015, cciThreshold=100, hold = 6, takeProfitAmount= 100, stopLossAmount= 20)
-
-STRATEGY = BTStrategy.IchimokuStrategy
-PARAMS = dict(kijun=6, tenkan=3, chikou=6, senkou=12, senkou_lead=6, trailHold= 1, stopLossPerc= 0.016)
+# STRATEGY = BTStrategy.TTFwithStopTrail2
+# PARAMS = dict(lookback=19, upperband=100, lowerband=-100, stoptype=bt.Order.StopTrail, trailpercent = 0.05)
+#
+# STRATEGY = BTStrategy.TTFHOLD
+# PARAMS = dict(hold = 10)
+#
+# STRATEGY = BTStrategy.CCIStrategy.CCICrossHoldStopTrail
+# PARAMS = dict(cciPeriod=20, cciFactor=0.015, cciThreshold=100, hold = 6, takeProfitAmount= 100, stopLossAmount= 20)
+# #
+# STRATEGY = BTStrategy.IchimokuStrategy ##
+# PARAMS = dict(kijun=6, tenkan=3, chikou=6, senkou=12, senkou_lead=6, trailHold= 1, stopLossPerc= 0.016)
 # PARAMS = dict(trailHold= 3, stopLossPerc= 0.011)
 
-STRATEGY = BTStrategy.AOStrategy
-PARAMS = dict(stopLossAmount= 100, trailHold=3, takeProfitPerc= 0.1)
-PARAMS = dict(takeProfitPerc= 0.1)
+# STRATEGY = BTStrategy.AOStrategy
+# PARAMS = dict(stopLossAmount= 100, trailHold=3, takeProfitPerc= 0.1)
+# PARAMS = dict(takeProfitPerc= 0.1)
+#
+# STRATEGY = BTStrategy.PSARStrategy
+# PARAMS = dict(kijun=6, tenkan=3, chikou=6, senkou=12, senkou_lead=6, trailHold= 1, stopLossPerc= 0.016)
 
-STRATEGY = BTStrategy.PSARStrategy
-PARAMS = dict(kijun=6, tenkan=3, chikou=6, senkou=12, senkou_lead=6, trailHold= 1, stopLossPerc= 0.016)
+STRATEGY = BTStrategy.TTFwithBracket
+PARAMS = dict()
 
 CUSTOM = "WithStopLoss"
 FOLDERNAME = helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS, CUSTOM)
 
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2016")
-# DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
+DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
 # DATA0 = BTDataFeed.getAlphaVantageDataFeeds(SYMBOL_LIST, compact=False, debug=False, fromdate=datetime(2019, 9, 10), todate=datetime(2019, 9, 18))[0]
-DATA0 = BTDataFeed.getYahooDataFeeds(SYMBOL_LIST, SUBTYPE, TIMERANGE, period="1d", folderName=None)
+# DATA0 = BTDataFeed.getYahooDataFeeds(SYMBOL_LIST, SUBTYPE, TIMERANGE, folderName=None)
 COMMISSIONSCHEME = COMMISSION, MARGIN, MULT = (5, 0, 1)
 COMMISSIONSCHEME = COMMISSION, MARGIN, MULT = (10.6, 25000, 10)
 
