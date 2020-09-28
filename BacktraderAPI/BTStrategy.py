@@ -8,7 +8,8 @@ from .Strategy import CandleStrategy, CCIStrategy, MACDStrategy, MeanReversionSt
 import math
 import datetime
 
-
+class EmptyStrategy(bt.Strategy):
+    pass
 
 class KDJStrategy(StopTrailStrategyExit, KDJStrategyBase):
     def next(self):

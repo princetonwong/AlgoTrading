@@ -213,7 +213,7 @@ class IchimokuCloudStrategyBase(bt.Strategy):
                                                senkou=self.p.senkou,
                                                senkou_lead=self.p.senkou_lead
                                                )
-        self.tenkanXKijun = bt.indicators.CrossOver(self.ichimoku.tenkan_sen, self.ichimoku.kijun_sen, plot=True)
+        self.tenkanXKijun = bt.indicators.CrossOver(self.ichimoku.tenkan_sen, self.ichimoku.kijun_sen, plot=False)
         self.XKijun = bt.indicators.CrossOver(self.data, self.ichimoku.kijun_sen, plot=False)
         self.XSenkouA = bt.indicators.CrossOver(self.data, self.ichimoku.senkou_span_a, plot=False)
         self.XSenkouB = bt.indicators.CrossOver(self.data, self.ichimoku.senkou_span_b, plot=False)

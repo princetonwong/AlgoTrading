@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 from datetime import datetime
+import pandas as pd
 
 class Helper():
     field = "open"
@@ -29,11 +30,15 @@ class Helper():
 
     def outputXLSX(self, df, fileName):
         path = self.generateFilePath(fileName, ".xlsx")
+
         df.to_excel(path, engine="openpyxl")
+
         return df
 
     def gradientAppliedXLSX(self, df, fileName, subset):
-        formattedDf = df.style.background_gradient(cmap="PiYG", subset= subset)\
+        # for col in df.select_dtypes(['datetimetz']).columns:
+        #     df[col] = df[col].dt.tz_convert(None)
+        formattedDf: pd.DataFrame = df.style.background_gradient(cmap="PiYG", subset= subset)\
                                                      .highlight_null(null_color='transparent')
 
         self.outputXLSX(formattedDf, fileName)
