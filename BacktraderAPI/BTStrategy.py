@@ -805,7 +805,7 @@ class TTFwithBracket(TTFStrategyBase):
     def notify_order(self, order):
         print('{}: Order ref: {} / Type {} / Status {}'.format(
             self.data.datetime.date(0),
-            order.ref, 'Buy' * order.isbuy() or 'Sell',
+            order.ref, 'Buy' * order.isbuy() or 'Sell' * order.issell(),
             order.getstatusname()))
 
         if order.status == order.Completed:
@@ -856,7 +856,7 @@ class TTFwithBracket(TTFStrategyBase):
                                    parent=o1,
                                    transmit=False)
 
-                    print('{}: Oref {} / Sell Stop at {}'.format(
+                    print('{}: Oref {} / Sell StopTrail at {}'.format(
                         self.datetime.date(), o2.ref, p2))
 
                     o3 = self.sell(exectype=bt.Order.Limit,
@@ -898,16 +898,16 @@ class TTFwithBracket(TTFStrategyBase):
                                   valid=valid1,
                                   transmit=False)
 
-                    print('{}: Oref {} / Buy at {}'.format(
+                    print('{}: Oref {} / Sell at {}'.format(
                         self.datetime.date(), o1.ref, p1))
 
-                    o2 = self.buy(exectype=bt.Order.Stop,
+                    o2 = self.buy(exectype=bt.Order.StopTrail,
                                   trailpercent=0.05,
                                   valid=valid2,
                                   parent=o1,
                                   transmit=False)
 
-                    print('{}: Oref {} / Sell Stop at {}'.format(
+                    print('{}: Oref {} / Buy StopTrail at {}'.format(
                         self.datetime.date(), o2.ref, p2))
 
                     o3 = self.buy(exectype=bt.Order.Limit,
@@ -916,7 +916,7 @@ class TTFwithBracket(TTFStrategyBase):
                                    parent=o1,
                                    transmit=True)
 
-                    print('{}: Oref {} / Sell Limit at {}'.format(
+                    print('{}: Oref {} / Buy Limit at {}'.format(
                         self.datetime.date(), o3.ref, p3))
 
                     self.orefs = [o1.ref, o2.ref, o3.ref]
@@ -932,6 +932,8 @@ class TTFwithBracket(TTFStrategyBase):
         else:  # in the market
             if (len(self) - self.holdstart) >= self.p.hold:
                 pass  # do nothing in this case #TODO: Multiple data feeds#TODO: Multiple data feeds
+            # elif datetime.time(2,45) < self.data.datetime.time() < datetime.time(9,0):
+            #     self.close(size=self.p.size)
 
 class TTFHOLD(TTFStrategyBase, HoldStrategyExit):
     params = (('risk', 0.1),  # risk 10%

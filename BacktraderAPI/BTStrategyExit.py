@@ -73,7 +73,7 @@ class StopTrailStrategyExit(HoldStrategyExit):
             self.holdstart = len(self)
 
     def notify_trade(self, trade):
-        super(StopTrailStrategyExit, self).notify_trade(trade, debug= False)
+        super(StopTrailStrategyExit, self).notify_trade(trade)
         if trade.isclosed:
             # clear stop loss and take profit order variables for no position state
             if self.sl_order:

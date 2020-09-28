@@ -11,13 +11,13 @@ helper = Helper()
 INITIALCASH = 50000
 OUTPUTSETTINGS = dict(bokeh=True,plot=False,observer=True,analyzer=True, optimization=False, quantstats=True)
 
-SYMBOL_LIST = ["TSLA"]  #AlphaVantage, Yahoo
-SYMBOL = SYMBOL_LIST[0]
+# SYMBOL_LIST = ["SPY"]  #AlphaVantage, Yahoo
+# SYMBOL = SYMBOL_LIST[0]
 # SYMBOL = "BAC"      #HDFWiki
-# SYMBOL = "HK.MHImain"   #Futu
-SUBTYPE = SubType.K_1M
+SYMBOL = "HK.MHImain"   #Futu
+SUBTYPE = SubType.K_15M
 
-TIMERANGE = ("2020-06-21", "00:00:00", "2020-09-23", "23:59:00") #TODO: Create CSV Writer to store Stock Info
+TIMERANGE = ("2020-07-17", "00:00:00", "2020-09-18", "23:59:00") #TODO: Create CSV Writer to store Stock Info
 # TIMERANGE = None
 
 STRATEGY = BTStrategy.ASOCrossStrategyWithSqueezePercCCI
