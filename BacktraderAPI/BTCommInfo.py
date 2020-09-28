@@ -12,3 +12,6 @@ class FixedCommisionScheme(bt.CommInfoBase):
 
     def _getcommission(self, size, price, pseudoexec):
         return self.p.commission
+
+class FutuHKIMainCommInfo(bt.CommInfoBase):
+    params = dict(commission=10.6, margin=25000, mult=10.0)

@@ -13,6 +13,15 @@ from backtrader.feed import DataBase
 from backtrader import date2num
 from sqlalchemy import create_engine
 
+@unique
+class DataFeedSource(Enum):
+    Yahoo = "Yahoo"
+    YahooOption = "YahooOption"
+    Futu = "Futu"
+    FutuFuture = "FutuFuture"
+    AlphaVantage = "AlphaVantage"
+    QuandlWiki = "QuandlWiki"
+
 def getFutuDataFeed(symbol: str, subtype: SubType, timeRange, folderName = None):
     if timeRange is None:
         df = FutuAPI().getRealTimeKLine(symbol, subtype)
@@ -86,7 +95,12 @@ def getYahooDataFeeds(symbol_list, subtype, timerange, period = None, folderName
         )
 
     if folderName is not None:
-        Helper().gradientAppliedXLSX(df, "YahooData", ['close'])
+        for col in df.select_dtypes(['datetimetz']).columns:
+            df[col] = df[col].dt.tz_convert(None)
+        # Helper().gradientAppliedXLSX(df, "YahooData", ['close'])
+        # Helper().outputXLSX(df, "YahooData")
+        path = Helper().generateFilePath("YahooData", ".csv")
+        df.to_csv(path)
 
     return bt.feeds.PandasData(dataname=df, openinterest=None)
 
