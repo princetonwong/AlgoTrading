@@ -46,13 +46,16 @@ PARAMS = dict(takeProfitPerc= 0.1)
 STRATEGY = BTStrategy.PSARStrategy
 PARAMS = dict(kijun=6, tenkan=3, chikou=6, senkou=12, senkou_lead=6, trailHold= 1, stopLossPerc= 0.016)
 
+STRATEGY = BTStrategy.TTFwithBracketandCancellation
+PARAMS = dict()
+
 CUSTOM = "WithStopLoss"
 FOLDERNAME = helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS, CUSTOM)
 
 # DATA0 = BTDataFeed.getHDFWikiPriceDataFeed([SYMBOL], startYear= "2016")
-# DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
+DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE, FOLDERNAME)
 # DATA0 = BTDataFeed.getAlphaVantageDataFeeds(SYMBOL_LIST, compact=False, debug=False, fromdate=datetime(2019, 9, 10), todate=datetime(2019, 9, 18))[0]
-DATA0 = BTDataFeed.getYahooDataFeeds(SYMBOL_LIST, SUBTYPE, TIMERANGE, period="1d", folderName=None)
+# DATA0 = BTDataFeed.getYahooDataFeeds(SYMBOL_LIST, SUBTYPE, TIMERANGE, period="1d", folderName=None)
 COMMISSIONSCHEME = COMMISSION, MARGIN, MULT = (5, 0, 1)
 COMMISSIONSCHEME = COMMISSION, MARGIN, MULT = (10.6, 25000, 10)
 
