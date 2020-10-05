@@ -1,7 +1,6 @@
 from futu import *
 from tqdm.contrib.concurrent import process_map
-from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTObserver, BTCommInfo, BTKernelRun
-from CustomAPI.Helper import Helper
+from BacktraderAPI import BTStrategy, BTKernelRun
 
 def optimizationWithSameData(sortKey: str) -> pd.DataFrame:
 

@@ -4,14 +4,14 @@ from BacktraderAPI import BTStrategy, BTKernelRun
 from CustomAPI.Helper import Helper
 
 #Wrapper Function
-def runOptimiztionWithDifferentData(allParams, strategyParams):
+def runScreening(allParams, strategyParams):
     btCoreRun = BTKernelRun.BTCoreRun(allParams=allParams, strategyParams=strategyParams, isOptimization=True)
     btCoreRun.setFolderName()
     btCoreRun.loadData()
-    return btCoreRun.runOptimizationWithSameData(strategyParams)
+    return btCoreRun.runScreening(strategyParams)
 
 
-def optimizationWithDifferentData(sortKey: str) -> pd.DataFrame:
+def screening() -> pd.DataFrame:
     #Many Time Parameters
     all_list = []
     params_list = []
@@ -29,14 +29,12 @@ def optimizationWithDifferentData(sortKey: str) -> pd.DataFrame:
         all_list.append({**allParams})
         params_list.append({**strategyParams})
 
-    stats = process_map(runOptimiztionWithDifferentData, all_list, params_list, max_workers=os.cpu_count())
+    stats = process_map(runScreening, all_list, params_list, max_workers=os.cpu_count())
 
     #Results
     df = pd.DataFrame(stats)
-    df.sort_values(sortKey, ascending=False, inplace=True)
-    Helper().gradientAppliedXLSX(df, "Optimization",
-                                    ["Kelly Percent", "Max DrawDown", "PnL Net", "SQN", "Sharpe Ratio", "VWR",
-                                     "Strike Rate"])
+    # df.sort_values(sortKey, ascending=False, inplace=True)
+    Helper().gradientAppliedXLSX(df, "Screening",[])
     return df
 
-optimizationWithDifferentData(sortKey= "VWR")
+screening()
