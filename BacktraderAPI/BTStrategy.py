@@ -4,6 +4,8 @@ import backtrader as bt
 from BacktraderAPI import BTIndicator
 from .BTStrategyExit import *
 from .BTStrategyBase import *
+from .BTStrategyBuyType import *
+from .BTStrategyDebug import *
 from .Strategy import CandleStrategy, CCIStrategy, MACDStrategy, MeanReversionStrategy, RSIStrategy, TrendFollowingStrategy, BTStrategy_Failed
 import math
 import datetime
@@ -938,140 +940,32 @@ class TTFwithBracket(TTFStrategyBase):
         # elif datetime.time(2,45) < self.data.datetime.time() < datetime.time(9,0):
         #     self.close(size=self.p.size)
 
-class TTFwithBracketandCancellation(TTFStrategyBase):
+class TTFwithBracketandCancellation(TTFStrategyBase, BracketBuying, NotifyOrderShowStatus):
 
-    params = dict(
-                  limit=0.005,
-                  limdays=3,
-                  limdays2=1000,
-                  limdays3=1000,
-                  limdays4 = 10,
-                  hold=10,
-                  trailpercent=0.02,
-                  tppercent=0.1,
-                  usebracket=False,  # use order_target_size
+    params = dict(usebracket=False,  # use order_target_size
                   switchp1p2=False,  # switch prices of order1 and order2
-                )
-
-    def __init__(self):
-        super(TTFwithBracketandCancellation, self).__init__()
-        self.bb1, self.bb2, self.bb3, self.bb4 = None, None, None, None
-        self.sb1, self.sb2, self.sb3, self.sb4 = None, None, None, None
-
-    def notify_order(self, order):
-        print('{}: Order ref: {} / Type {} / Status {}'.format(
-            self.data.datetime.date(0),
-            order.ref, 'Buy' * order.isbuy() or 'Sell' * order.issell(),
-            order.getstatusname()))
+    )
 
     def next(self):
 
         if self.position.size == 0:
 
             if self.ttfCxLower == 1:
-
-                p1 = self.data.close[0]
-                p3 = p1 * (1 + self.p.tppercent)
-
-                valid1 = datetime.timedelta(self.p.limdays)
-                valid2 = datetime.timedelta(self.p.limdays2)
-                valid3 = datetime.timedelta(self.p.limdays3)
-
-                self.bb1 = self.buy(exectype=bt.Order.Market,
-                                    price=p1,
-                                    valid=valid1,
-                                    transmit=False)
-
-                print('{}: Oref {} / Buy at {}'.format(
-                    self.datetime.date(), self.bb1.ref, p1))
-
-                self.bb2 = self.sell(exectype=bt.Order.StopTrail,
-                                    trailpercent=self.p.trailpercent,
-                                    valid=valid2,
-                                    parent=self.bb1,
-                                    size=self.bb1.size,
-                                    transmit=False)
-
-                print('{}: Oref {} / Sell StopTrail at {}'.format(
-                    self.datetime.date(), self.bb2.ref, self.data.close[0]*(1-self.p.trailpercent)))
-
-                self.bb3 = self.sell(exectype=bt.Order.Limit,
-                                    price=p3,
-                                    valid=valid3,
-                                    parent=self.bb1,
-                                    size=self.bb1.size,
-                                    transmit=True)
-
-                print('{}: Oref {} / Sell Limit at {}'.format(
-                    self.datetime.date(), self.bb3.ref, p3))
+                self.buyWithBracket()
 
             elif self.ttfCxUpper == -1:
-
-                p1 = self.data.close[0]
-                p3 = p1 * (1 - self.p.tppercent)
-
-                valid1 = datetime.timedelta(self.p.limdays)
-                valid2 = datetime.timedelta(self.p.limdays2)
-                valid3 = datetime.timedelta(self.p.limdays3)
-                valid4 = datetime.timedelta(self.p.limdays4)
-
-                self.sb1 = self.sell(exectype=bt.Order.Market,
-                                   price=p1,
-                                   valid=valid1,
-                                   transmit=False)
-
-                print('{}: Oref {} / Sell at {}'.format(
-                    self.datetime.date(), self.sb1.ref, p1))
-
-                self.sb2 = self.buy(exectype=bt.Order.StopTrail,
-                                  trailpercent=self.p.trailpercent,
-                                  valid=valid2,
-                                  parent=self.sb1,
-                                  size=self.sb1.size,
-                                  transmit=False)
-
-                print('{}: Oref {} / Buy StopTrail at {}'.format(
-                    self.datetime.date(), self.sb2.ref, self.data.close[0] * (1 + self.p.trailpercent)))
-
-                self.sb3 = self.buy(exectype=bt.Order.Limit,
-                                  price=p3,
-                                  valid=valid3,
-                                  parent=self.sb1,
-                                  size=self.sb1.size,
-                                  transmit=True)
-
-                print('{}: Oref {} / Buy Limit at {}'.format(
-                    self.datetime.date(), self.sb3.ref, p3))
+                self.sellWithBracket()
 
         elif self.position.size < 1:
 
-            p4 = self.data.close[0]
-            valid4 = datetime.timedelta(self.p.limdays4)
-
             if self.ttfCxLower == 1:
-                self.broker.cancel(self.sb2)
-                self.sb4 = self.buy(exectype=bt.Order.Market,
-                                    price=p4,
-                                    valid=valid4,
-                                    size=self.sb1.size)
-
-            print('{}: Buy at {}'.format(
-                self.datetime.date(), p4))
+                self.closeSellBracket()
 
         elif self.position.size > 1:
 
-            p4 = self.data.close[0]
-            valid4 = datetime.timedelta(self.p.limdays4)
-
             if self.ttfCxUpper == -1:
-                self.broker.cancel(self.bb2)
-                self.bb4 = self.sell(exectype=bt.Order.Market,
-                                     price=p4,
-                                     valid=valid4,
-                                     size=self.bb1.size)
+                self.closeBuyBracket()
 
-            print('{}: Sell at {}'.format(
-                self.datetime.date(), p4))
 
 class TTFHOLD(TTFStrategyBase, HoldStrategyExit):
     params = (('risk', 0.1),  # risk 10%

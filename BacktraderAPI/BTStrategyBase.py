@@ -358,3 +358,4 @@ class PSARStrategyBase(bt.Strategy):
 
     def __init__(self):
         self.psar = bt.ind.ParabolicSAR()
+
