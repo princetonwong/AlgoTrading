@@ -1,9 +1,5 @@
 from futu import *
-from tqdm.contrib.concurrent import process_map
-from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTObserver, BTCommInfo, BTKernelRun
-from CustomAPI.Helper import Helper
-
-
+from BacktraderAPI import BTStrategy, BTKernelRun
 
 allParams = dict(INITIALCASH= 50000,
                          SYMBOL= "TSLA",

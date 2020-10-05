@@ -3,13 +3,13 @@ import datetime
 
 class BracketBuying(bt.Strategy):
     params = dict(
-        limit=0.005,
+        limit=0.005,        #TODO: What is this?
         limdays=3,
         limdays2=1000,
         limdays3=1000,
         limdays4=10,
-        trailpercent=0.02,
-        tppercent=0.1,
+        stopLossTrailPercent=0.02,
+        takeProfitPercent=0.1,
     )
 
     def __init__(self):
@@ -39,7 +39,7 @@ class BracketBuying(bt.Strategy):
 
     def sellWithBracket(self):
         p1 = self.data.close[0]
-        p3 = p1 * (1 - self.p.tppercent)
+        p3 = p1 * (1 - self.p.takeProfitPercent)
         valid1 = datetime.timedelta(self.p.limdays)
         valid2 = datetime.timedelta(self.p.limdays2)
         valid3 = datetime.timedelta(self.p.limdays3)
@@ -51,7 +51,7 @@ class BracketBuying(bt.Strategy):
         print('{}: Oref {} / Sell at {}'.format(self.datetime.date(), self.sb1.ref, p1))
 
         self.sb2 = self.buy(exectype=bt.Order.StopTrail,
-                            trailpercent=self.p.trailpercent,
+                            trailpercent=self.p.stopLossTrailPercent,
                             valid=valid2,
                             parent=self.sb1,
                             size=self.sb1.size,
@@ -69,7 +69,7 @@ class BracketBuying(bt.Strategy):
 
     def buyWithBracket(self):
         p1 = self.data.close[0]
-        p3 = p1 * (1 + self.p.tppercent)
+        p3 = p1 * (1 + self.p.takeProfitPercent)
         valid1 = datetime.timedelta(self.p.limdays)
         valid2 = datetime.timedelta(self.p.limdays2)
         valid3 = datetime.timedelta(self.p.limdays3)
@@ -80,7 +80,7 @@ class BracketBuying(bt.Strategy):
         print('{}: Oref {} / Buy at {}'.format(self.datetime.date(), self.bb1.ref, p1))
 
         self.bb2 = self.sell(exectype=bt.Order.StopTrail,
-                             trailpercent=self.p.trailpercent,
+                             trailpercent=self.p.stopLossTrailPercent,
                              valid=valid2,
                              parent=self.bb1,
                              size=self.bb1.size,

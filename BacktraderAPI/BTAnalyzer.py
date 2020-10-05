@@ -1,16 +1,15 @@
 import pandas as pd
 from CustomAPI.Helper import Helper
 from backtrader.utils.py3 import iteritems
-from backtrader import Analyzer
 from backtrader.mathsupport import average
 from backtrader.utils import AutoOrderedDict
 import backtrader as bt
 
-def getTimeReturnDf(analyzer, xlsx=False):
+def getTimeReturnDf(analysis, xlsx=False):
     index = []
     result = []
 
-    for date, value in analyzer.items():
+    for date, value in analysis.items():
         index.append(date)
         result.append(value)
 
@@ -21,13 +20,13 @@ def getTimeReturnDf(analyzer, xlsx=False):
 
     return resultDF
 
-def getVWRDf(analyzer, xlsx=False):
+def getVWRDf(analysis, xlsx=False):
 
     '''
     https://www.crystalbull.com/sharpe-ratio-better-with-log-returns/
     '''
 
-    vwr = round(analyzer["vwr"], 2)
+    vwr = round(analysis["vwr"], 2)
     index = ['VWR']
     result = [vwr]
     resultDF = pd.Series(result, index=index)
@@ -39,8 +38,8 @@ def getVWRDf(analyzer, xlsx=False):
 
     return resultDF
 
-def getTransactionsDf(analyzer, xlsx= False):
-    txss = analyzer
+def getTransactionsDf(analysis, xlsx= False):
+    txss = analysis
     txs = list()
     for key, v in iteritems(txss):
         for v2 in v:
@@ -54,14 +53,14 @@ def getTransactionsDf(analyzer, xlsx= False):
 
     return resultDF
 
-def getTradeAnalysisDf(analyzer, xlsx=False):
-    total_open = analyzer.total.open
-    total_closed = analyzer.total.closed
-    total_won = analyzer.won.total
-    total_lost = analyzer.lost.total
-    win_streak = analyzer.streak.won.longest
-    lose_streak = analyzer.streak.lost.longest
-    pnl_net = round(analyzer.pnl.net.total, 2)
+def getTradeAnalysisDf(analysis, xlsx=False):
+    total_open = analysis.total.open
+    total_closed = analysis.total.closed
+    total_won = analysis.won.total
+    total_lost = analysis.lost.total
+    win_streak = analysis.streak.won.longest
+    lose_streak = analysis.streak.lost.longest
+    pnl_net = round(analysis.pnl.net.total, 2)
     strike_rate = round(((total_won / total_closed) * 100),2)
     index = ['Total Open', 'Total Closed', 'Total Won', 'Total Lost', 'Strike Rate', 'Win Streak', 'Losing Streak', 'PnL Net']
     result = [total_open, total_closed, total_won, total_lost, strike_rate, win_streak, lose_streak, pnl_net]
@@ -90,7 +89,7 @@ def getTradeAnalysisDf(analyzer, xlsx=False):
 
     return resultDF
 
-def getSQNDf(analyzer, xlsx= False):
+def getSQNDf(analysis, xlsx= False):
     '''
     SQN or SystemQualityNumber. Defined by Van K. Tharp to categorize trading systems.
     1.6 - 1.9 Below average
@@ -100,7 +99,7 @@ def getSQNDf(analyzer, xlsx= False):
     5.1 - 6.9 Superb
     7.0 - Holy Grail?
     '''
-    sqn = round(analyzer.sqn,2)
+    sqn = round(analysis.sqn, 2)
     index = ['SQN']
     result = [sqn]
     resultDF = pd.Series(result, index= index)
@@ -112,8 +111,8 @@ def getSQNDf(analyzer, xlsx= False):
 
     return resultDF
 
-def getDrawDownDf(analyzer, xlsx= False):
-    maxDrawDown = round(analyzer.max.drawdown, 2)
+def getDrawDownDf(analysis, xlsx= False):
+    maxDrawDown = round(analysis.max.drawdown, 2)
     index = ["Max DrawDown"]
     result = [maxDrawDown]
     resultDF = pd.Series(result, index=index)
@@ -125,8 +124,8 @@ def getDrawDownDf(analyzer, xlsx= False):
 
     return resultDF
 
-def getSharpeRatioDf(analyzer, xlsx= False):
-    sharpeRatio = round(analyzer["sharperatio"], 2)
+def getSharpeRatioDf(analysis, xlsx= False):
+    sharpeRatio = round(analysis["sharperatio"], 2)
     index = ["Sharpe Ratio"]
     result = [sharpeRatio]
     resultDF = pd.Series(result, index=index)
@@ -138,11 +137,11 @@ def getSharpeRatioDf(analyzer, xlsx= False):
 
     return resultDF
 
-def getReturnDf(analyzer, xlsx=False):
-    rtot = round(analyzer["rtot"], 3)
-    ravg = round(analyzer["ravg"], 3)
-    rnorm = round(analyzer["rnorm"], 3)
-    rnorm100 = round(analyzer["rnorm100"], 3)
+def getReturnDf(analysis, xlsx=False):
+    rtot = round(analysis["rtot"], 3)
+    ravg = round(analysis["ravg"], 3)
+    rnorm = round(analysis["rnorm"], 3)
+    rnorm100 = round(analysis["rnorm100"], 3)
     index = ["Total Compound Return", "Average Return", "Annualized Return", "Annualized Return%"]
     result = [rtot, ravg, rnorm, rnorm100]
     resultDF = pd.Series(result, index=index)
@@ -156,7 +155,17 @@ def getReturnDf(analyzer, xlsx=False):
     return resultDF
 
 
-class Kelly(Analyzer):
+def getQuantStatsReport(df):
+    import quantstats as qs
+    qs.extend_pandas()
+    # stock = qs.utils.download_returns('FB')
+    # stock.to_csv("fb.csv")
+    qs.stats.sharpe(df)
+    # qs.plots.snapshot(df, title='Performance')
+    qs.reports.html(df, output="qs.html")
+    # webbrowser.open('qs.html')
+
+class Kelly(bt.Analyzer):
     '''Kelly formula was described in 1956 by J. L. Kelly, working at Bell Labs.
     It is used to determine the optimal size of a series of bets (or trades).
     The optimal size is given as a percentage of the account value.
@@ -268,12 +277,49 @@ class Kelly(Analyzer):
         self.rets.kellyRatio = kellyPercent             # e.g. 0.215
         self.rets.kellyPercent = kellyPercent * 100     # e.g. 21.5
 
-def getQuantStatsReport(df):
-    import quantstats as qs
-    qs.extend_pandas()
-    # stock = qs.utils.download_returns('FB')
-    # stock.to_csv("fb.csv")
-    qs.stats.sharpe(df)
-    # qs.plots.snapshot(df, title='Performance')
-    qs.reports.html(df, output="qs.html")
-    # webbrowser.open('qs.html')
+class Screener_SMA(bt.Analyzer):
+    params = dict(period=10)
+
+    def start(self):
+        self.smas = {data: bt.indicators.SMA(data, period=self.p.period)
+                     for data in self.datas}
+
+    def stop(self):
+        self.rets['over'] = list()
+        self.rets['under'] = list()
+
+        for data, sma in self.smas.items():
+            node = data._name, data.close[0], sma[0]
+            if data > sma:  # if data.close[0] > sma[0]
+                self.rets['over'].append(node)
+            else:
+                self.rets['under'].append(node)
+
+class Screener_SMA2(bt.Analyzer):
+    params = dict(period=10)
+
+    def start(self):
+        self.smas = {data: bt.indicators.SMA(data, period=self.p.period) for data in self.datas}
+
+    def stop(self):
+
+        for data, sma in self.smas.items():
+            self.rets.dataName = data._name
+            self.rets.close = data.close[0]
+            self.rets.sma = sma[0]
+
+            if data > sma:
+                self.rets.SMASignal = 1
+            else:
+                self.rets.SMASignal = 0
+
+    def getScreenerSMADf(analysis):
+        dataName = analysis.dataName
+        close = round(analysis.close, 2)
+        SMA = round(analysis.sma, 2)
+        SMASignal = analysis.SMASignal
+        index = ["Data Name", "Close", "SMA", "SMASignal"]
+        result = [dataName, close, SMA, SMASignal]
+        resultDF = pd.Series(result, index=index)
+
+        return resultDF

@@ -11,7 +11,7 @@ class BTCoreRun:
                             SUBTYPE=SubType.K_1M,
                             TIMERANGE=("2020-06-21", "00:00:00", "2020-09-23", "23:59:00"),
                             # TODO: Create CSV Writer to store Stock Info
-                            STRATEGY=BTStrategy.PSARStrategy,
+                            STRATEGYNAME=BTStrategy.PSARStrategy,
                             STRATEGYPARAMS=dict(kijun=6, tenkan=3, chikou=6, senkou=12, senkou_lead=6,
                                                         trailHold=1, stopLossPerc=0.016),
                             REMARKS="WithStopLoss",
@@ -22,11 +22,14 @@ class BTCoreRun:
                                  )
 
 
-    def __init__(self, allParams, strategyParams, isOptimization = False):
+    def __init__(self, allParams, strategyParams, isOptimization = False, isScreening = False):
         self.cerebro = bt.Cerebro()
+
         self.allParams = allParams or self.defaultAllParams
         self.strategyParams = strategyParams or self.defaultStrategyParams
+
         self.isOptimization = isOptimization
+        self.isScreening = isScreening
 
         self.initialCash = self.allParams["INITIALCASH"]
         self.symbol = self.allParams["SYMBOL"]
@@ -45,6 +48,12 @@ class BTCoreRun:
     def setFolderName(self):
         if self.isOptimization:
             self.folderName = "[Opt]" + self.helper.initializeFolderName(self.symbol, self.subType,
+                                                                         self.timerange,
+                                                                         self.strategyName,
+                                                                         self.strategyParams,
+                                                                         self.remarks)
+        elif self.isScreening:
+            self.folderName = "[Screen]" + self.helper.initializeFolderName(self.symbol, self.subType,
                                                                          self.timerange,
                                                                          self.strategyName,
                                                                          self.strategyParams,
@@ -83,8 +92,8 @@ class BTCoreRun:
     def addSizer(self, sizer):
         self.cerebro.addsizer(sizer)
 
-    def addBroker(self, initialCash):
-        self.cerebro.broker.setcash(initialCash)
+    def addBroker(self):
+        self.cerebro.broker.setcash(self.initialCash)
         if self.datafeedSource == DataFeedSource.FutuFuture and self.symbol == "HK.MHImain":
             self.cerebro.broker.addcommissioninfo(BTCommInfo.FutuHKIMainCommInfo())
         print('Starting Portfolio Value: %.2f' % self.cerebro.broker.getvalue())
@@ -106,6 +115,9 @@ class BTCoreRun:
         self.cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="ta")
         self.cerebro.addanalyzer(bt.analyzers.Transactions, _name="transactions")
         self.cerebro.addanalyzer(bt.analyzers.TimeReturn, timeframe=bt.TimeFrame.Minutes, _name="timereturn")
+
+    def addScreeningAnalyzer(self):
+        self.cerebro.addanalyzer(BTAnalyzer.Screener_SMA2, _name="screener_sma")
 
     def addObserver(self, SLTP=False):
         self.cerebro.addobserver(bt.observers.DrawDown)
@@ -164,7 +176,7 @@ class BTCoreRun:
             self.helper.outputXLSX(transactionsDF, "Transactions")
             self.helper.outputXLSX(timeReturnDF, "TimeReturn")
 
-            if quantStats:
+            if quantStats: #TODO: Fix
                 import quantstats as qs
                 qs.extend_pandas()
                 qs.stats.sharpe(timeReturnDF)
@@ -193,26 +205,50 @@ class BTCoreRun:
         }
         return {**self.strategyParams, **self.stats}
 
-    def runOneStrategy(self, strategyParams):
+    def getScreeningResults(self):
+        strategy = self.results[0]
+        smaScreenerAnalysis = strategy.analyzers.screener_sma.get_analysis()
+        print (smaScreenerAnalysis)
+        smaScreenerResults = BTAnalyzer.Screener_SMA2.getScreenerSMADf(smaScreenerAnalysis)
+
+        self.stats = {
+            "Symbol": self.symbol,
+            **smaScreenerResults,
+        }
+        return {**self.stats}
+
+    def runOneStrategy(self, strategyParams, SLTP=False):
         self.setFolderName()
         self.loadData()
         self.addWriter(writeCSV=True)
         self.addSizer(sizer=BTSizer.FixedSizer)
-        self.addBroker(initialCash=self.initialCash)
+        self.addBroker()
         self.addStrategy(addStrategyParams=strategyParams)
         self.addAnalyzer()
-        self.addObserver(SLTP=False)
+        self.addObserver(SLTP=SLTP)
         self.run()
         self.plotBokeh()
         # self.plotIPython()
         return self.getAnalysisResults(quantStats=False)
 
     def runOptimizationWithSameData(self, strategyParams):
+        self.setFolderName()
         self.addSizer(sizer=BTSizer.FixedSizer)
-        self.addBroker(initialCash=self.initialCash)
+        self.addBroker()
         self.addStrategy(addStrategyParams=strategyParams)
         self.addAnalyzer()
         self.addObserver(SLTP=False)
         self.run()
         return self.getAnalysisResults(quantStats=False)
+
+    def runScreening(self, strategyParams):
+        self.strategyName = BTStrategy.EmptyStrategy
+        self.addWriter(writeCSV=True)
+        self.addBroker()
+        self.addStrategy(addStrategyParams=strategyParams)
+        self.addScreeningAnalyzer()
+        self.run()
+        # self.plotBokeh()
+        # self.plotIPython()
+        return self.getScreeningResults()
 

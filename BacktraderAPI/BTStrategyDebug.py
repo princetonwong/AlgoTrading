@@ -1,6 +1,5 @@
 import backtrader as bt
 
-
 class NotifyOrderShowStatus(bt.Strategy):
 
     def notify_order(self, order):

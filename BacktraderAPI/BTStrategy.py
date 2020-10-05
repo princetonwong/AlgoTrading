@@ -543,6 +543,34 @@ class IchimokuStrategy(IchimokuCloudStrategyBase, StopTrailStrategyExit, HoldStr
 
         super(IchimokuStrategy, self).next()
 
+class IchimokuBracketStrategy(IchimokuCloudStrategyBase, BracketBuying, HoldStrategyExit, CCIStrategyBase, AwesomeOscillatorStrategyBase):
+    def next(self):
+        cloud = self.ichimoku.senkou_span_a - self.ichimoku.senkou_span_b
+        tenkanGreaterKijun = self.ichimoku.tenkan_sen - self.ichimoku.kijun_sen
+        if self.position.size == 0:  # not in the market
+
+            if tenkanGreaterKijun > 0:
+               if (cloud > 0 and self.data > self.ichimoku.senkou_span_a) or (cloud < 0 and self.data > self.ichimoku.senkou_span_b):
+                    if self.tenkanXKijun == 1 or self.XSenkouB == 1:
+                        self.buy()
+
+            elif tenkanGreaterKijun < 0:
+                if (cloud > 0 and self.data < self.ichimoku.senkou_span_b) or (cloud < 0 and self.data < self.ichimoku.senkou_span_a):
+                    if self.tenkanXKijun == -1 or self.XSenkouB == -1:
+                        self.sell()
+
+        elif self.position.size > 0:
+            if (len(self) - self.holdstart) >= self.p.hold:
+                if self.tenkanXKijun == -1:
+                    self.close()
+
+        elif self.position.size < 0:
+            if (len(self) - self.holdstart) >= self.p.hold:
+                if self.tenkanXKijun == 1:
+                    self.close()
+
+        super(IchimokuBracketStrategy, self).next()
+
 class IchimokuCloudxDMIStrategy(IchimokuCloudStrategyBase, DMIStrategyBase):
     '''
              Kijun Sen (blue line, confirm future trends): standard line/base line, averaging highest high and lowest low for past 26 periods
