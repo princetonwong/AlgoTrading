@@ -3,13 +3,12 @@ import datetime
 
 class BracketBuying(bt.Strategy):
     params = dict(
-        limit=0.005,        #TODO: What is this?
         limdays=3,
         limdays2=1000,
         limdays3=1000,
         limdays4=10,
         stopLossTrailPercent=0.02,
-        takeProfitPercent=0.1,
+        takeProfitPercent=0.01,
     )
 
     def __init__(self):
@@ -57,7 +56,7 @@ class BracketBuying(bt.Strategy):
                             size=self.sb1.size,
                             transmit=False)
         print('{}: Oref {} / Buy StopTrail at {}'.format(self.datetime.date(), self.sb2.ref,
-                                                         self.data.close[0] * (1 + self.p.trailpercent)))
+                                                         self.data.close[0] * (1 + self.p.stopLossTrailPercent)))
 
         self.sb3 = self.buy(exectype=bt.Order.Limit,
                             price=p3,
@@ -86,7 +85,7 @@ class BracketBuying(bt.Strategy):
                              size=self.bb1.size,
                              transmit=False)
         print('{}: Oref {} / Sell StopTrail at {}'.format(self.datetime.date(), self.bb2.ref,
-                                                          self.data.close[0] * (1 - self.p.trailpercent)))
+                                                          self.data.close[0] * (1 - self.p.stopLossTrailPercent)))
 
         self.bb3 = self.sell(exectype=bt.Order.Limit,
                              price=p3,
