@@ -1,7 +1,7 @@
 from futu import *
 import backtrader as bt
 from CustomAPI.Helper import Helper
-from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTObserver, BTCommInfo
+from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTObserver, BTCommInfo, BTScreener
 from BacktraderAPI.BTDataFeed import DataFeedSource
 
 class BTCoreRun:
@@ -116,8 +116,8 @@ class BTCoreRun:
         self.cerebro.addanalyzer(bt.analyzers.Transactions, _name="transactions")
         self.cerebro.addanalyzer(bt.analyzers.TimeReturn, timeframe=bt.TimeFrame.Minutes, _name="timereturn")
 
-    def addScreeningAnalyzer(self):
-        self.cerebro.addanalyzer(BTAnalyzer.Screener_SMA2, _name="screener_sma")
+    def addScreener(self):
+        self.cerebro.addanalyzer(BTScreener.MyScreener, _name="screener_sma")
 
     def addObserver(self, SLTP=False):
         self.cerebro.addobserver(bt.observers.DrawDown)
@@ -208,8 +208,7 @@ class BTCoreRun:
     def getScreeningResults(self):
         strategy = self.results[0]
         smaScreenerAnalysis = strategy.analyzers.screener_sma.get_analysis()
-        print (smaScreenerAnalysis)
-        smaScreenerResults = BTAnalyzer.Screener_SMA2.getScreenerSMADf(smaScreenerAnalysis)
+        smaScreenerResults = BTScreener.MyScreener().getScreenerDf(smaScreenerAnalysis)
 
         self.stats = {
             "Symbol": self.symbol,
@@ -231,6 +230,20 @@ class BTCoreRun:
         # self.plotIPython()
         return self.getAnalysisResults(quantStats=False)
 
+    def runDayTradeOption(self, strategyParams, SLTP=False):
+        self.setFolderName()
+        self.loadData(datafeedSource=DataFeedSource.YahooOption)
+        self.addWriter(writeCSV=True)
+        self.addSizer(sizer=BTSizer.FixedSizer)
+        self.addBroker()
+        self.addStrategy(addStrategyParams=strategyParams)
+        # self.addAnalyzer()
+        self.addObserver(SLTP=SLTP)
+        self.run()
+        self.plotBokeh()
+        # self.plotIPython()
+        return self.getAnalysisResults(quantStats=False)
+
     def runOptimizationWithSameData(self, strategyParams):
         self.setFolderName()
         self.addSizer(sizer=BTSizer.FixedSizer)
@@ -246,7 +259,7 @@ class BTCoreRun:
         self.addWriter(writeCSV=True)
         self.addBroker()
         self.addStrategy(addStrategyParams=strategyParams)
-        self.addScreeningAnalyzer()
+        self.addScreener()
         self.run()
         # self.plotBokeh()
         # self.plotIPython()
