@@ -28,6 +28,13 @@ class Helper():
         finalFilePath = "{}-{}{}".format(filename, self.folderName, extension)
         return os.path.join(path, finalFilePath)
 
+    def readXLSXFromFile(self, filename):
+        path = Path.cwd() / "Output"
+        filenameWithExtension = filename + ".xlsx"
+        finalPath = os.path.join(path, filenameWithExtension)
+        df = pd.read_excel(finalPath)
+        return df
+
     def outputXLSX(self, df, fileName):
         path = self.generateFilePath(fileName, ".xlsx")
 

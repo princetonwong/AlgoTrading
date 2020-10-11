@@ -239,7 +239,7 @@ class ClenowTrendFollowingStrategy(bt.Strategy):
 
 
 #Trend Changing, Stochastic Strategy
-        
+
 class StochasticStrategy(bt.Strategy):
 
     '''
@@ -515,7 +515,7 @@ class DMICrossStrategy(DMIStrategyBase):
                 if self.plusDIXminusDI == 1:
                     self.buy(exectype=bt.Order.Stop, price=self.data.close)
 
-class IchimokuStrategy(IchimokuCloudStrategyBase, StopTrailStrategyExit, HoldStrategyExit, CCIStrategyBase, AwesomeOscillatorStrategyBase):
+class IchimokuStrategy(IchimokuCloudStrategyBase, StopTrailStrategyExit, HoldStrategyExit, CCIStrategyBase, AwesomeOscillatorStrategyBase, PSARStrategyBase):
     def next(self):
         cloud = self.ichimoku.senkou_span_a - self.ichimoku.senkou_span_b
         tenkanGreaterKijun = self.ichimoku.tenkan_sen - self.ichimoku.kijun_sen
