@@ -2,6 +2,7 @@ from futu import *
 from tqdm.contrib.concurrent import process_map
 from BacktraderAPI import BTStrategy, BTKernelRun
 from CustomAPI.Helper import Helper
+from CustomAPI.YahooScraper import YahooScraper
 
 #Wrapper Function
 def runScreening(allParams, strategyParams):
@@ -10,12 +11,20 @@ def runScreening(allParams, strategyParams):
     btCoreRun.loadData()
     return btCoreRun.runScreening(strategyParams)
 
+def readSP500List(update= False):
+    if update:
+        df = YahooScraper().dailySP500Scrap()
+    else:
+        df = Helper().readXLSXFromFile("SP500")
+    return df
 
 def screening() -> pd.DataFrame:
     #Many Time Parameters
     all_list = []
     params_list = []
-    for symbol in ["TSLA", "AAPL"]:
+    sp500list = readSP500List()
+
+    for symbol in sp500list["ticker"].tolist():
         allParams = dict(INITIALCASH=50000,
                          SYMBOL= symbol,
                          SUBTYPE=SubType.K_5M,
@@ -34,7 +43,7 @@ def screening() -> pd.DataFrame:
     #Results
     df = pd.DataFrame(stats)
     # df.sort_values(sortKey, ascending=False, inplace=True)
-    Helper().gradientAppliedXLSX(df, "Screening",[])
+    Helper().gradientAppliedXLSX(df, "Screening" + datetime.now().strftime("%Y-%m-%d"),[])
     return df
 
 screening()

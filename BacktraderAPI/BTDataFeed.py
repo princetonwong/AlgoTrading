@@ -55,7 +55,7 @@ def getYahooDataFeeds(symbol_list, subtype, timerange, period = None, folderName
                                interval=yahooSubtype,
                                group_by='ticker',
                                )
-        df.to_csv(f"{symbol_list}.csv")
+        # df.to_csv(f"{symbol_list}.csv")
     else:
 
         df = yfinance.download(  # or pdr.get_data_yahoo(...

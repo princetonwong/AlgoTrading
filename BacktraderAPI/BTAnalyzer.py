@@ -277,49 +277,4 @@ class Kelly(bt.Analyzer):
         self.rets.kellyRatio = kellyPercent             # e.g. 0.215
         self.rets.kellyPercent = kellyPercent * 100     # e.g. 21.5
 
-class Screener_SMA(bt.Analyzer):
-    params = dict(period=10)
 
-    def start(self):
-        self.smas = {data: bt.indicators.SMA(data, period=self.p.period)
-                     for data in self.datas}
-
-    def stop(self):
-        self.rets['over'] = list()
-        self.rets['under'] = list()
-
-        for data, sma in self.smas.items():
-            node = data._name, data.close[0], sma[0]
-            if data > sma:  # if data.close[0] > sma[0]
-                self.rets['over'].append(node)
-            else:
-                self.rets['under'].append(node)
-
-class Screener_SMA2(bt.Analyzer):
-    params = dict(period=10)
-
-    def start(self):
-        self.smas = {data: bt.indicators.SMA(data, period=self.p.period) for data in self.datas}
-
-    def stop(self):
-
-        for data, sma in self.smas.items():
-            self.rets.dataName = data._name
-            self.rets.close = data.close[0]
-            self.rets.sma = sma[0]
-
-            if data > sma:
-                self.rets.SMASignal = 1
-            else:
-                self.rets.SMASignal = 0
-
-    def getScreenerSMADf(analysis):
-        dataName = analysis.dataName
-        close = round(analysis.close, 2)
-        SMA = round(analysis.sma, 2)
-        SMASignal = analysis.SMASignal
-        index = ["Data Name", "Close", "SMA", "SMASignal"]
-        result = [dataName, close, SMA, SMASignal]
-        resultDF = pd.Series(result, index=index)
-
-        return resultDF
