@@ -22,12 +22,12 @@ def screening() -> pd.DataFrame:
     #Many Time Parameters
     all_list = []
     params_list = []
-    sp500list = readSP500List().head(10)
+    sp500list = readSP500List()
 
-    for symbol in sp500list["ticker"]:
+    for symbol in sp500list["ticker"].tolist():
         allParams = dict(INITIALCASH=50000,
                          SYMBOL= symbol,
-                         SUBTYPE=SubType.K_15M,
+                         SUBTYPE=SubType.K_5M,
                          TIMERANGE=("2020-09-05", "00:00:00", "2020-09-27", "23:59:00"),
                          REMARKS=""
                          )

@@ -116,8 +116,6 @@ class BTCoreRun:
         self.cerebro.addanalyzer(bt.analyzers.Transactions, _name="transactions")
         self.cerebro.addanalyzer(bt.analyzers.TimeReturn, timeframe=bt.TimeFrame.Minutes, _name="timereturn")
 
-    def addScreener(self):
-        self.cerebro.addanalyzer(BTScreener.MyScreener, _name="screener_sma")
 
     def addObserver(self, SLTP=False):
         self.cerebro.addobserver(bt.observers.DrawDown)
@@ -205,14 +203,17 @@ class BTCoreRun:
         }
         return {**self.strategyParams, **self.stats}
 
+    def addScreener(self):
+        self.cerebro.addanalyzer(BTScreener.MyScreener, _name="myscreener")
+
     def getScreeningResults(self):
         strategy = self.results[0]
-        smaScreenerAnalysis = strategy.analyzers.screener_sma.get_analysis()
-        smaScreenerResults = BTScreener.MyScreener().getScreenerDf(smaScreenerAnalysis)
+        myScreenerAnalysis = strategy.analyzers.myscreener.get_analysis()
+        myScreenerResults = strategy.analyzers.myscreener.getScreenerDf(myScreenerAnalysis)
 
         self.stats = {
             "Symbol": self.symbol,
-            **smaScreenerResults,
+            **myScreenerResults,
         }
         return {**self.stats}
 
