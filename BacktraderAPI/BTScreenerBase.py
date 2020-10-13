@@ -3,11 +3,15 @@ import backtrader as bt
 import BacktraderAPI.BTStrategy as BTStrategy
 
 class _ScreenerBase(bt.Analyzer):
-    def getScreenerDf(self, analysis):
+    def getScreenerResultsDf(self):
         self.index = list()
         self.result = list()
+        self.resultDF = pd.Series()
+
+        return self.resultDF
+
+    def updateResultDF(self):
         resultDF = pd.Series(self.result, index=self.index)
-        return resultDF
 
 
 class DataNameCloseScreener(_ScreenerBase):
@@ -16,17 +20,17 @@ class DataNameCloseScreener(_ScreenerBase):
         self.rets.dataName = self.data._name
         self.rets.close = self.data.close[0]
 
-    def getScreenerDf(self, analysis):
-        super(DataNameCloseScreener, self).getScreenerDf(analysis)
-        dataName = analysis.dataName
-        close = round(analysis.close, 2)
-        self.index.append("Data Name")
-        self.index.append("Close")
-        self.result.append(dataName)
-        self.result.append(close)
+        print(self.rets)
 
-        resultDF = pd.Series(self.result, index=self.index)
-        return resultDF
+    def getScreenerResultsDf(self):
+        super(DataNameCloseScreener, self).getScreenerResultsDf()
+        dataName = self.get_analysis().dataName
+        close = round(self.get_analysis().close, 2)
+        self.index += ["Data Name", "Close"]
+        self.result += [dataName, close]
+
+        self.updateResultDF()
+        return self.resultDF
 
 
 class SMAScreener(_ScreenerBase):
@@ -45,14 +49,13 @@ class SMAScreener(_ScreenerBase):
         else:
             self.rets.SMASignal = 0
 
-    def getScreenerDf(self, analysis):
-        super(SMAScreener, self).getScreenerDf(analysis)
-        SMA = round(analysis.sma, 2)
-        SMASignal = analysis.SMASignal
-        self.index.append("SMA")
-        self.index.append("SMASignal")
-        self.result.append(SMA)
-        self.result.append(SMASignal)
+    def getScreenerResultsDf(self):
+        super(SMAScreener, self).getScreenerResultsDf()
+
+        SMA = round(self.get_analysis().sma, 2)
+        SMASignal = self.get_analysis().SMASignal
+        self.index += ["SMA", "SMASignal"]
+        self.result += [SMA, SMASignal]
 
         resultDF = pd.Series(self.result, index=self.index)
 
