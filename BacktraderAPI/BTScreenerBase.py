@@ -11,7 +11,7 @@ class _ScreenerBase(bt.Analyzer):
         return self.resultDF
 
     def updateResultDF(self):
-        resultDF = pd.Series(self.result, index=self.index)
+        self.resultDF = pd.Series(self.result, index=self.index)
 
 
 class DataNameCloseScreener(_ScreenerBase):
@@ -57,9 +57,8 @@ class SMAScreener(_ScreenerBase):
         self.index += ["SMA", "SMASignal"]
         self.result += [SMA, SMASignal]
 
-        resultDF = pd.Series(self.result, index=self.index)
-
-        return resultDF
+        self.updateResultDF()
+        return self.resultDF
 
 class RSIScreener(_ScreenerBase):
     params = dict(period=21, rsiUpperband=60, rsiLowerband=40)
@@ -83,23 +82,17 @@ class RSIScreener(_ScreenerBase):
         super(RSIScreener, self).getScreenerDf(analysis)
         rsi = round(analysis.rsi, 2)
         rsiSignal = analysis.RSISignal
-        self.index.append("RSI")
-        self.index.append("RSISignal")
-        self.result.append(rsi)
-        self.result.append(rsiSignal)
+        self.index += ["RSI", "RSISignal"]
+        self.result += [rsi, rsiSignal]
 
-        resultDF = pd.Series(self.result, index=self.index)
-
-        return resultDF
+        self.updateResultDF()
+        return self.resultDF
 
 class MACDScreener(_ScreenerBase):
     params = dict(macdFast=12, macdSlow=26, diffPeriod=9)
 
     def start(self):
         super(MACDScreener, self).start()
-        # macdSB = BTStrategy.MACDStrategyBase()
-        # self.macd = macdSB.macd
-        # self.mcross = macdSB.mcross
         self.macd = bt.indicators.MACD(period_me1=self.p.macdFast,
                                        period_me2=self.p.macdSlow,
                                        period_signal=self.p.diffPeriod, subplot=False)
@@ -120,11 +113,8 @@ class MACDScreener(_ScreenerBase):
         super(MACDScreener, self).getScreenerDf(analysis)
         macd = round(analysis.macd, 2)
         macdSignal = analysis.macdSignal
-        self.index.append("MACD")
-        self.index.append("MACDSignal")
-        self.result.append(macd)
-        self.result.append(macdSignal)
+        self.index += ["MACD", "MACDSignal"]
+        self.result += [macd, macdSignal]
 
-        resultDF = pd.Series(self.result, index=self.index)
-
-        return resultDF
+        self.updateResultDF()
+        return self.resultDF
