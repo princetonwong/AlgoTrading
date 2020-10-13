@@ -260,6 +260,5 @@ class BTCoreRun:
         self.addScreener()
         self.run()
         # self.plotBokeh()
-        # self.plotIPython()
         return self.getScreeningResults()
 
