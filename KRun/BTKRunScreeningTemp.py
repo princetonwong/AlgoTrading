@@ -11,18 +11,11 @@ def runScreening(allParams, strategyParams):
     btCoreRun.loadData()
     return btCoreRun.runScreening(strategyParams)
 
-def readSP500List(update= False):
-    if update:
-        df = YahooScraper().dailySP500Scrap()
-    else:
-        df = Helper().readXLSXFromFile("SP500")
-    return df
-
 def screening() -> pd.DataFrame:
     #Many Time Parameters
     all_list = []
     params_list = []
-    sp500list = readSP500List()
+    sp500list = YahooScraper().readSP500List().head(1)
 
     for symbol in sp500list["ticker"].tolist():
         allParams = dict(INITIALCASH=50000,
@@ -31,8 +24,8 @@ def screening() -> pd.DataFrame:
                          TIMERANGE=("2020-09-05", "00:00:00", "2020-09-27", "23:59:00"),
                          REMARKS=""
                          )
-        strategyParams = dict(STRATEGYNAME=BTStrategy.IchimokuStrategy,
-                              STRATEGYPARAMS=dict(kijun=6, tenkan=3, chikou=6, senkou=12, senkou_lead=6, trailHold= 1, stopLossPerc= 0.016)
+        strategyParams = dict(STRATEGYNAME=BTStrategy.EmptyStrategy,
+                              STRATEGYPARAMS=dict()
                               )
 
         all_list.append({**allParams})
