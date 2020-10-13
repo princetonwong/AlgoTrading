@@ -15,14 +15,14 @@ def readSP500List(update= False):
     if update:
         df = YahooScraper().dailySP500Scrap()
     else:
-        df = Helper().readXLSXFromFile("SP500")
+        df = Helper().readXLSXFromFile("SP500-")
     return df
 
 def screening() -> pd.DataFrame:
     #Many Time Parameters
     all_list = []
     params_list = []
-    sp500list = readSP500List()
+    sp500list = readSP500List(update=False)
 
     for symbol in sp500list["ticker"].tolist():
         allParams = dict(INITIALCASH=50000,

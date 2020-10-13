@@ -994,6 +994,7 @@ class TTFwithBracketandCancellation(TTFStrategyBase, BracketBuying, NotifyOrderS
             if self.ttfCxUpper == -1:
                 self.closeBuyBracket()
 
+#TODO: the market order cant be executed when counteracted cross indicator triggered
 
 class TTFHOLD(TTFStrategyBase, HoldStrategyExit):
     params = (('risk', 0.1),  # risk 10%
