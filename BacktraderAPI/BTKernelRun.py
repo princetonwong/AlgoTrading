@@ -208,14 +208,11 @@ class BTCoreRun:
 
     def getScreeningResults(self):
         strategy = self.results[0]
-        myScreenerAnalysis = strategy.analyzers.myscreener.get_analysis()
-        myScreenerResults = strategy.analyzers.myscreener.getScreenerDf(myScreenerAnalysis)
+        myScreenerResults = strategy.analyzers.myscreener.getScreenerResultsDf()
 
-        self.stats = {
-            "Symbol": self.symbol,
-            **myScreenerResults,
-        }
-        return {**self.stats}
+        return myScreenerResults
+
+    #Usage Method
 
     def runOneStrategy(self, strategyParams, SLTP=False):
         self.setFolderName()

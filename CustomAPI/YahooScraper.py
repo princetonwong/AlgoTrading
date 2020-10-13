@@ -121,3 +121,10 @@ class YahooScraper():
         # Helper().gradientAppliedXLSX(df, "SP500 - " + datetime.now().strftime("%Y-%m-%d"), [])
         Helper().gradientAppliedXLSX(df, "SP500", [])
         return df
+
+    def readSP500List(self, update=False):
+        if update:
+            df = self.dailySP500Scrap()
+        else:
+            df = Helper().readXLSXFromFile("SP500-")
+        return df
