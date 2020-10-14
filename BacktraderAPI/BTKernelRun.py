@@ -225,17 +225,18 @@ class BTCoreRun:
     #     self.getAnalysisResults(quantStats=True)
     #     return
     #
-    # def runDayTradeOption(self, strategyParams, SLTP=False):
-    #     self.setFolderName()
-    #     self.loadData(datafeedSource=DataFeedSource.YahooOption)
-    #     self.addWriter(writeCSV=True)
-    #     self.addSizer(sizer=BTSizer.FixedSizer)
-    #     self.addBroker()
-    #     self.addStrategy(addStrategyParams=strategyParams)
-    #     self.addObserver(SLTP=SLTP)
-    #     self.run()
-    #     self.plotBokeh()
-    #     return self.getAnalysisResults(quantStats=False)
+    def runDayTradeOption(self, strategyParams, SLTP=False):
+        self.setFolderName()
+        self.loadData(datafeedSource=DataFeedSource.YahooOption)
+        self.addWriter(writeCSV=True)
+        self.addSizer(sizer=BTSizer.FixedSizer)
+        self.addBroker()
+        self.addStrategy(strategyParams)
+        self.addObserver(SLTP=SLTP)
+        self.addDataFilter(bt.filters.HeikinAshi)
+        self.run()
+        self.plotBokeh()
+        return self.getAnalysisResults(quantStats=False)
     #
     # def runOptimizationWithSameData(self, strategyParams):
     #     self.setFolderName()
