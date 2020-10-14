@@ -7,16 +7,26 @@ class Helper():
     field = "open"
     folderName = ""
 
-    def initializeFolderName(self, symbol, subtype, timerange, strategy, params, custom):
+    def initializeFolderName(self, symbol, subtype, timerange, strategy, params, custom, prefix = None):
         if timerange:
             timerange = self.serializeTuple(timerange[0::2])
         else:
             timerange = self.get_timestamp()
 
-        strategy = strategy.__name__
-        params = self.serializeDictValues(params)
+        strategy = None or strategy.__name__
+        params = None or self.serializeDictValues(params)
 
-        self.folderName = "{}-{} [{}] {} {} {}".format(symbol, subtype, timerange, strategy, params, custom)
+        if prefix is not None:
+            self.folderName = "[{}]-{}-{} [{}] {} {} {}".format(prefix, symbol, subtype, timerange, strategy, params,
+                                                                custom)
+        else:
+            self.folderName = "{}-{} [{}] {} {} {}".format(symbol, subtype, timerange, strategy, params, custom)
+
+        Helper.folderName = self.folderName
+        return self.folderName
+
+    def initializeCustomFolderName(self, folderName):
+        self.folderName = folderName
         Helper.folderName = self.folderName
         return self.folderName
 
@@ -25,7 +35,7 @@ class Helper():
         path.mkdir(exist_ok=True)
         if filename == None:
             filename = "Unknown File Name"
-        finalFilePath = "{}-{}{}".format(filename, self.folderName, extension)
+        finalFilePath = "{}{}".format(filename, extension)
         return os.path.join(path, finalFilePath)
 
     def readXLSXFromFile(self, filename):

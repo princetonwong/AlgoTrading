@@ -45,27 +45,33 @@ class BTCoreRun:
         else:
             self.datafeedSource = DataFeedSource.Yahoo
 
+        self.folderName = ""
+
     def setFolderName(self):
         if self.isOptimization:
-            self.folderName = "[Opt]" + self.helper.initializeFolderName(self.symbol, self.subType,
-                                                                         self.timerange,
-                                                                         self.strategyName,
-                                                                         self.strategyParams,
-                                                                         self.remarks)
+            self.folderName = self.helper.initializeFolderName(self.symbol, self.subType,
+                                                                           self.timerange, self.strategyName,
+                                                                           self.strategyParams, self.remarks, prefix= "Optimiz")
         elif self.isScreening:
-            self.folderName = "[Screen]" + self.helper.initializeFolderName(self.symbol, self.subType,
-                                                                         self.timerange,
-                                                                         self.strategyName,
-                                                                         self.strategyParams,
-                                                                         self.remarks)
+            self.folderName = self.helper.initializeFolderName(self.symbol, self.subType,
+                                                                            self.timerange, self.strategyName,
+                                                                            self.strategyParams, self.remarks, prefix= "Screen")
         else:
-            self.folderName = self.helper.initializeFolderName(self.symbol, self.subType, self.timerange, self.strategyName, self.strategyParams, self.remarks)
+            self.folderName = self.helper.initializeFolderName(self.symbol, self.subType, self.timerange,
+                                                               self.strategyName, self.strategyParams, self.remarks)
+
+
+        print (self.folderName)
 
     def loadData(self, datafeedSource: DataFeedSource = None):
         self.datafeedSource = datafeedSource or self.datafeedSource
 
         if self.datafeedSource == DataFeedSource.Yahoo:
-            self.data0 = BTDataFeed.getYahooDataFeeds([self.symbol], self.subType, self.timerange, folderName=self.folderName)
+            # if self.isOptimization == True:
+            #     self.data0 = BTDataFeed.getYahooDataFeeds([self.symbol], self.subType, self.timerange)
+            # else:
+                self.data0 = BTDataFeed.getYahooDataFeeds([self.symbol], self.subType, self.timerange, folderName=self.folderName)
+                
         elif self.datafeedSource == DataFeedSource.YahooOption:
             self.data0 = BTDataFeed.getYahooDataFeeds([self.symbol], self.subType, self.timerange, period="1d", folderName=None)
         elif self.datafeedSource == DataFeedSource.Futu:
@@ -98,23 +104,11 @@ class BTCoreRun:
             self.cerebro.broker.addcommissioninfo(BTCommInfo.FutuHKIMainCommInfo())
         print('Starting Portfolio Value: %.2f' % self.cerebro.broker.getvalue())
 
-    def addStrategy(self, addStrategyParams):
-        self.addStrategyParams = addStrategyParams["STRATEGYPARAMS"]
+    def addStrategy(self, strategyParams):
+        self.addStrategyParams = strategyParams["STRATEGYPARAMS"] or self.strategyParams
         print(f"Strategy parameters are: {self.addStrategyParams}")
         print(f"Optimization is: {self.isOptimization}")
         self.cerebro.addstrategy(self.strategyName, **self.addStrategyParams)
-
-    def addAnalyzer(self):
-        self.cerebro.addanalyzer(bt.analyzers.SharpeRatio, timeframe=bt.TimeFrame.Days, compression=1, factor=365,
-                                     annualize=True, _name="sharperatio")
-        self.cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
-        self.cerebro.addanalyzer(bt.analyzers.SQN, _name="sqn")
-        self.cerebro.addanalyzer(BTAnalyzer.Kelly, _name="kelly")
-        self.cerebro.addanalyzer(bt.analyzers.VWR, _name="vwr")
-        self.cerebro.addanalyzer(bt.analyzers.Returns, timeframe=bt.TimeFrame.Days, compression=1, tann=365)
-        self.cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="ta")
-        self.cerebro.addanalyzer(bt.analyzers.Transactions, _name="transactions")
-        self.cerebro.addanalyzer(bt.analyzers.TimeReturn, timeframe=bt.TimeFrame.Minutes, _name="timereturn")
 
 
     def addObserver(self, SLTP=False):
@@ -145,61 +139,63 @@ class BTCoreRun:
         if self.isOptimization is False:
             self.helper.saveFig(figs)
 
+    def addAnalyzer(self):
+        self.cerebro.addanalyzer(BTAnalyzer.SharpeRatio)
+        self.cerebro.addanalyzer(BTAnalyzer.Returns)
+        self.cerebro.addanalyzer(BTAnalyzer.SQN)
+        self.cerebro.addanalyzer(BTAnalyzer.Kelly)
+        self.cerebro.addanalyzer(BTAnalyzer.VWR)
+        self.cerebro.addanalyzer(BTAnalyzer.Returns)
+        self.cerebro.addanalyzer(BTAnalyzer.TradeAnalyzer)
+        self.cerebro.addanalyzer(BTAnalyzer.DrawDown)
+
+        self.cerebro.addanalyzer(BTAnalyzer.Transactions)
+        self.cerebro.addanalyzer(BTAnalyzer.TimeReturn)
+
     def getAnalysisResults(self, quantStats=False):
         strategy = self.results[0]
-        taAnalyzer = strategy.analyzers.ta.get_analysis()
-        sharpeRatioAnalyzer = strategy.analyzers.sharperatio.get_analysis()
-        drawdownAnalyzer = strategy.analyzers.drawdown.get_analysis()
-        sqnAnalyzer = strategy.analyzers.sqn.get_analysis()
-        returnAnalyzer = strategy.analyzers.returns.get_analysis()
-        vwrAnalyzer = strategy.analyzers.vwr.get_analysis()
-        transactionsAnalyzer = strategy.analyzers.transactions.get_analysis()
-        timeReturnAnalyzer = strategy.analyzers.timereturn.get_analysis()
+        tradeAnalyzerDF = strategy.analyzers.tradeanalyzer.getAnalyzerResultsDf()
+        cashDF = pd.Series([self.initialCash, self.finalPortfolioValue],
+                           index=["Initial Cash", "Final Portfolio Value"])
+        sharpeRatioDF = strategy.analyzers.sharperatio.getAnalyzerResultsDf()
+        drawdownDF = strategy.analyzers.drawdown.getAnalyzerResultsDf()
+        sqnDF = strategy.analyzers.sqn.getAnalyzerResultsDf()
+        returnDF = strategy.analyzers.returns.getAnalyzerResultsDf()
+        vwrDF = strategy.analyzers.vwr.getAnalyzerResultsDf()
+        kellyDF = strategy.analyzers.kelly.getAnalyzerResultsDf()
 
-        taAnalyzerDF = BTAnalyzer.getTradeAnalysisDf(taAnalyzer)
-        sqnDF = BTAnalyzer.getSQNDf(sqnAnalyzer)
-        drawdownDF = BTAnalyzer.getDrawDownDf(drawdownAnalyzer)
-        sharpeRatioDF = BTAnalyzer.getSharpeRatioDf(sharpeRatioAnalyzer)
-        vwrDF = BTAnalyzer.getVWRDf(vwrAnalyzer)
-        returnDF = BTAnalyzer.getReturnDf(returnAnalyzer)
-        cashDF = pd.Series([self.initialCash, self.finalPortfolioValue], index=["Initial Cash", "Final Portfolio Value"])
-        kellyDF = pd.Series([strategy.analyzers.kelly.get_analysis().kellyPercent], index=["Kelly Percent"])
-        transactionsDF = BTAnalyzer.getTransactionsDf(transactionsAnalyzer)
-        timeReturnDF = BTAnalyzer.getTimeReturnDf(timeReturnAnalyzer)
+        self.statisticsDF = pd.concat([tradeAnalyzerDF, cashDF, returnDF, sqnDF, sharpeRatioDF, vwrDF, drawdownDF, kellyDF])
 
-        statsDF = pd.concat([taAnalyzerDF,cashDF,returnDF,sqnDF,sharpeRatioDF,vwrDF,drawdownDF,kellyDF])
+        self.transactionsDF = strategy.analyzers.transactions.getAnalyzerResultsDf()
+        self.timeReturnDF = strategy.analyzers.timereturn.getAnalyzerResultsDf()
+
 
         if self.isOptimization is False:
-            self.helper.outputXLSX(statsDF, "Statistics")
-            self.helper.outputXLSX(transactionsDF, "Transactions")
-            self.helper.outputXLSX(timeReturnDF, "TimeReturn")
+            self.helper.outputXLSX(self.statisticsDF, "Statistics")
+            self.helper.outputXLSX(self.transactionsDF, "Transactions")
+            self.helper.outputXLSX(self.timeReturnDF, "TimeReturn")
 
-            if quantStats: #TODO: Fix
-                import quantstats as qs
-                qs.extend_pandas()
-                qs.stats.sharpe(timeReturnDF)
-                # qs.plots.snapshot(timeReturnDF, title='Facebook Performance')
-                qs.reports.html(timeReturnDF, output="qs.html")
-            #     stock.sharpe()
+            if quantStats:
+                BTAnalyzer.getQuantStatsReport(self.helper, self.timeReturnDF)
 
         self.stats = {
             "Symbol" : self.symbol,
             "SubType": self.subType,
-            "Sharpe Ratio": statsDF['Sharpe Ratio'],
-            "Average Return": statsDF['Average Return'],
-            "Annualized Return": statsDF['Annualized Return%'],
-            "Max DrawDown": statsDF['Max DrawDown'],
-            "Total Open": statsDF["Total Open"],
-            "Total Closed": statsDF["Total Closed"],
-            "Total Won": statsDF["Total Won"],
-            "Total Lost": statsDF["Total Lost"],
-            "Win Streak": statsDF["Win Streak"],
-            "Lose Streak": statsDF["Losing Streak"],
-            "PnL Net": statsDF["PnL Net"],
-            "Strike Rate": statsDF["Strike Rate"],
-            "SQN": statsDF["SQN"],
-            "VWR": statsDF["VWR"],
-            "Kelly Percent": statsDF["Kelly Percent"]
+            "Sharpe Ratio": self.statisticsDF['Sharpe Ratio'],
+            "Average Return": self.statisticsDF['Average Return'],
+            "Annualized Return": self.statisticsDF['Annualized Return%'],
+            "Max DrawDown": self.statisticsDF['Max DrawDown'],
+            "Total Open": self.statisticsDF["Total Open"],
+            "Total Closed": self.statisticsDF["Total Closed"],
+            "Total Won": self.statisticsDF["Total Won"],
+            "Total Lost": self.statisticsDF["Total Lost"],
+            "Win Streak": self.statisticsDF["Win Streak"],
+            "Lose Streak": self.statisticsDF["Losing Streak"],
+            "PnL Net": self.statisticsDF["PnL Net"],
+            "Strike Rate": self.statisticsDF["Strike Rate"],
+            "SQN": self.statisticsDF["SQN"],
+            "VWR": self.statisticsDF["VWR"],
+            "Kelly Percent": self.statisticsDF["Kelly Percent"]
         }
         return {**self.strategyParams, **self.stats}
 
@@ -214,51 +210,52 @@ class BTCoreRun:
 
     #Usage Method
 
-    def runOneStrategy(self, strategyParams, SLTP=False):
-        self.setFolderName()
-        self.loadData()
-        self.addWriter(writeCSV=True)
-        self.addSizer(sizer=BTSizer.FixedSizer)
-        self.addBroker()
-        self.addStrategy(addStrategyParams=strategyParams)
-        self.addAnalyzer()
-        self.addObserver(SLTP=SLTP)
-        self.run()
-        self.plotBokeh()
-        # self.plotIPython()
-        return self.getAnalysisResults(quantStats=False)
-
-    def runDayTradeOption(self, strategyParams, SLTP=False):
-        self.setFolderName()
-        self.loadData(datafeedSource=DataFeedSource.YahooOption)
-        self.addWriter(writeCSV=True)
-        self.addSizer(sizer=BTSizer.FixedSizer)
-        self.addBroker()
-        self.addStrategy(addStrategyParams=strategyParams)
-        # self.addAnalyzer()
-        self.addObserver(SLTP=SLTP)
-        self.run()
-        self.plotBokeh()
-        # self.plotIPython()
-        return self.getAnalysisResults(quantStats=False)
-
-    def runOptimizationWithSameData(self, strategyParams):
-        self.setFolderName()
-        self.addSizer(sizer=BTSizer.FixedSizer)
-        self.addBroker()
-        self.addStrategy(addStrategyParams=strategyParams)
-        self.addAnalyzer()
-        self.addObserver(SLTP=False)
-        self.run()
-        return self.getAnalysisResults(quantStats=False)
-
-    def runScreening(self, strategyParams):
-        self.strategyName = BTStrategy.EmptyStrategy
-        self.addWriter(writeCSV=True)
-        self.addBroker()
-        self.addStrategy(addStrategyParams=strategyParams)
-        self.addScreener()
-        self.run()
-        # self.plotBokeh()
-        return self.getScreeningResults()
+    # def runOneStrategy(self, strategyParams, SLTP=False):
+    #     self.setFolderName()
+    #     self.loadData()
+    #     self.addWriter(writeCSV=True)
+    #     self.addSizer(sizer=BTSizer.FixedSizer)
+    #     self.addBroker()
+    #     self.addStrategy(addStrategyParams=strategyParams)
+    #     self.addAnalyzer()
+    #     self.addObserver(SLTP=SLTP)
+    #     self.run()
+    #     # self.plotBokeh()
+    #     # self.plotIPython()
+    #     self.getAnalysisResults(quantStats=True)
+    #     return
+    #
+    # def runDayTradeOption(self, strategyParams, SLTP=False):
+    #     self.setFolderName()
+    #     self.loadData(datafeedSource=DataFeedSource.YahooOption)
+    #     self.addWriter(writeCSV=True)
+    #     self.addSizer(sizer=BTSizer.FixedSizer)
+    #     self.addBroker()
+    #     self.addStrategy(addStrategyParams=strategyParams)
+    #     self.addObserver(SLTP=SLTP)
+    #     self.run()
+    #     self.plotBokeh()
+    #     return self.getAnalysisResults(quantStats=False)
+    #
+    # def runOptimizationWithSameData(self, strategyParams):
+    #     self.setFolderName()
+    #     self.addSizer(sizer=BTSizer.FixedSizer)
+    #     self.addBroker()
+    #     self.addStrategy(addStrategyParams=strategyParams)
+    #     self.addAnalyzer()
+    #     self.addObserver(SLTP=False)
+    #     self.run()
+    #     self.getAnalysisResults(quantStats=False)
+    #     return
+    #
+    # def runScreening(self, strategyParams):
+    #     self.strategyName = BTStrategy.EmptyStrategy
+    #     self.addWriter(writeCSV=True)
+    #     self.addBroker()
+    #     self.addStrategy(addStrategyParams=strategyParams)
+    #     self.addScreener()
+    #     self.run()
+    #     # self.plotBokeh()
+    #     self.getScreeningResults()
+    #     return
 
