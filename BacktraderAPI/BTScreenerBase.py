@@ -78,10 +78,10 @@ class RSIScreener(_ScreenerBase):
         else:
             self.rets.RSISignal = 0
 
-    def getScreenerDf(self, analysis):
-        super(RSIScreener, self).getScreenerDf(analysis)
-        rsi = round(analysis.rsi, 2)
-        rsiSignal = analysis.RSISignal
+    def getScreenerDf(self):
+        super(RSIScreener, self).getScreenerDf()
+        rsi = round(self.get_analysis().rsi, 2)
+        rsiSignal = self.get_analysis().RSISignal
         self.index += ["RSI", "RSISignal"]
         self.result += [rsi, rsiSignal]
 
@@ -109,10 +109,10 @@ class MACDScreener(_ScreenerBase):
         else:
             self.rets.macdSignal = 0
 
-    def getScreenerDf(self, analysis):
-        super(MACDScreener, self).getScreenerDf(analysis)
-        macd = round(analysis.macd, 2)
-        macdSignal = analysis.macdSignal
+    def getScreenerDf(self):
+        super(MACDScreener, self).getScreenerDf()
+        macd = round(self.get_analysis().macd, 3)
+        macdSignal = self.get_analysis().macdSignal
         self.index += ["MACD", "MACDSignal"]
         self.result += [macd, macdSignal]
 

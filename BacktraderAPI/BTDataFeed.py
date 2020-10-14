@@ -99,7 +99,8 @@ def getYahooDataFeeds(symbol_list, subtype, timerange, period = None, folderName
             df[col] = df[col].dt.tz_convert(None)
         # Helper().gradientAppliedXLSX(df, "YahooData", ['close'])
         # Helper().outputXLSX(df, "YahooData")
-        path = Helper().generateFilePath("YahooData", ".csv")
+        filename = "YahooData {} {} {} {}".format(Helper().serializeTuple(symbol_list), yahooStart, yahooEnd, yahooSubtype)
+        path = Helper().generateFilePath(filename, ".csv")
         df.to_csv(path)
 
     return bt.feeds.PandasData(dataname=df, openinterest=None)

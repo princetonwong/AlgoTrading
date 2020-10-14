@@ -25,7 +25,7 @@ helper = Helper()
 def run_strategy(params= {**PARAMS}, outputsettings={**OUTPUTSETTINGS}) -> pd.DataFrame:
     print (params)
     if outputsettings["optimization"] is False:
-        helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
+        helper.initializeFolderName(None, SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS, )
 
     #Init
     cerebro = bt.Cerebro()
@@ -167,7 +167,8 @@ def grid_search(sortKey: str) -> pd.DataFrame:
             params_list.append({**optimizationParams})
             outputsettings_list.append({**outputsettings})
 
-    helper.folderName = "(Optimization)" + helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, optimizationParams)
+    helper.folderName = "(Optimization)" + helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY,
+                                                                       optimizationParams, )
     stats = process_map(run_strategy, params_list, outputsettings_list, max_workers=os.cpu_count())
 
     df = pd.DataFrame(stats)

@@ -228,7 +228,8 @@ def grid_search(sortKey: str) -> pd.DataFrame:
         params_list.append({**optimizationParams})
         outputsettings_list.append({**outputsettings})
 
-    helper.folderName = "[Opt]" + helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, optimizationParams, CUSTOM)
+    helper.folderName = "[Opt]" + helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY,
+                                                              optimizationParams, CUSTOM)
     stats = process_map(run_strategy, params_list, outputsettings_list, max_workers=os.cpu_count())
 
     df = pd.DataFrame(stats)
