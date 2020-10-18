@@ -6,7 +6,7 @@ from .BTStrategyExit import *
 from .BTStrategyBase import *
 from .BTStrategyBuyType import *
 from .BTStrategyDebug import *
-from .Strategy import CandleStrategy, CCIStrategy, MACDStrategy, MeanReversionStrategy, RSIStrategy, TrendFollowingStrategy, BTStrategy_Failed
+from .Strategy import *
 import math
 import datetime
 

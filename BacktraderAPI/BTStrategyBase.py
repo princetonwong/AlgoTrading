@@ -250,8 +250,8 @@ class WillamsRStrategyBase(bt.Strategy):
                                                  upperband=self.p.willRUpperband,
                                                  lowerband=self.p.willRLowerband,
                                                  )
-        self.willRCrossoverLow = bt.indicators.CrossOver(self.williamsR, self.p.willRLowerband, subplot=False)
-        self.willRCrossoverUp = bt.indicators.CrossOver(self.williamsR, self.p.willRUpperband, subplot=False)
+        self.willRCrossoverLow = bt.indicators.CrossOver(self.williamsR, self.p.willRLowerband, subplot=True)
+        self.willRCrossoverUp = bt.indicators.CrossOver(self.williamsR, self.p.willRUpperband, subplot=True)
 
 class DTOStrategyBase(bt.Strategy):
     params = dict(rsiPeriod=10, pPeriod=8, upperband=70, lowerband=30)

@@ -32,7 +32,6 @@ class DataNameCloseScreener(_ScreenerBase):
         self.updateResultDF()
         return self.resultDF
 
-
 class SMAScreener(_ScreenerBase):
     params = dict(period=10)
 
@@ -78,8 +77,8 @@ class RSIScreener(_ScreenerBase):
         else:
             self.rets.RSISignal = 0
 
-    def getScreenerDf(self):
-        super(RSIScreener, self).getScreenerDf()
+    def getScreenerResultsDf(self):
+        super(RSIScreener, self).getScreenerResultsDf()
         rsi = round(self.get_analysis().rsi, 2)
         rsiSignal = self.get_analysis().RSISignal
         self.index += ["RSI", "RSISignal"]
@@ -109,12 +108,96 @@ class MACDScreener(_ScreenerBase):
         else:
             self.rets.macdSignal = 0
 
-    def getScreenerDf(self):
-        super(MACDScreener, self).getScreenerDf()
+    def getScreenerResultsDf(self):
+        super(MACDScreener, self).getScreenerResultsDf()
         macd = round(self.get_analysis().macd, 3)
         macdSignal = self.get_analysis().macdSignal
         self.index += ["MACD", "MACDSignal"]
         self.result += [macd, macdSignal]
+
+        self.updateResultDF()
+        return self.resultDF
+
+class IchimokuScreener(_ScreenerBase):
+    params = dict(kijun=26, tenkan=9, chikou=26, senkou=52, senkou_lead=26)
+
+    def start(self):
+        super(IchimokuScreener, self).start()
+        self.ichimoku = bt.indicators.Ichimoku(kijun=self.p.kijun,
+                                               tenkan=self.p.tenkan,
+                                               chikou=self.p.chikou,
+                                               senkou=self.p.senkou,
+                                               senkou_lead=self.p.senkou_lead
+                                               )
+        self.tenkanXKijun = bt.indicators.CrossOver(self.ichimoku.tenkan_sen, self.ichimoku.kijun_sen)
+        self.XKijun = bt.indicators.CrossOver(self.data, self.ichimoku.kijun_sen)
+        self.XSenkouA = bt.indicators.CrossOver(self.data, self.ichimoku.senkou_span_a)
+        self.XSenkouB = bt.indicators.CrossOver(self.data, self.ichimoku.senkou_span_b)
+        self.cloud = self.ichimoku.senkou_span_a - self.ichimoku.senkou_span_b
+        self.tenkanGreaterKijun = self.ichimoku.tenkan_sen - self.ichimoku.kijun_sen
+
+    def stop(self):
+        super(IchimokuScreener, self).stop()
+        self.rets.ichimoku = self.ichimoku[0]
+        self.rets.ichimokuSignal = 0
+
+        if self.tenkanGreaterKijun > 0:
+            if (self.cloud > 0 and self.data > self.ichimoku.senkou_span_a) or (
+                    self.cloud < 0 and self.data > self.ichimoku.senkou_span_b):
+                if self.tenkanXKijun == 1 or self.XSenkouB == 1:
+                    self.rets.ichimokuSignal = 1
+
+        elif self.tenkanGreaterKijun < 0:
+            if (self.cloud > 0 and self.data < self.ichimoku.senkou_span_b) or (
+                    self.cloud < 0 and self.data < self.ichimoku.senkou_span_a):
+                if self.tenkanXKijun == -1 or self.XSenkouB == -1:
+                    self.rets.ichimokuSignal = -1
+
+        else:
+            self.rets.ichimokuSignal = 0
+
+    def getScreenerResultsDf(self):
+        super(IchimokuScreener, self).getScreenerResultsDf()
+        ichimoku = round(self.get_analysis().ichimoku, 3)
+        ichimokuSignal = self.get_analysis().ichimokuSignal
+        self.index += ["Ichimoku", "IchimokuSignal"]
+        self.result += [ichimoku, ichimokuSignal]
+
+        self.updateResultDF()
+        return self.resultDF
+
+class WilliamRScreener(_ScreenerBase): #TODO: TBC
+    params = dict(willRperiod=14, willRUpperband=-20, willRLowerband=-80)
+
+    def start(self):
+        super(WilliamRScreener, self).start()
+        self.williamsR = bt.indicators.WilliamsR(self.data,
+                                                 period=self.p.willRperiod,
+                                                 upperband=self.p.willRUpperband,
+                                                 lowerband=self.p.willRLowerband,
+                                                 )
+        self.willRCrossoverLow = bt.indicators.CrossOver(self.williamsR, self.p.willRLowerband)
+        self.willRCrossoverUp = bt.indicators.CrossOver(self.williamsR, self.p.willRUpperband)
+
+    def stop(self):
+        super(WilliamRScreener, self).stop()
+        self.rets.williamsR = self.williamsR[0]
+        self.rets.williamsRSignal = 0
+
+        if self.willRCrossoverLow == -1:
+            self.rets.ichimokuSignal = 1
+        if self.willRCrossoverUp == 1:
+            self.rets.ichimokuSignal = -1
+
+        else:
+            self.rets.ichimokuSignal = 0
+
+    def getScreenerResultsDf(self):
+        super(WilliamRScreener, self).getScreenerResultsDf()
+        ichimoku = round(self.get_analysis().ichimoku, 3)
+        ichimokuSignal = self.get_analysis().ichimokuSignal
+        self.index += ["Ichimoku", "IchimokuSignal"]
+        self.result += [ichimoku, ichimokuSignal]
 
         self.updateResultDF()
         return self.resultDF
