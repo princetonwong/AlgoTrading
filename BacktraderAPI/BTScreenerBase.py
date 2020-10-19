@@ -166,11 +166,11 @@ class IchimokuScreener(_ScreenerBase):
         self.updateResultDF()
         return self.resultDF
 
-class WilliamRScreener(_ScreenerBase): #TODO: TBC
+class WilliamsROverboughtScreener(_ScreenerBase):
     params = dict(willRperiod=14, willRUpperband=-20, willRLowerband=-80)
 
     def start(self):
-        super(WilliamRScreener, self).start()
+        super(WilliamsROverboughtScreener, self).start()
         self.williamsR = bt.indicators.WilliamsR(self.data,
                                                  period=self.p.willRperiod,
                                                  upperband=self.p.willRUpperband,
@@ -180,24 +180,50 @@ class WilliamRScreener(_ScreenerBase): #TODO: TBC
         self.willRCrossoverUp = bt.indicators.CrossOver(self.williamsR, self.p.willRUpperband)
 
     def stop(self):
-        super(WilliamRScreener, self).stop()
-        self.rets.williamsR = self.williamsR[0]
-        self.rets.williamsRSignal = 0
+        super(WilliamsROverboughtScreener, self).stop()
+        self.rets.williamsROverbought = self.williamsR[0]
+        self.rets.williamsROverboughtSignal = 0
 
-        if self.willRCrossoverLow == -1:
-            self.rets.ichimokuSignal = 1
         if self.willRCrossoverUp == 1:
-            self.rets.ichimokuSignal = -1
-
-        else:
-            self.rets.ichimokuSignal = 0
+            self.rets.williamsROverboughtSignal = 1
 
     def getScreenerResultsDf(self):
-        super(WilliamRScreener, self).getScreenerResultsDf()
-        ichimoku = round(self.get_analysis().ichimoku, 3)
-        ichimokuSignal = self.get_analysis().ichimokuSignal
-        self.index += ["Ichimoku", "IchimokuSignal"]
-        self.result += [ichimoku, ichimokuSignal]
+        super(WilliamsROverboughtScreener, self).getScreenerResultsDf()
+        williamsROverbought = round(self.get_analysis().williamsROverbought, 3)
+        williamsROverboughtSignal = self.get_analysis().williamsROverboughtSignal
+        self.index += ["WilliamsROverbought", "WilliamsROverboughtSignal"]
+        self.result += [williamsROverbought, williamsROverboughtSignal]
+
+        self.updateResultDF()
+        return self.resultDF
+
+class WilliamsROversoldScreener(_ScreenerBase):
+    params = dict(willRperiod=14, willRUpperband=-20, willRLowerband=-80)
+
+    def start(self):
+        super(WilliamsROversoldScreener, self).start()
+        self.williamsR = bt.indicators.WilliamsR(self.data,
+                                                 period=self.p.willRperiod,
+                                                 upperband=self.p.willRUpperband,
+                                                 lowerband=self.p.willRLowerband,
+                                                 )
+        self.willRCrossoverLow = bt.indicators.CrossOver(self.williamsR, self.p.willRLowerband)
+        self.willRCrossoverUp = bt.indicators.CrossOver(self.williamsR, self.p.willRUpperband)
+
+    def stop(self):
+        super(WilliamsROversoldScreener, self).stop()
+        self.rets.williamsROversold = self.williamsR[0]
+        self.rets.williamsROversoldSignal = 0
+
+        if self.willRCrossoverLow == -1:
+            self.rets.williamsROversoldSignal = 1
+
+    def getScreenerResultsDf(self):
+        super(WilliamsROversoldScreener, self).getScreenerResultsDf()
+        williamsROversold = round(self.get_analysis().williamsROversold, 3)
+        williamsROversoldSignal = self.get_analysis().williamsROversoldSignal
+        self.index += ["WilliamsROversold", "WilliamsROversoldSignal"]
+        self.result += [williamsROversold, williamsROversoldSignal]
 
         self.updateResultDF()
         return self.resultDF
