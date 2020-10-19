@@ -69,7 +69,7 @@ class BBandsMeanReversionStrategy(BBandsStrategyBase):
         #     for order in orders:
         #         self.broker.cancel(order)
 
-class WilliamsRStrategy(WillamsRStrategyBase):
+class WilliamsRStrategy(WillamsRStrategyBase, StopTrailStrategyExit): #TODO: TBC
 
     '''
     Entry Criteria:
@@ -86,17 +86,17 @@ class WilliamsRStrategy(WillamsRStrategyBase):
 
         if self.position.size == 0:  # not in the market
             if self.willRCrossoverLow == -1:
-                self.buy(exectype=bt.Order.Stop, price=self.data.close)
+                self.buy(price=self.data.close)
             if self.willRCrossoverUp == 1:
-                self.sell(exectype=bt.Order.Stop, price=self.data.close)
+                self.sell(price=self.data.close)
 
         elif self.position.size > 0:  # longing in the market
             if self.willRCrossoverUp == 1:
-                self.sell(exectype=bt.Order.Stop, price=self.data.close)
+                self.sell(price=self.data.close)
 
         elif self.position.size < 0:  # shorting in the market
             if self.willRCrossoverLow == -1:
-                self.buy(exectype=bt.Order.Stop, price=self.data.close)
+                self.buy(price=self.data.close)
 
 #TODO: Multiple data feeds
 class MACrossStrategy(bt.Strategy):
