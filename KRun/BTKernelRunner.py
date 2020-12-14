@@ -1,6 +1,6 @@
 from futu import *
 from tqdm.contrib.concurrent import process_map
-from BacktraderAPI import BTStrategy, BTKernelRun, BTSizer, BTStrategy
+from BacktraderAPI import BTStrategy, BTKernelRun, BTSizer, BTStrategy, BTScreener
 from BacktraderAPI.BTKernelRun import BTCoreRun
 from CustomAPI.Helper import Helper
 from CustomAPI.YahooScraper import YahooScraper
@@ -137,7 +137,7 @@ class BTKernelRunner(BTCoreRun):
         btCoreRun.addWriter(writeCSV=True)
         btCoreRun.addBroker()
         btCoreRun.addStrategy(sameStrategyParameters)
-        btCoreRun.addScreener()
+        btCoreRun.addScreener(screener=BTScreener.MyScreener)
         btCoreRun.run()
         return btCoreRun.getScreeningResults()
 
