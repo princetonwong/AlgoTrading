@@ -3,5 +3,5 @@ import backtrader as bt
 from .BTScreenerBase import *
         
 class MyScreener(DataNameCloseScreener, SMAScreener, RSIScreener, MACDScreener, IchimokuScreener,
-                 WilliamsROverboughtScreener, WilliamsROversoldScreener):
+                 WilliamsROverboughtScreener, WilliamsROversoldScreener, TTFScreener):
     pass

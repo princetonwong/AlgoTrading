@@ -7,7 +7,7 @@ from CustomAPI.Helper import Helper
 # Wrapper Function
 def runOptimiztionWithDifferentData(allParams, strategyParams):
     # Run Many Times
-    btCoreRun = BTKernelRun.BTCoreRun(allParams=allParams, strategyParams=strategyParams, isOptimization=True)
+    btCoreRun = BTKernelRun.BTKernelRun(allParams=allParams, strategyParams=strategyParams, isOptimization=True)
     btCoreRun.setFolderName()
     btCoreRun.loadData()
     btCoreRun.addSizer(sizer=BTSizer.FixedSizer)

@@ -1,6 +1,6 @@
 from futu import *
 from BacktraderAPI import BTStrategy, BTSizer
-from BacktraderAPI.BTKernelRun import BTCoreRun
+from BacktraderAPI.BTKernelRun import BTKernelRun
 
 parameters = dict(INITIALCASH=50000,
                   SYMBOL="TSLA",
@@ -14,7 +14,7 @@ strategy = dict(STRATEGYNAME=BTStrategy.IchimokuStrategy,
                 )
 
 
-class BTCoreRunOneStrategy(BTCoreRun):
+class BTKernelRunOneStrategy(BTKernelRun):
     def run(self):
         # Run One Time
         self.setFolderName()
@@ -33,4 +33,4 @@ class BTCoreRunOneStrategy(BTCoreRun):
 
 
 # Run One Time
-BTCoreRunOneStrategy(parameters, strategy).run()
+BTKernelRunOneStrategy(parameters, strategy).run()

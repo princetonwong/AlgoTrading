@@ -1,7 +1,7 @@
 from futu import *
 from tqdm.contrib.concurrent import process_map
 from BacktraderAPI import BTStrategy, BTKernelRun, BTSizer, BTStrategy
-from BacktraderAPI.BTKernelRun import BTCoreRun
+from BacktraderAPI.BTKernelRun import BTKernelRun
 from CustomAPI.Helper import Helper
 from CustomAPI.YahooScraper import YahooScraper
 
@@ -52,7 +52,7 @@ for symbol in SYMBOLS:
     sameStrategyParametersList.append({**sameStrategyParameters})
 
 
-class BTKernelRunner(BTCoreRun):
+class BTKernelRunner(BTKernelRun):
 
     def _runThisManyTimes_Same(self, strategyParams):
         self.addSizer(sizer=BTSizer.FixedSizer)
@@ -64,8 +64,8 @@ class BTKernelRunner(BTCoreRun):
         return self.getAnalysisResults(quantStats=False)
 
     def _runThisManyTimes_Different(self, dataParameters):  # TODO
-        btCoreRun = BTKernelRun.BTCoreRun(allParams=dataParameters, strategyParams=sameStrategyParameters,
-                                          isOptimization=True)
+        btCoreRun = BTKernelRun.BTKernelRun(allParams=dataParameters, strategyParams=sameStrategyParameters,
+                                            isOptimization=True)
         btCoreRun.folderName = self.folderName
         btCoreRun.loadData()
         btCoreRun.addSizer(sizer=BTSizer.FixedSizer)
@@ -130,7 +130,7 @@ class BTKernelRunner(BTCoreRun):
         return
 
     def _runThisManyTimes_Screening(self, dataParameters):
-        btCoreRun = BTKernelRun.BTCoreRun(allParams=dataParameters, strategyParams=sameStrategyParameters, isOptimization=True)
+        btCoreRun = BTKernelRun.BTKernelRun(allParams=dataParameters, strategyParams=sameStrategyParameters, isOptimization=True)
         btCoreRun.folderName = self.folderName
         btCoreRun.loadData()
         btCoreRun.strategyName = BTStrategy.EmptyStrategy

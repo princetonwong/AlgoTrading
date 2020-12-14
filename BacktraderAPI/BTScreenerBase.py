@@ -128,7 +128,6 @@ class MACDScreener(_ScreenerBase):
         self.updateResultDF()
         return self.resultDF
 
-
 class TTFScreener(_ScreenerBase):
     params = dict(lookback=15, upperband=100, lowerband=-100)
 
@@ -273,6 +272,3 @@ class WilliamsROversoldScreener(_ScreenerBase):
         williamsROversoldSignal = self.get_analysis().williamsROversoldSignal
         self.index += ["WilliamsROversold", "WilliamsROversoldSignal"]
         self.result += [williamsROversold, williamsROversoldSignal]
-
-        self.updateResultDF()
-        return self.resultDF

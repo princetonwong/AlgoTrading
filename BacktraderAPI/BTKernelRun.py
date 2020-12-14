@@ -4,7 +4,7 @@ from CustomAPI.Helper import Helper
 from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTObserver, BTCommInfo, BTScreener
 from BacktraderAPI.BTDataFeed import DataFeedSource
 
-class BTCoreRun:
+class BTKernelRun:
     helper = Helper()
     defaultAllParams = dict(INITIALCASH=50000,
                             SYMBOL="HK.MHImain",
