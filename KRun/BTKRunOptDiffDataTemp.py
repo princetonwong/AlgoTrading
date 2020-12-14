@@ -12,7 +12,7 @@ def runOptimiztionWithDifferentData(allParams, strategyParams):
     btCoreRun.loadData()
     btCoreRun.addSizer(sizer=BTSizer.FixedSizer)
     btCoreRun.addBroker()
-    btCoreRun.addStrategy(addStrategyParams=strategyParams)
+    btCoreRun.addStrategy(strategyParams=strategyParams)
     btCoreRun.addAnalyzer()
     btCoreRun.addObserver(SLTP=False)
     btCoreRun.run()

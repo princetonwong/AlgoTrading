@@ -8,8 +8,8 @@ from tqdm.contrib.concurrent import process_map
 import pandas as pd
 
 SYMBOL = "HK.MHImain"
-SUBTYPE = SubType.K_15M
-TIMERANGE = ("2019-11-01", "00:00:00", "2019-12-31", "23:59:00")
+SUBTYPE = SubType.K_DAY
+TIMERANGE = ("2019-11-01", "00:00:00", "2020-11-31", "23:59:00")
 # TIMERANGE = None
 
 # SYMBOL = "AAPL"
@@ -17,12 +17,13 @@ TIMERANGE = ("2019-11-01", "00:00:00", "2019-12-31", "23:59:00")
 
 INITIALCASH = 50000
 STRATEGY = BTStrategy.CCICrossStrategy
-PARAMS={"period": 19, "hold": 8, }
+PARAMS = {"period": 19, "hold": 8, }
 helper = Helper()
 OPTIMIZATION = None
 FOLDERNAME = helper.initializeFolderName(SYMBOL, SUBTYPE, TIMERANGE, STRATEGY, PARAMS)
 
 DATA0 = BTDataFeed.getFutuDataFeed(SYMBOL, SUBTYPE, TIMERANGE)
+
 
 def run_strategy(
         params: Dict[str, Union[float, int]] = {
@@ -30,7 +31,7 @@ def run_strategy(
             'hold': 5,
         }
 ):
-    #Init
+    # Init
     cerebro = bt.Cerebro()
     cerebro.addwriter(bt.WriterFile, csv=True, rounding=2)
     cerebro.adddata(DATA0, name=SYMBOL)
@@ -39,24 +40,24 @@ def run_strategy(
     # data1.plotinfo.plotmaster = data0
     # cerebro.adddata(data1, name="TRADE")
 
-    #Data Filter
+    # Data Filter
     # data1.addfilter(bt.filters.HeikinAshi(data1))
 
-    #Sizer
+    # Sizer
     cerebro.addsizer(BTSizer.FixedSizer)
 
-    #Broker
+    # Broker
     cerebro.broker.setcash(INITIALCASH)
     cerebro.broker.setcommission(commission=10.6, margin=26000.0, mult=10.0)
     print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
-    #Strategy
+    # Strategy
     cerebro.addstrategy(STRATEGY,
                         period=params['period'],
                         hold=params['hold'],
                         )
 
-    #Analyzer
+    # Analyzer
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, timeframe=bt.TimeFrame.Days, compression=1, factor=365,
                         annualize=True, _name="sharperatio")
     cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
@@ -72,13 +73,13 @@ def run_strategy(
     cerebro.addobserver(bt.observers.DrawDown)
     cerebro.addobserver(bt.observers.DrawDownLength)
 
-    #Run
+    # Run
     results = cerebro.run(stdstats=True)
     assert len(results) == 1
     finalPortfolioValue = cerebro.broker.getvalue()
     print('Final Portfolio Value: %.2f' % finalPortfolioValue)
 
-    #Bokeh Optimization
+    # Bokeh Optimization
     # from backtrader_plotting import Bokeh, OptBrowser
     # from backtrader_plotting.schemes import Tradimo
     # b = Bokeh(style='bar', scheme=Tradimo())
@@ -92,10 +93,10 @@ def run_strategy(
     fig = cerebro.plot(b, iplot=False)
 
     # Plotting
-    figs = cerebro.plot(style = "candle", iplot= False, subtxtsize = 6, maxcpus=1, show=False)
+    figs = cerebro.plot(style="candle", iplot=False, subtxtsize=6, maxcpus=1, show=False)
     helper.saveFig(figs)
 
-    #Analyzer methods
+    # Analyzer methods
     strategy = results[0]
     taAnalyzer = strategy.analyzers.ta.get_analysis()
     sharpeRatioAnalyzer = strategy.analyzers.sharperatio.get_analysis()
@@ -125,18 +126,19 @@ def run_strategy(
         'Sharpe Ratio': sharpeRatioDF['Sharpe Ratio'],
         'CARG': returnAnalyzer['ravg'],
         'Max DrawDown': drawdownDF['Max DrawDown'],
-        "Total Open" : taAnalyzerDF["Total Open"],
-        "Total Closed" : taAnalyzerDF["Total Closed"],
-        "Total Won" : taAnalyzerDF["Total Won"],
-        "Total Lost" : taAnalyzerDF["Total Lost"],
-        "Win Streak" : taAnalyzerDF["Win Streak"],
-        "Lose Streak" : taAnalyzerDF["Losing Streak"],
-        "PnL Net" : taAnalyzerDF["PnL Net"],
-        "Strike Rate" : taAnalyzerDF["Strike Rate"],
+        "Total Open": taAnalyzerDF["Total Open"],
+        "Total Closed": taAnalyzerDF["Total Closed"],
+        "Total Won": taAnalyzerDF["Total Won"],
+        "Total Lost": taAnalyzerDF["Total Lost"],
+        "Win Streak": taAnalyzerDF["Win Streak"],
+        "Lose Streak": taAnalyzerDF["Losing Streak"],
+        "PnL Net": taAnalyzerDF["PnL Net"],
+        "Strike Rate": taAnalyzerDF["Strike Rate"],
         "SQN": sqnDF["SQN"]
     }
 
     return {**params, **stats}
+
 
 def grid_search() -> pd.DataFrame:
     params_list = []
@@ -155,10 +157,10 @@ def grid_search() -> pd.DataFrame:
     df.sort_values('Sharpe Ratio', ascending=False, inplace=True)
     return df
 
+
 # if __name__ == '__main__':
 #     # df = grid_search()
 #     # Helper().outputXLSX(df, "Optimized")
 
 
-
-df= run_strategy(params=PARAMS)
+df = run_strategy(params=PARAMS)

@@ -13,7 +13,7 @@ def runScreening(allParams, strategyParams):
     btCoreRun.strategyName = BTStrategy.EmptyStrategy
     btCoreRun.addWriter(writeCSV=True)
     btCoreRun.addBroker()
-    btCoreRun.addStrategy(addStrategyParams=strategyParams)
+    btCoreRun.addStrategy(strategyParams=strategyParams)
     btCoreRun.addScreener()
     btCoreRun.run()
     # self.plotBokeh()
