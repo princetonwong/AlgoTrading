@@ -199,8 +199,8 @@ class BTCoreRun:
         }
         return {**self.strategyParams, **self.stats}
 
-    def addScreener(self):
-        self.cerebro.addanalyzer(BTScreener.MyScreener, _name="myscreener")
+    def addScreener(self, screener):
+        self.cerebro.addanalyzer(screener, _name="myscreener")
 
     def getScreeningResults(self):
         strategy = self.results[0]
