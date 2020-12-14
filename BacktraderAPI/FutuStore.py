@@ -505,28 +505,28 @@ def trade_us_test(**kwargs):
     trd_ctx.start()
 
     # 交易请求必须先解锁 !!!
-    easyPrint("unlock_trade", trd_ctx.unlock_trade("147536"))
-    easyPrint("accinfo_query", trd_ctx.accinfo_query(**kwargs))
-    easyPrint("position_list_query", trd_ctx.position_list_query(pl_ratio_min=-50, pl_ratio_max=50, **kwargs))
-    easyPrint("order_list_query", trd_ctx.order_list_query(status_filter_list=[OrderStatus.DISABLED], **kwargs))
-    easyPrint("get_acc_list", trd_ctx.get_acc_list())
-    easyPrint("order_list_query", trd_ctx.order_list_query(status_filter_list=[OrderStatus.SUBMITTED], **kwargs))
+    eP("unlock_trade", trd_ctx.unlock_trade("147536"))
+    eP("accinfo_query", trd_ctx.accinfo_query(**kwargs))
+    eP("position_list_query", trd_ctx.position_list_query(pl_ratio_min=-50, pl_ratio_max=50, **kwargs))
+    eP("order_list_query", trd_ctx.order_list_query(status_filter_list=[OrderStatus.DISABLED], **kwargs))
+    eP("get_acc_list", trd_ctx.get_acc_list())
+    eP("order_list_query", trd_ctx.order_list_query(status_filter_list=[OrderStatus.SUBMITTED], **kwargs))
 
     ret_code, ret_data = trd_ctx.place_order(700.0, 100, "US.TSLA", TrdSide.SELL, order_type=OrderType.MARKET, **kwargs)
-    easyPrint("place_order", ret_data)
+    eP("place_order", ret_data)
 
     if ret_code == RET_OK:
         order_id = ret_data['order_id'][0]
-        easyPrint("modify_order", trd_ctx.modify_order(ModifyOrderOp.CANCEL, order_id, 0, 0))
+        eP("modify_order", trd_ctx.modify_order(ModifyOrderOp.CANCEL, order_id, 0, 0))
 
-    easyPrint("deal_list_query", trd_ctx.deal_list_query(code="00700"))
+    eP("deal_list_query", trd_ctx.deal_list_query(code="US.TSLA"))
 
     history_order_list_query = trd_ctx.history_order_list_query(**kwargs)
-    easyPrint("history_order_list_query", history_order_list_query[1])
+    eP("history_order_list_query", history_order_list_query[1])
     history_order_list_query[1].to_csv("order_list.csv")
 
     history_deal_list_query = trd_ctx.history_deal_list_query(code="", start="", end="2018-6-1", **kwargs)
-    easyPrint("history_deal_list_query", history_deal_list_query[1])
+    eP("history_deal_list_query", history_deal_list_query[1])
 
     time.sleep(100000)
     trd_ctx.close()
@@ -539,15 +539,15 @@ def trade_hk_test(**kwargs):
     trd_ctx.start()
 
     # 交易请求必须先解锁 !!!
-    easyPrint("unlock_trade", trd_ctx.unlock_trade("147536"))
-    easyPrint("accinfo_query", trd_ctx.accinfo_query(**kwargs))
-    easyPrint("position_list_query", trd_ctx.position_list_query(pl_ratio_min=-50, pl_ratio_max=50, **kwargs))
+    eP("unlock_trade", trd_ctx.unlock_trade("147536"))
+    eP("accinfo_query", trd_ctx.accinfo_query(**kwargs))
+    eP("position_list_query", trd_ctx.position_list_query(pl_ratio_min=-50, pl_ratio_max=50, **kwargs))
 
     order_list_query = trd_ctx.order_list_query(**kwargs)
     print (get_variable_name(order_list_query), order_list_query)
-    easyPrint("order_list_query", trd_ctx.order_list_query(**kwargs))
-    easyPrint("get_acc_list", trd_ctx.get_acc_list())
-    easyPrint("order_list_query", trd_ctx.order_list_query(status_filter_list=[OrderStatus.SUBMITTED], **kwargs))
+    eP("order_list_query", trd_ctx.order_list_query(**kwargs))
+    eP("get_acc_list", trd_ctx.get_acc_list())
+    eP("order_list_query", trd_ctx.order_list_query(status_filter_list=[OrderStatus.SUBMITTED], **kwargs))
 
     # ret_code, ret_data = trd_ctx.place_order(400.0, 100, "HK.00700", TrdSide.BUY, order_type=OrderType.NORMAL, **kwargs)
     # easyPrint("place_order", ret_data)
@@ -556,20 +556,20 @@ def trade_hk_test(**kwargs):
     #     order_id = ret_data['order_id'][0]
     #     easyPrint("modify_order", trd_ctx.modify_order(ModifyOrderOp.CANCEL, order_id, 0, 0))
 
-    easyPrint("deal_list_query", trd_ctx.deal_list_query(code="00700"))
+    eP("deal_list_query", trd_ctx.deal_list_query(code="00700"))
 
     history_order_list_query = trd_ctx.history_order_list_query(**kwargs)
-    easyPrint("history_order_list_query", history_order_list_query[1])
+    eP("history_order_list_query", history_order_list_query[1])
     history_order_list_query[1].to_csv("order_list.csv")
 
     history_deal_list_query = trd_ctx.history_deal_list_query(code="", start="", end="2018-6-1", **kwargs)
-    easyPrint("history_deal_list_query", history_deal_list_query[1])
+    eP("history_deal_list_query", history_deal_list_query[1])
 
     time.sleep(100000)
     trd_ctx.close()
 
-def easyPrint(title, message):
-    print ("* {} : {}\n".format(title, message))
+def eP(title, message):
+    print (f"* {title} : {message}\n")
 
 #same as in FutuAPI
 def getKLineFromDate(symbol, kLineSubType, timeRange, count=10000):

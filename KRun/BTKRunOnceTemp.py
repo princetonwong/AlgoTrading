@@ -4,8 +4,8 @@ from BacktraderAPI.BTKernelRun import BTCoreRun
 
 parameters = dict(INITIALCASH=50000,
                   SYMBOL="TSLA",
-                  SUBTYPE=SubType.K_5M,
-                  TIMERANGE=("2020-09-01", "00:00:00", "2020-09-28", "23:59:00"),
+                  SUBTYPE=SubType.K_DAY,
+                  TIMERANGE=("2019-09-01", "00:00:00", "2020-12-28", "23:59:00"),
                   REMARKS=""
                   )
 strategy = dict(STRATEGYNAME=BTStrategy.IchimokuStrategy,
