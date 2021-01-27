@@ -33,4 +33,4 @@ class BTKernelRunOneStrategy(BTKernelRun):
 
 
 # Run One Time
-BTKernelRunOneStrategy(parameters, strategy).run()
+BTKernelRunOneStrategy(allParams=parameters, strategyParams=strategy).run()
