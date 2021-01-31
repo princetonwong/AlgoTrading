@@ -1,19 +1,14 @@
 from futu import *
 import backtrader as bt
-from CustomAPI.Helper import Helper
+from CustomAPI.Helper import Helper; h = Helper()
 from BacktraderAPI import BTStrategy, BTDataFeed, BTAnalyzer, BTSizer, BTObserver, BTCommInfo, BTScreener
 from BacktraderAPI.BTDataFeed import DataFeedSource
 
 class BTKernelRun:
-    helper = Helper()
     defaultAllParams = dict(INITIALCASH=50000,
                             SYMBOL="HK.MHImain",
                             SUBTYPE=SubType.K_1M,
                             TIMERANGE=("2020-06-21", "00:00:00", "2020-09-23", "23:59:00"),
-                            # TODO: Create CSV Writer to store Stock Info
-                            STRATEGYNAME=BTStrategy.PSARStrategy,
-                            STRATEGYPARAMS=dict(kijun=6, tenkan=3, chikou=6, senkou=12, senkou_lead=6,
-                                                        trailHold=1, stopLossPerc=0.016),
                             REMARKS="WithStopLoss",
                             )
 
@@ -22,7 +17,7 @@ class BTKernelRun:
                                  )
 
 
-    def __init__(self, allParams, strategyParams, isOptimization = False, isScreening = False):
+    def __init__(self, allParams, strategyParams, isOptimization = False, isScreening = False, isDifferentData = False):
         self.cerebro = bt.Cerebro()
 
         self.allParams = allParams or self.defaultAllParams
@@ -30,6 +25,7 @@ class BTKernelRun:
 
         self.isOptimization = isOptimization
         self.isScreening = isScreening
+        self.isDifferentData = isDifferentData
 
         self.initialCash = self.allParams["INITIALCASH"]
         self.symbol = self.allParams["SYMBOL"]
@@ -47,21 +43,23 @@ class BTKernelRun:
 
         self.folderName = ""
 
-    def setFolderName(self):
+    def setFolderName(self, symbols):
         if self.isOptimization:
-            self.folderName = self.helper.initializeFolderName(self.symbol, self.subType,
-                                                                           self.timerange, self.strategyName,
-                                                                           self.strategyParams, self.remarks, prefix= "Optimiz")
+            prefix = "Optimization"
         elif self.isScreening:
-            self.folderName = self.helper.initializeFolderName(self.symbol, self.subType,
-                                                                            self.timerange, self.strategyName,
-                                                                            self.strategyParams, self.remarks, prefix= "Screen")
+            prefix = "Screen"
+            self.strategyName = BTStrategy.EmptyStrategy
         else:
-            self.folderName = self.helper.initializeFolderName(self.symbol, self.subType, self.timerange,
-                                                               self.strategyName, self.strategyParams, self.remarks)
+            prefix = "RunOnce"
 
+        if self.isDifferentData:
+            prefix = prefix + ",DiffData"
+        else:
+            prefix = prefix + ",SameData"
 
-        print (self.folderName)
+        self.folderName = h.initializeFolderName(symbols, self.subType, self.timerange, self.strategyName,
+                                                           self.strategyParams, self.remarks, prefix= prefix)
+        return self.folderName
 
     def loadData(self, datafeedSource: DataFeedSource = None):
         self.datafeedSource = datafeedSource or self.datafeedSource
@@ -87,7 +85,7 @@ class BTKernelRun:
 
     def addWriter(self, writeCSV = False):
         if self.isOptimization is False:
-            self.cerebro.addwriter(bt.WriterFile, csv=writeCSV, out= self.helper.generateFilePath("BackTraderData", ".csv"),
+            self.cerebro.addwriter(bt.WriterFile, csv=writeCSV, out= h.generateFilePath("BackTraderData", ".csv"),
                               rounding=3)
         else:
             self.cerebro.addwriter(bt.WriterFile, rounding=3)
@@ -129,7 +127,7 @@ class BTKernelRun:
     def plotBokeh(self):
         from backtrader_plotting import Bokeh
         from backtrader_plotting.schemes import Tradimo
-        b = Bokeh(filename=self.helper.generateFilePath("Report", ".html"), style='bar', plot_mode='single',
+        b = Bokeh(filename=h.generateFilePath("Report", ".html"), style='bar', plot_mode='single',
                   scheme=Tradimo())
         self.cerebro.plot(b, iplot=False)
 
@@ -137,7 +135,7 @@ class BTKernelRun:
         figs = self.cerebro.plot(style="candle", iplot=False, subtxtsize=6, maxcpus=1, show=False)
 
         if self.isOptimization is False:
-            self.helper.saveFig(figs)
+            h.saveFig(figs)
 
     def addAnalyzer(self):
         self.cerebro.addanalyzer(BTAnalyzer.SharpeRatio)
@@ -171,12 +169,12 @@ class BTKernelRun:
 
 
         if self.isOptimization is False:
-            self.helper.outputXLSX(self.statisticsDF, "Statistics")
-            self.helper.outputXLSX(self.transactionsDF, "Transactions")
-            self.helper.outputXLSX(self.timeReturnDF, "TimeReturn")
+            h.outputXLSX(self.statisticsDF, "Statistics")
+            h.outputXLSX(self.transactionsDF, "Transactions")
+            h.outputXLSX(self.timeReturnDF, "TimeReturn")
 
             if quantStats:
-                BTAnalyzer.getQuantStatsReport(self.helper, self.timeReturnDF)
+                BTAnalyzer.getQuantStatsReport(h, self.timeReturnDF)
 
         self.stats = {
             "Symbol" : self.symbol,
@@ -259,4 +257,5 @@ class BTKernelRun:
     #     # self.plotBokeh()
     #     self.getScreeningResults()
     #     return
+
 

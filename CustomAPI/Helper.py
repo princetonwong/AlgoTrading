@@ -39,7 +39,7 @@ class Helper():
         return os.path.join(path, finalFilePath)
 
     def readXLSXFromFile(self, filename):
-        path = Path.cwd() / "Output"
+        path = Path.cwd() / "Static"
         filenameWithExtension = filename + ".xlsx"
         finalPath = os.path.join(path, filenameWithExtension)
         df = pd.read_excel(finalPath)

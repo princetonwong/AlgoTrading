@@ -8,28 +8,28 @@ class FutuAPI():
     
     def placeUSOrder(self, price, quantity, code, tradeSide, orderType = OrderType.NORMAL, tradeEnvironment = TrdEnv.SIMULATE):
         tradeContext= OpenUSTradeContext(host='127.0.0.1', port=11111)
-        unlock = tradeContext.unlock_trade(self.password)
+        tradeContext.unlock_trade(self.password)
         _, placedOrder = tradeContext.place_order(price= price, qty= quantity, code= code, trd_side=tradeSide, order_type= orderType, trd_env= tradeEnvironment)
         tradeContext.close()
         return placedOrder
     
     def placeHKOrder(self, price, quantity, code, tradeSide, orderType = OrderType.NORMAL, tradeEnvironment = TrdEnv.SIMULATE):
         tradeContext= OpenHKTradeContext(host='127.0.0.1', port=11111)
-        unlock = tradeContext.unlock_trade(self.password)
+        tradeContext.unlock_trade(self.password)
         _, placedOrder = tradeContext.place_order(price= price, qty= quantity, code= code, trd_side=tradeSide, order_type= orderType, trd_env= tradeEnvironment)
         tradeContext.close()
         return placedOrder
 
     def placeFutureOrder(self, price, quantity, code, tradeSide, orderType = OrderType.NORMAL, tradeEnvironment = TrdEnv.SIMULATE):
         tradeContext= OpenFutureTradeContext(host='127.0.0.1', port=11111)
-        unlock = tradeContext.unlock_trade(self.password)
+        tradeContext.unlock_trade(self.password)
         _, placedOrder = tradeContext.place_order(price= price, qty= quantity, code= code, trd_side=tradeSide, order_type= orderType, trd_env= tradeEnvironment)
         tradeContext.close()
         return placedOrder
     
     def queryUSOrderList(self, tradingEnvironment= TrdEnv.SIMULATE):
         tradeContext = OpenUSTradeContext(host='127.0.0.1', port=11111)
-        unlock = tradeContext.unlock_trade(self.password)
+        tradeContext.unlock_trade(self.password)
         query = tradeContext.order_list_query(trd_env= tradingEnvironment)
         tradeContext.close()
         sleep(5)
