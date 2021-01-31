@@ -100,6 +100,7 @@ class BTKernelRunWrapper(object):
     def runOptimizationWithDifferentData(self, sortKey="VWR") -> pd.DataFrame:
         # Run One Time
         self.isOptimization = True
+        self.isDifferentData = True
         self.setFolderName()
 
         # Run Many Times
@@ -122,9 +123,9 @@ class BTKernelRunWrapper(object):
         btCoreRun.addAnalyzer()
         btCoreRun.addObserver(SLTP=False)
         btCoreRun.run()
-        btCoreRun.plotBokeh()
+        # btCoreRun.plotBokeh()
         # btCoreRun.plotIPython()
-        btCoreRun.getAnalysisResults(quantStats=True)
+        # btCoreRun.getAnalysisResults(quantStats=True)
         return
 
     def runScreening(self) -> pd.DataFrame:
