@@ -47,6 +47,7 @@ for symbol in SYMBOLS:
 
     differentDataParametersList.append({**differentDataParameters})
     sameStrategyParametersList.append({**sameStrategyParameters[0]})
+#61.239.99.154
 
 if __name__ == "__main__":
     BTKernelRunWrapper(sameDataParametersList, sameStrategyParameters).runOneTime()

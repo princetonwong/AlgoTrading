@@ -42,7 +42,7 @@ class TGController(object):
                 if record["position_side"] == "LONG":
                     result = self.sell(price, quantity)
                 elif record["position_side"] == "SHORT":
-                    result = self.buy(quantity, quantity)
+                    result = self.buy(price, quantity)
                 else:
                     result = f"Having position, but cannot close."
             else:
