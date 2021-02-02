@@ -12,7 +12,7 @@ name = "Testing"
 client = TelegramClient(name, Keys.Telegram_api_id, Keys.Telegram_api_hash)
 
 class TGController(object):
-    def __init__(self, traadingEnvironment=TrdEnv.REAL, ticker="HK.MHImain", quantity=1, threshold=0.0001):
+    def __init__(self, traadingEnvironment=TrdEnv.SIMULATE, ticker="HK.02800", quantity=500, threshold=0.0001):
         self.tradingEnvironment = traadingEnvironment
         self.ticker = ticker
         self.quantity = quantity
@@ -21,15 +21,17 @@ class TGController(object):
     def buy(self, price, quantity=None):
         if quantity is None:
             quantity = self.quantity
-        logging.info(f"Buying {quantity} {self.ticker} @ most {price * (1 + self.threshold)}")
-        result = futuapi.placeFutureOrder(price=price + self.threshold, quantity=quantity, code=self.ticker, tradeSide=TrdSide.BUY, orderType=OrderType.NORMAL, tradeEnvironment=self.tradingEnvironment)
+        price = price * int(1+self.threshold) / 98
+        logging.info(f"Buying {quantity} {self.ticker} @ most {price}")
+        result = futuapi.placeHKOrder(price=price + self.threshold, quantity=quantity, code=self.ticker, tradeSide=TrdSide.BUY, orderType=OrderType.NORMAL, tradeEnvironment=self.tradingEnvironment)
         return result
 
     def sell(self, price, quantity=None):
         if quantity is None:
             quantity = self.quantity
-        logging.info(f"Selling {quantity} {self.ticker} @ least {price - (1 * self.threshold)}")
-        result = futuapi.placeFutureOrder(price=price - self.threshold, quantity=quantity, code=self.ticker, tradeSide=TrdSide.SELL, orderType=OrderType.NORMAL, tradeEnvironment=self.tradingEnvironment)
+        price = price * int(1 + self.threshold) / 98
+        logging.info(f"Selling {quantity} {self.ticker} @ least {price}")
+        result = futuapi.placeHKOrder(price=price - self.threshold, quantity=quantity, code=self.ticker, tradeSide=TrdSide.SELL, orderType=OrderType.NORMAL, tradeEnvironment=self.tradingEnvironment)
         return result
 
     def close(self, price):
@@ -72,12 +74,12 @@ class TGController(object):
         if type(tradeResult) is pd.DataFrame:
             records = tradeResult.to_dict("records")
             for record in records:
-                if record["code"] == TICKER:
+                if record["code"] == self.ticker:
                     orderStatus = record["order_status"]
-                    quantity = record["quantity"]
+                    quantity = record["qty"]
                     tradeSide = record["trd_side"]
                     price = record["price"]
-                    logging.info(f"{orderStatus}: {tradeSide}ING {TICKER} @{price} x {quantity}")
+                    logging.info(f"{orderStatus}: {tradeSide}ING {self.ticker} @{price} x {quantity}")
         elif type(tradeResult) is str:
             logging.warning(tradeResult)
         return tradeResult
