@@ -32,7 +32,7 @@ class Helper():
 
     def generateFilePath(self, filename, extension):
         path = Path.cwd() / "Output" / self.folderName
-        path.mkdir(exist_ok=True)
+        os.makedirs(path,exist_ok=True)
         if filename == None:
             filename = "Unknown File Name"
         finalFilePath = "{}{}".format(filename, extension)
@@ -42,7 +42,7 @@ class Helper():
         path = Path.cwd() / "Static"
         filenameWithExtension = filename + ".xlsx"
         finalPath = os.path.join(path, filenameWithExtension)
-        df = pd.read_excel(finalPath)
+        df = pd.read_excel(finalPath, engine='openpyxl')
         return df
 
     def outputXLSX(self, df, fileName):
