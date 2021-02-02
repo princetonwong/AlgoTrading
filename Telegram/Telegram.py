@@ -12,74 +12,108 @@ name = "Testing"
 client = TelegramClient(name, Keys.Telegram_api_id, Keys.Telegram_api_hash)
 
 class TGController(object):
-    def __init__(self, traadingEnvironment=TrdEnv.SIMULATE, ticker="HK.02800", quantity=500, threshold=0.0001):
+    def __init__(self, traadingEnvironment=TrdEnv.SIMULATE, threshold=0.0001):
         self.tradingEnvironment = traadingEnvironment
-        self.ticker = ticker
-        self.quantity = quantity
         self.threshold = threshold
 
-    def buy(self, price, quantity=None):
-        if quantity is None:
-            quantity = self.quantity
-        price = price * int(1+self.threshold) / 98
-        logging.info(f"Buying {quantity} {self.ticker} @ most {price}")
-        result = futuapi.placeHKOrder(price=price + self.threshold, quantity=quantity, code=self.ticker, tradeSide=TrdSide.BUY, orderType=OrderType.NORMAL, tradeEnvironment=self.tradingEnvironment)
+    def trade(self, price, ticker, quantity: int, tradeSide: TrdSide, orderType=OrderType.NORMAL):
+        attributes = list()
+        isFuture = False
+        isHK = False
+        isUS = False
+        if "main" in ticker: isFuture = True
+        if "HK." in ticker: isHK = True
+        if "US." in ticker: isUS = True
+        print (isFuture, isHK, isUS)
+
+        coef = 1 if tradeSide == TrdSide.BUY else -1
+        price = price * (1 + self.threshold * coef)
+
+        if isHK and not isFuture: quantity = quantity * futuapi.getReference(ticker, "lot_size")
+
+        if tradeSide == TrdSide.BUY:
+            logging.info(f"Selling {quantity} {ticker} @ least {price}")
+        else:
+            logging.info(f"Buying {quantity} {ticker} @ most {price}")
+
+        if isFuture:
+            price = int(price)
+            result = futuapi.placeFutureOrder(price=price, quantity=quantity, ticker=ticker, tradeSide=tradeSide,
+                                              orderType=orderType, tradeEnvironment=TrdEnv.REAL)
+        elif isHK:
+            result = futuapi.placeHKOrder(price=price, quantity=quantity, ticker=ticker,tradeSide=tradeSide,
+                                          orderType=orderType, tradeEnvironment=self.tradingEnvironment)
+        elif isUS:
+            result = futuapi.placeUSOrder(price=price, quantity=quantity, ticker=ticker, tradeSide=tradeSide,
+                                          orderType=orderType, tradeEnvironment=self.tradingEnvironment)
+        else:
+            result = TypeError
+
         return result
 
-    def sell(self, price, quantity=None):
-        if quantity is None:
-            quantity = self.quantity
-        price = price * int(1 + self.threshold) / 98
-        logging.info(f"Selling {quantity} {self.ticker} @ least {price}")
-        result = futuapi.placeHKOrder(price=price - self.threshold, quantity=quantity, code=self.ticker, tradeSide=TrdSide.SELL, orderType=OrderType.NORMAL, tradeEnvironment=self.tradingEnvironment)
-        return result
-
-    def close(self, price):
+    def close(self, price, ticker, orderType=OrderType.NORMAL):
         global result
         logging.info(f"Closing MHImain around {price}")
         df = futuapi.queryCurrentPositions(tradingEnvironment=self.tradingEnvironment).to_dict("records")
         for record in df:
-            if record["code"] == self.ticker:
+            if record["code"] == ticker:
                 quantity = record["quantity"]
                 if record["position_side"] == "LONG":
-                    result = self.sell(price, quantity)
+                    result = self.trade(price, ticker, quantity, TrdSide.BUY, orderType)
                 elif record["position_side"] == "SHORT":
-                    result = self.buy(price, quantity)
+                    result = self.trade(price, ticker, quantity, TrdSide.SELL, orderType)
                 else:
                     result = f"Having position, but cannot close."
             else:
-                result = f"I am not holding {self.ticker}, so cannot close position"
+                result = f"I am not holding {ticker}, so cannot close position"
         return result
 
     def parseMessageAndTrade(self, message):
         try:
             parsed = re.search(r"MultiCharts64 Alert: Strategy 01 generated '(.*) @(.*)' at (.*) on (.*) \((.*) Minutes\)(.*)", message)
-            actionKey, price, ticker = parsed.group(1), int(parsed.group(2)), parsed.group(5)
-            logging.info(f"{actionKey, price}")
-            return actionKey, price
+            action, price, tickerString = parsed.group(1), int(parsed.group(2)), parsed.group(4)
+            ticker = "HK.MHImain" if tickerString == "MHI_IB" else tickerString
+            logging.info(f"message parsed as: {action, price, ticker}")
+            return (action, price, ticker)
+        except:
+            logging.warning(f"Cannot parse message '{message}', try next parsing")
+        try:
+            parsed = re.search(r"MultiCharts64 Alert: Alert for VENUS generated 'VENUS_(.*) @(.*)' at (.*) on (.*) \((.*) Minute\)(.*)", message)
+            action, price, tickerString = parsed.group(1), int(parsed.group(2)), parsed.group(4)
+            if action == "Buy":
+                action = "Buy"
+            elif action == "Short":
+                action = "Short"
+            elif action == "Close Buy Postion" or action == "Close Short Position":
+                action = "Close Position"
+            ticker = "HK.MHImain" if tickerString == "HSIG1" else tickerString
+            logging.info(f"message parsed as:{action, price, ticker}")
+            return action, price, ticker
         except:
             logging.warning(f"Cannot parse message '{message}'")
 
-
-    def tradeByActionkey(self, actionKey, price):
+    def tradeByActionkey(self, parsed):
         global tradeResult
-        if actionKey == "Close Position":
-            tradeResult = self.close(price)
-        elif actionKey == "Buy":
-            tradeResult = self.buy(price)
-        elif actionKey == "Short":
-            tradeResult = self.sell(price)
+        action, price, ticker = parsed
+        quantity = 1
+
+        if action == "Close Position":
+            tradeResult = self.close(price, ticker)
+        elif action == "Buy":
+            tradeResult = self.trade(price, ticker, quantity, TrdSide.BUY)
+        elif action == "Short":
+            tradeResult = self.trade(price, ticker, quantity, TrdSide.SELL)
         else:
-            logging.warning(f"Cannot trade {actionKey}")
+            logging.warning(f"Cannot trade {action}")
         if type(tradeResult) is pd.DataFrame:
             records = tradeResult.to_dict("records")
             for record in records:
-                if record["code"] == self.ticker:
+                if record["code"] == ticker:
                     orderStatus = record["order_status"]
                     quantity = record["qty"]
                     tradeSide = record["trd_side"]
                     price = record["price"]
-                    logging.info(f"{orderStatus}: {tradeSide}ING {self.ticker} @{price} x {quantity}")
+                    logging.info(f"{orderStatus}: {tradeSide}ING {ticker} @{price} x {quantity}")
         elif type(tradeResult) is str:
             logging.warning(tradeResult)
         return tradeResult
@@ -125,11 +159,12 @@ if __name__ == "__main__":
             async def my_event_handler(event):
                 text = event.raw_text
                 logging.info(f"Received TG message: '{text}'")
-                key, price = tg.parseMessageAndTrade(text)
-                tradeResult = tg.tradeByActionkey(key, price)
-                print(tradeResult)
-
-
+                parsed = tg.parseMessageAndTrade(text)
+                tradeResult = tg.tradeByActionkey(parsed)
+                logging.info(tradeResult)
+        realtimeGetNewMessagesFrom(Keys.Telegram_Shuttlealgo)
+        realtimeGetNewMessagesFrom(Keys.Telegram_algolab)
         realtimeGetNewMessagesFrom(Keys.Telegram_Princeton)
+        realtimeGetNewMessagesFrom(Keys.Telegram_Jon)
         client.start()
         client.run_until_disconnected()
