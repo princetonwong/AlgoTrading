@@ -32,11 +32,11 @@ class Helper():
 
     def generateFilePath(self, filename, extension):
         path = Path.cwd() / "Output" / self.folderName
-        os.makedirs(path,exist_ok=True)
+        os.makedirs(str(path),exist_ok=True)
         if filename == None:
             filename = "Unknown File Name"
         finalFilePath = "{}{}".format(filename, extension)
-        return os.path.join(path, finalFilePath)
+        return os.path.join(str(path), finalFilePath)
 
     def readXLSXFromFile(self, filename):
         path = Path.cwd() / "Static"

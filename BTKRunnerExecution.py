@@ -11,7 +11,7 @@ HK_HSIConstituent_code = FutuAPI().getPlateStock("HK.HSI Constituent")["code"].v
 # INPUT HERE
 INITIALCASH = 50000
 SYMBOLS = ["AAPL"]
-SUBTYPE = SubType.K_30M
+SUBTYPE = SubType.K_DAY
 TIMERANGE = ("2020-10-01", "00:00:00", "2021-02-03", "00:39:00")
 REMARKS = ""
 
