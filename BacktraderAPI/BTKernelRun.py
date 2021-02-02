@@ -104,8 +104,8 @@ class BTKernelRun:
 
     def addStrategy(self, strategyParams):
         self.addStrategyParams = strategyParams["STRATEGYPARAMS"] or self.strategyParams
-        print(f"Strategy parameters are: {self.addStrategyParams}")
-        print(f"Optimization is: {self.isOptimization}")
+        print("Strategy parameters are: {}".format(self.addStrategyParams))
+        print("Optimization is: {}".format(self.isOptimization))
         self.cerebro.addstrategy(self.strategyName, **self.addStrategyParams)
 
 

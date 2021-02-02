@@ -32,9 +32,9 @@ class TGController(object):
         if isHK and not isFuture: quantity = quantity * futuapi.getReference(ticker, "lot_size")
 
         if tradeSide == TrdSide.BUY:
-            logging.info(f"Selling {quantity} {ticker} @ least {price}")
+            logging.info("Selling {} {} @ least {}".format(quantity, ticker, price))
         else:
-            logging.info(f"Buying {quantity} {ticker} @ most {price}")
+            logging.info("Buying {} {} @ least {}".format(quantity, ticker, price))
 
         if isFuture:
             price = int(price)
@@ -53,7 +53,7 @@ class TGController(object):
 
     def close(self, price, ticker, orderType=OrderType.NORMAL):
         global result
-        logging.info(f"Closing MHImain around {price}")
+        logging.info("Closing MHImain around {}".format(price))
         df = futuapi.queryCurrentPositions(tradingEnvironment=self.tradingEnvironment).to_dict("records")
         for record in df:
             if record["code"] == ticker:
@@ -63,9 +63,9 @@ class TGController(object):
                 elif record["position_side"] == "SHORT":
                     result = self.trade(price, ticker, quantity, TrdSide.SELL, orderType)
                 else:
-                    result = f"Having position, but cannot close."
+                    result = "Having position, but cannot close."
             else:
-                result = f"I am not holding {ticker}, so cannot close position"
+                result = "I am not holding {}, so cannot close position".format(ticker)
         return result
 
     def parseMessageAndTrade(self, message):
@@ -73,10 +73,10 @@ class TGController(object):
             parsed = re.search(r"MultiCharts64 Alert: Strategy 01 generated '(.*) @(.*)' at (.*) on (.*) \((.*) Minutes\)(.*)", message)
             action, price, tickerString = parsed.group(1), int(parsed.group(2)), parsed.group(4)
             ticker = "HK.MHImain" if tickerString == "MHI_IB" else tickerString
-            logging.info(f"message parsed as: {action, price, ticker}")
+            logging.info("message parsed as: {} {} {}".format(action, price, ticker))
             return (action, price, ticker)
         except:
-            logging.warning(f"Cannot parse message '{message}', try next parsing")
+            logging.warning("Cannot parse message '{}', try next parsing".format(message))
         try:
             parsed = re.search(r"MultiCharts64 Alert: Alert for VENUS generated 'VENUS_(.*) @(.*)' at (.*) on (.*) \((.*) Minute\)(.*)", message)
             action, price, tickerString = parsed.group(1), int(parsed.group(2)), parsed.group(4)
@@ -87,10 +87,10 @@ class TGController(object):
             elif action == "Close Buy Postion" or action == "Close Short Position":
                 action = "Close Position"
             ticker = "HK.MHImain" if tickerString == "HSIG1" else tickerString
-            logging.info(f"message parsed as:{action, price, ticker}")
+            logging.info("message parsed as:{}".format(action, price, ticker))
             return action, price, ticker
         except:
-            logging.warning(f"Cannot parse message '{message}'")
+            logging.warning("Cannot parse message '{}'".format(message))
 
     def tradeByActionkey(self, parsed):
         global tradeResult
@@ -104,7 +104,7 @@ class TGController(object):
         elif action == "Short":
             tradeResult = self.trade(price, ticker, quantity, TrdSide.SELL)
         else:
-            logging.warning(f"Cannot trade {action}")
+            logging.warning("Cannot trade {}".format(action))
         if type(tradeResult) is pd.DataFrame:
             records = tradeResult.to_dict("records")
             for record in records:
@@ -113,7 +113,7 @@ class TGController(object):
                     quantity = record["qty"]
                     tradeSide = record["trd_side"]
                     price = record["price"]
-                    logging.info(f"{orderStatus}: {tradeSide}ING {ticker} @{price} x {quantity}")
+                    logging.info(f"{}: {}ING {} @{} x {}".format(orderStatus, tradeSide, ticker, price, quantity))
         elif type(tradeResult) is str:
             logging.warning(tradeResult)
         return tradeResult
@@ -158,7 +158,7 @@ if __name__ == "__main__":
             @client.on(events.NewMessage(chats=id))
             async def my_event_handler(event):
                 text = event.raw_text
-                logging.info(f"Received TG message: '{text}'")
+                logging.info("Received TG message: '{}'".format(text))
                 parsed = tg.parseMessageAndTrade(text)
                 tradeResult = tg.tradeByActionkey(parsed)
                 logging.info(tradeResult)
