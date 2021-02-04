@@ -125,7 +125,7 @@ class BTKernelRunWrapper(object):
         btCoreRun.run()
         if bokeh: btCoreRun.plotBokeh()
         if iPython: btCoreRun.plotIPython()
-        if quantStats: btCoreRun.getAnalysisResults(quantStats=True)
+        btCoreRun.getAnalysisResults(quantStats=quantStats)
         return
 
     def runScreening(self) -> pd.DataFrame:

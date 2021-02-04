@@ -113,7 +113,7 @@ class TGController(object):
                     quantity = record["qty"]
                     tradeSide = record["trd_side"]
                     price = record["price"]
-                    logging.info(f"{}: {}ING {} @{} x {}".format(orderStatus, tradeSide, ticker, price, quantity))
+                    logging.info("{}: {}ING {} @{} x {}".format(orderStatus, tradeSide, ticker, price, quantity))
         elif type(tradeResult) is str:
             logging.warning(tradeResult)
         return tradeResult
