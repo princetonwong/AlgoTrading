@@ -11,6 +11,10 @@ import math
 import datetime
 
 class EmptyStrategy(bt.Strategy):
+    params = dict(period=2000)
+
+    def __init__(self):
+        bt.indicators.HurstExponent(period=self.p.period)
     pass
 
 class KDJStrategy(StopTrailStrategyExit, KDJStrategyBase):

@@ -5,14 +5,14 @@ from BacktraderAPI.BTKernelRunWrapper import BTKernelRunWrapper
 from CustomAPI.FutuAPI import FutuAPI
 
 #Access
-SP500 = YahooScraper().readSP500List().head()["ticker"].tolist()
-HK_HSIConstituent_code = FutuAPI().getPlateStock("HK.HSI Constituent")["code"].values.tolist()
+# SP500 = YahooScraper().readSP500List().head()["ticker"].tolist()
+# HK_HSIConstituent_code = FutuAPI().getPlateStock("HK.HSI Constituent")["code"].values.tolist()
 
 # INPUT HERE
 INITIALCASH = 50000
-SYMBOLS = SP500
+SYMBOLS = ["AAPL"]
 SUBTYPE = SubType.K_DAY
-TIMERANGE = ("2020-10-01", "00:00:00", "2020-12-30", "23:59:00")
+TIMERANGE = ("2020-10-01", "00:00:00", "2021-02-03", "00:39:00")
 REMARKS = ""
 
 ## Change this for ONE strategy
@@ -50,7 +50,8 @@ for symbol in SYMBOLS:
 #61.239.99.154
 
 if __name__ == "__main__":
-    BTKernelRunWrapper(sameDataParametersList, sameStrategyParameters).runOneTime()
-    BTKernelRunWrapper(sameDataParametersList, differentStrategyParametersList).runOptimizationWithSameData(sortKey="VWR")
-    BTKernelRunWrapper(differentDataParametersList, sameStrategyParameters).runOptimizationWithDifferentData(sortKey="VWR")
-    BTKernelRunWrapper(differentDataParametersList, sameStrategyParameters).runScreening()
+    BTKernelRunWrapper(sameDataParametersList, sameStrategyParameters)\
+        .runOneTime(bokeh=False, iPython=False, quantStats=True)
+    # BTKernelRunWrapper(sameDataParametersList, differentStrategyParametersList).runOptimizationWithSameData(sortKey="VWR")
+    # BTKernelRunWrapper(differentDataParametersList, sameStrategyParameters).runOptimizationWithDifferentData(sortKey="VWR")
+    # BTKernelRunWrapper(differentDataParametersList, sameStrategyParameters).runScreening()
