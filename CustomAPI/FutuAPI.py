@@ -6,24 +6,24 @@ class FutuAPI():
     
     password = Keys.FutuPassword
     
-    def placeUSOrder(self, price, quantity, code, tradeSide, orderType = OrderType.NORMAL, tradeEnvironment = TrdEnv.SIMULATE):
+    def placeUSOrder(self, price, quantity, ticker, tradeSide, orderType = OrderType.NORMAL, tradeEnvironment = TrdEnv.SIMULATE):
         tradeContext= OpenUSTradeContext(host='127.0.0.1', port=11111)
         tradeContext.unlock_trade(self.password)
-        _, placedOrder = tradeContext.place_order(price= price, qty= quantity, code= code, trd_side=tradeSide, order_type= orderType, trd_env= tradeEnvironment)
+        _, placedOrder = tradeContext.place_order(price= price, qty= quantity, code= ticker, trd_side=tradeSide, order_type= orderType, trd_env= tradeEnvironment)
         tradeContext.close()
         return placedOrder
     
-    def placeHKOrder(self, price, quantity, code, tradeSide, orderType = OrderType.NORMAL, tradeEnvironment = TrdEnv.SIMULATE):
+    def placeHKOrder(self, price, quantity, ticker, tradeSide, orderType = OrderType.NORMAL, tradeEnvironment = TrdEnv.SIMULATE):
         tradeContext= OpenHKTradeContext(host='127.0.0.1', port=11111)
         tradeContext.unlock_trade(self.password)
-        _, placedOrder = tradeContext.place_order(price= price, qty= quantity, code= code, trd_side=tradeSide, order_type= orderType, trd_env= tradeEnvironment)
+        _, placedOrder = tradeContext.place_order(price= price, qty= quantity, code= ticker, trd_side=tradeSide, order_type= orderType, trd_env= tradeEnvironment)
         tradeContext.close()
         return placedOrder
 
-    def placeFutureOrder(self, price, quantity, code, tradeSide, orderType = OrderType.NORMAL, tradeEnvironment = TrdEnv.SIMULATE):
+    def placeFutureOrder(self, price, quantity, ticker, tradeSide, orderType = OrderType.NORMAL, tradeEnvironment = TrdEnv.SIMULATE):
         tradeContext= OpenFutureTradeContext(host='127.0.0.1', port=11111)
         tradeContext.unlock_trade(self.password)
-        _, placedOrder = tradeContext.place_order(price= price, qty= quantity, code= code, trd_side=tradeSide, order_type= orderType, trd_env= tradeEnvironment)
+        _, placedOrder = tradeContext.place_order(price= price, qty= quantity, code= ticker, trd_side=tradeSide, order_type= orderType, trd_env= tradeEnvironment)
         tradeContext.close()
         return placedOrder
     
@@ -121,3 +121,13 @@ class FutuAPI():
         data = data[data['time_key'].dt.time.between(start, end)]
 
         return data
+
+    @staticmethod
+    def getReference(symbol, info):
+        quote_ctx = OpenQuoteContext(host='127.0.0.1', port=11111)
+        ret, data = quote_ctx.get_stock_basicinfo(Market.HK, SecurityType.STOCK, [symbol])
+        if ret == RET_OK:
+            print(data[info][0])
+        else:
+            print('error:', data)
+        quote_ctx.close()

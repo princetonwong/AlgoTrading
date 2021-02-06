@@ -111,7 +111,7 @@ class BTKernelRunWrapper(object):
 
         return self._outputOptimizationResultsXLSX(df, sortKey)
 
-    def runOneTime(self):
+    def runOneTime(self, bokeh=True, iPython=True, quantStats=True):
         btCoreRun = BTKernelRun(self.dataParametersList[0], self.strategyParametersList[0])
         self.setFolderName()
         btCoreRun.folderName = self.folderName
@@ -123,9 +123,9 @@ class BTKernelRunWrapper(object):
         btCoreRun.addAnalyzer()
         btCoreRun.addObserver(SLTP=False)
         btCoreRun.run()
-        # btCoreRun.plotBokeh()
-        # btCoreRun.plotIPython()
-        # btCoreRun.getAnalysisResults(quantStats=True)
+        if bokeh: btCoreRun.plotBokeh()
+        if iPython: btCoreRun.plotIPython()
+        if quantStats: btCoreRun.getAnalysisResults(quantStats=True)
         return
 
     def runScreening(self) -> pd.DataFrame:
