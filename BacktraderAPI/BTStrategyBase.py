@@ -32,7 +32,7 @@ class BBandsKChanSqueezeStrategyBase(BBandsStrategyBase, KeltnerChannelStrategyB
         super(BBandsKChanSqueezeStrategyBase, self).__init__()
         self.squeeze = BTIndicator.KeltnerChannelBBSqueeze()
         self.squeeze.csv = True
-        self.bBandCxKChan = bt.ind.CrossOver(self.squeeze.squeeze, 0, plot=False)
+        self.bBandCxKChan = bt.indicators.CrossOver(self.squeeze.squeeze, 0, plot=False)
 
 class DonchianStrategyBase(bt.Strategy):
     params = dict(donchianPeriod=20, lookback=-1,)

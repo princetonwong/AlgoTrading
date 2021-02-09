@@ -92,6 +92,7 @@ class BTKernelRunWrapper(object):
         # Run Many Times
         results = process_map(self._runThisManyTimes_SameData, btCoreRunList, self.strategyParametersList, max_workers=os.cpu_count())
 
+        print (results)
         # Results
         df = pd.DataFrame(results)
 

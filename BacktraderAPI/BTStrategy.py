@@ -515,7 +515,7 @@ class DMICrossStrategy(DMIStrategyBase):
                 if self.plusDIXminusDI == 1:
                     self.buy(exectype=bt.Order.Stop, price=self.data.close)
 
-class IchimokuStrategy(IchimokuCloudStrategyBase, StopTrailStrategyExit, HoldStrategyExit, CCIStrategyBase, AwesomeOscillatorStrategyBase, PSARStrategyBase):
+class IchimokuStrategy(IchimokuCloudStrategyBase, StopTrailStrategyExit, HoldStrategyExit, AwesomeOscillatorStrategyBase, PSARStrategyBase):
     def next(self):
         cloud = self.ichimoku.senkou_span_a - self.ichimoku.senkou_span_b
         tenkanGreaterKijun = self.ichimoku.tenkan_sen - self.ichimoku.kijun_sen
@@ -675,11 +675,11 @@ class TTFwithStopTrail2(TTFStrategyBase):
                 self.buy()
                 self.order = None
         elif self.position.size > 0:
-            assert self.order is None
+            # assert self.order is None
             if self.ttfCxUpper == 1:
                 self.close()
         elif self.position.size < 0:
-            assert self.order is None
+            # assert self.order is None
             if self.ttfCxLower == -1:
                 self.close()
 
@@ -845,7 +845,7 @@ class TTFwithBracket(TTFStrategyBase):
             self.orefs.remove(order.ref)
 
     def __init__(self):
-        super(TTFwithBracketandCancellation, self).__init__()
+        super(TTFwithBracket, self).__init__()
         self.orefs = list()
         self.holdstart = int()
         if self.p.usebracket:
@@ -998,7 +998,8 @@ class TTFwithBracketandCancellation(TTFStrategyBase, BracketBuying, NotifyOrderS
 
 class TTFHOLD(TTFStrategyBase, HoldStrategyExit):
     params = (('risk', 0.1),  # risk 10%
-              ('stop_dist', 200))  # stoploss distance 5%
+              ('stop_dist', 200),
+              ("trailamount", 100))  # stoploss distance 5%
 
     def __init__(self):
         super(TTFHOLD, self).__init__()
