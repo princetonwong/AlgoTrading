@@ -51,7 +51,8 @@ for symbol in SYMBOLS:
 #61.239.99.154
 
 if __name__ == "__main__":
-    # BTKernelRunWrapper(sameDataParametersList, sameStrategyParameters).runOneTime(bokeh=False, iPython=False, quantStats=True)
-    BTKernelRunWrapper(sameDataParametersList, differentStrategyParametersList).runOptimizationWithSameData(sortKey="VWR")
+    BTKernelRunWrapper(sameDataParametersList, sameStrategyParameters)\
+        .runOneTime(bokeh=False, iPython=False, quantStats=True)
+    # BTKernelRunWrapper(sameDataParametersList, differentStrategyParametersList).runOptimizationWithSameData(sortKey="VWR")
     # BTKernelRunWrapper(differentDataParametersList, sameStrategyParameters).runOptimizationWithDifferentData(sortKey="VWR")
     # BTKernelRunWrapper(differentDataParametersList, sameStrategyParameters).runScreening()
