@@ -90,6 +90,20 @@ class TGController(object):
             logging.info(f"message parsed as:{action, price, ticker}")
             return action, price, ticker
         except:
+            logging.warning(f"Cannot parse message '{message}', try next parsing")
+        try:
+            parsed = re.search(r"Python-Tg Alert P4: generated P4 (.*) Signal @(.*) on (.*)", message)
+            action, price, tickerString = parsed.group(1), int(parsed.group(2)), parsed.group(3)
+            if action == "BUY":
+                action = "Buy"
+            elif action == "SHORT":
+                action = "Short"
+            elif action == "COVER" or action == "SELL":
+                action = "Close Position"
+            ticker = "HK.MHImain" if "HSI" in tickerString else tickerString
+            logging.info(f"message parsed as:{action, price, ticker}")
+            return action, price, ticker
+        except:
             logging.warning(f"Cannot parse message '{message}'")
 
     def tradeByActionkey(self, parsed):
@@ -165,6 +179,6 @@ if __name__ == "__main__":
         realtimeGetNewMessagesFrom(Keys.Telegram_Shuttlealgo)
         realtimeGetNewMessagesFrom(Keys.Telegram_algolab)
         realtimeGetNewMessagesFrom(Keys.Telegram_Princeton)
-        realtimeGetNewMessagesFrom(Keys.Telegram_Jon)
+        realtimeGetNewMessagesFrom(Keys.Telegram_TinTinTrader)
         client.start()
         client.run_until_disconnected()
