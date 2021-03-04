@@ -32,16 +32,16 @@ class Helper():
 
     def generateFilePath(self, filename, extension):
         path = Path.cwd() / "Output" / self.folderName
-        os.makedirs(path,exist_ok=True)
+        os.makedirs(str(path),exist_ok=True)
         if filename == None:
             filename = "Unknown File Name"
         finalFilePath = "{}{}".format(filename, extension)
-        return os.path.join(path, finalFilePath)
+        return os.path.join(str(path), finalFilePath)
 
     def readXLSXFromFile(self, filename):
         path = Path.cwd() / "Static"
         filenameWithExtension = filename + ".xlsx"
-        finalPath = os.path.join(path, filenameWithExtension)
+        finalPath = os.path.join(str(path), filenameWithExtension)
         df = pd.read_excel(finalPath, engine='openpyxl')
         return df
 
@@ -55,7 +55,7 @@ class Helper():
     def gradientAppliedXLSX(self, df, fileName, subset):
         # for col in df.select_dtypes(['datetimetz']).columns:
         #     df[col] = df[col].dt.tz_convert(None)
-        formattedDf: pd.DataFrame = df.style.background_gradient(cmap="PiYG", subset= subset)\
+        formattedDf = df.style.background_gradient(cmap="PiYG", subset= subset)\
                                                      .highlight_null(null_color='transparent')
 
         self.outputXLSX(formattedDf, fileName)

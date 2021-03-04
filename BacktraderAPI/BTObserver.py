@@ -28,9 +28,9 @@ class BuySellStop(bt.observers.BuySell):
 
     def next(self):
         super(BuySellStop,self).next()
-        owner:bt.Strategy = self._owner
+        owner = self._owner
         for o in owner._orderspending:
-            order:bt.Order = o
+            order = o
             if order.exectype in [bt.Order.Stop,bt.Order.StopLimit,
                                   bt.Order.StopTrail,bt.Order.StopTrailLimit]:
                 self.lines.stop[0] = order.created.price

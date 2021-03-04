@@ -160,7 +160,10 @@ class SharpeRatio(_AnalyzerBase, bt.analyzers.SharpeRatio):
 
     def getAnalyzerResultsDf(self):
         super(SharpeRatio, self).getAnalyzerResultsDf()
-        sharpeRatio = round(self.get_analysis()['sharperatio'], 2)
+        try:
+            sharpeRatio = round(self.get_analysis()['sharperatio'], 2)
+        except:
+            sharpeRatio = 0
         self.index += ["Sharpe Ratio"]
         self.result += [sharpeRatio]
 
@@ -173,14 +176,17 @@ class TradeAnalyzer(_AnalyzerBase, bt.analyzers.TradeAnalyzer):
 
     def getAnalyzerResultsDf(self):
         super(TradeAnalyzer, self).getAnalyzerResultsDf()
-        total_open = self.get_analysis().total.open
-        total_closed = self.get_analysis().total.closed
-        total_won = self.get_analysis().won.total
-        total_lost = self.get_analysis().lost.total
-        win_streak = self.get_analysis().streak.won.longest
-        lose_streak = self.get_analysis().streak.lost.longest
-        pnl_net = round(self.get_analysis().pnl.net.total, 2)
-        strike_rate = round(((total_won / total_closed) * 100), 2)
+        try:
+            total_open = self.get_analysis().total.open
+            total_closed = self.get_analysis().total.closed
+            total_won = self.get_analysis().won.total
+            total_lost = self.get_analysis().lost.total
+            win_streak = self.get_analysis().streak.won.longest
+            lose_streak = self.get_analysis().streak.lost.longest
+            pnl_net = round(self.get_analysis().pnl.net.total, 2)
+            strike_rate = round(((total_won / total_closed) * 100), 2)
+        except:
+            total_open, total_closed, total_won, total_lost, strike_rate, win_streak, lose_streak, pnl_net = 0, 0, 0,0,0,0,0,0
         self.index += ['Total Open', 'Total Closed', 'Total Won', 'Total Lost', 'Strike Rate', 'Win Streak', 'Losing Streak',
                  'PnL Net']
         self.result += [total_open, total_closed, total_won, total_lost, strike_rate, win_streak, lose_streak, pnl_net]

@@ -92,6 +92,7 @@ class BTKernelRunWrapper(object):
         # Run Many Times
         results = process_map(self._runThisManyTimes_SameData, btCoreRunList, self.strategyParametersList, max_workers=os.cpu_count())
 
+        print (results)
         # Results
         df = pd.DataFrame(results)
 
@@ -125,7 +126,7 @@ class BTKernelRunWrapper(object):
         btCoreRun.run()
         if bokeh: btCoreRun.plotBokeh()
         if iPython: btCoreRun.plotIPython()
-        if quantStats: btCoreRun.getAnalysisResults(quantStats=True)
+        btCoreRun.getAnalysisResults(quantStats=quantStats)
         return
 
     def runScreening(self) -> pd.DataFrame:
