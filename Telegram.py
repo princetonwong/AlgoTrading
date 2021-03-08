@@ -174,8 +174,9 @@ if __name__ == "__main__":
                 text = event.raw_text
                 logging.info(f"Received TG message: '{text}'")
                 parsed = tg.parseMessageAndTrade(text)
-                tradeResult = tg.tradeByActionkey(parsed)
-                logging.info(tradeResult)
+                if parsed is not None:
+                    tradeResult = tg.tradeByActionkey(parsed)
+                    logging.info(tradeResult)
         # realtimeGetNewMessagesFrom(Keys.Telegram_Shuttlealgo)
         # realtimeGetNewMessagesFrom(Keys.Telegram_algolab)
         realtimeGetNewMessagesFrom(Keys.Telegram_Princeton)
