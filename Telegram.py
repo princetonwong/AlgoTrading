@@ -32,9 +32,9 @@ class TGController(object):
         if isHK and not isFuture: quantity = quantity * futuapi.getReference(ticker, "lot_size")
 
         if tradeSide == TrdSide.BUY:
-            logging.info(f"Selling {quantity} {ticker} @ least {price}")
+            logging.info(f"Buying {quantity} {ticker} @ least {price}")
         else:
-            logging.info(f"Buying {quantity} {ticker} @ most {price}")
+            logging.info(f"Selling {quantity} {ticker} @ most {price}")
 
         if isFuture:
             price = int(price)
