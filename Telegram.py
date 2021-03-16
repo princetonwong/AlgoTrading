@@ -56,7 +56,7 @@ class TGController(object):
         logging.info(f"Closing MHImain around {price}")
         df = futuapi.queryCurrentPositions(tradingEnvironment=self.tradingEnvironment).to_dict("records")
         for record in df:
-            if ticker == "MHImain":
+            if ticker == "HK.MHImain":
                 ticker == record["code"]
                 print (ticker)
                 print (record["code"])
