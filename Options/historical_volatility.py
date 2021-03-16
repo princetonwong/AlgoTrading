@@ -82,7 +82,7 @@ def plot(stock_symbol, lengthOfTime):
 
 if __name__ == '__main__':
     lengthOfTime = 8 * 365
-    for t in ["TSLA", "AAPL"]:
+    for t in ["COST"]:
         plot(t, lengthOfTime)
 
 
