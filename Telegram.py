@@ -56,6 +56,10 @@ class TGController(object):
         logging.info(f"Closing MHImain around {price}")
         df = futuapi.queryCurrentPositions(tradingEnvironment=self.tradingEnvironment).to_dict("records")
         for record in df:
+            if ticker == "MHImain":
+                ticker == record["code"]
+                print (ticker)
+                print (record["code"])
             if record["code"] == ticker:
                 quantity = record["quantity"]
                 if record["position_side"] == "LONG":
@@ -86,7 +90,7 @@ class TGController(object):
                 action = "Short"
             elif action == "Close Buy Postion" or action == "Close Short Position":
                 action = "Close Position"
-            ticker = "HK.MHImain" if tickerString == "HSIG1" else tickerString
+            ticker = "HK.MHImain" if ("HSI" in tickerString or "MHI" in tickerString) else tickerString
             logging.info(f"message parsed as:{action, price, ticker}")
             return action, price, ticker
         except:
