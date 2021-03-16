@@ -32,9 +32,9 @@ class TGController(object):
         if isHK and not isFuture: quantity = quantity * futuapi.getReference(ticker, "lot_size")
 
         if tradeSide == TrdSide.BUY:
-            logging.info(f"Selling {quantity} {ticker} @ least {price}")
+            logging.info(f"Buying {quantity} {ticker} @ least {price}")
         else:
-            logging.info(f"Buying {quantity} {ticker} @ most {price}")
+            logging.info(f"Selling {quantity} {ticker} @ most {price}")
 
         if isFuture:
             price = int(price)
@@ -174,8 +174,9 @@ if __name__ == "__main__":
                 text = event.raw_text
                 logging.info(f"Received TG message: '{text}'")
                 parsed = tg.parseMessageAndTrade(text)
-                tradeResult = tg.tradeByActionkey(parsed)
-                logging.info(tradeResult)
+                if parsed is not None:
+                    tradeResult = tg.tradeByActionkey(parsed)
+                    logging.info(tradeResult)
         # realtimeGetNewMessagesFrom(Keys.Telegram_Shuttlealgo)
         # realtimeGetNewMessagesFrom(Keys.Telegram_algolab)
         realtimeGetNewMessagesFrom(Keys.Telegram_Princeton)

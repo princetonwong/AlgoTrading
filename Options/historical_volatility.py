@@ -65,6 +65,7 @@ def plot(stock_symbol, lengthOfTime):
     # transform json file to dataframe
     prices = pd.DataFrame(json_prices[stock_symbol]
                           ['prices'])[['formatted_date', 'close']]
+    prices.to_csv(f"{stock_symbol}.csv")
 
     end_dateList = [date.today() - timedelta(days=i) for i in range(lengthOfTime)]
     volList = [historical_volatility(prices, end_date) for end_date in end_dateList]
@@ -82,7 +83,7 @@ def plot(stock_symbol, lengthOfTime):
 
 if __name__ == '__main__':
     lengthOfTime = 8 * 365
-    for t in ["COST"]:
+    for t in ["AMZN"]:
         plot(t, lengthOfTime)
 
 
