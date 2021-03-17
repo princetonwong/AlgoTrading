@@ -57,6 +57,7 @@ class TGController(object):
         global result
         logging.info(f"Closing MHImain around {price}")
         df = futuapi.queryCurrentPositions(tradingEnvironment=self.tradingEnvironment).to_dict("records")
+        print (df)
         for record in df:
             if ticker == "HK.MHImain":
                 ticker = record["code"]
@@ -179,7 +180,7 @@ class TGController(object):
 if __name__ == "__main__":
     defaultLogging()
     tg = TGController(tradingEnvironment=TrdEnv.REAL)
-    tg.getRecentTelegramMessages(Keys.Telegram_TinTinTrader, limit=1000)
+    # tg.getRecentTelegramMessages(Keys.Telegram_TinTinTrader, limit=1000)
     while True:
         def realtimeGetNewMessagesFrom(id):
             @client.on(events.NewMessage(chats=id))
