@@ -23,9 +23,10 @@ class TGController(object):
         isFuture = False
         isHK = False
         isUS = False
-        if "main" in ticker: isFuture = True
         if "HK." in ticker: isHK = True
         if "US." in ticker: isUS = True
+        if "MHI" in ticker: isFuture = True
+        if "main" in ticker: isFuture = True
         print (isFuture, isHK, isUS)
 
         coef = 1 if tradeSide == TrdSide.BUY else -1
@@ -57,18 +58,21 @@ class TGController(object):
         global result
         logging.info(f"Closing MHImain around {price}")
         df = futuapi.queryCurrentPositions(tradingEnvironment=self.tradingEnvironment).to_dict("records")
-        print (df)
         for record in df:
             if ticker == "HK.MHImain":
                 ticker = record["code"]
-                print (ticker)
-                print (record["code"])
+                logging.warning (f'record is {record}')
+                logging.warning (f'ticker is {ticker}')
+                logging.warning (f'code is {record["code"]}')
+                logging.warning (f'quantity is {record["qty"]}')
             if record["code"] == ticker:
-                quantity = record["quantity"]
+                quantity = record["qty"]
                 if record["position_side"] == "LONG":
                     result = self.trade(price, ticker, quantity, TrdSide.SELL, orderType)
+                    logging.warning("selling")
                 elif record["position_side"] == "SHORT":
                     result = self.trade(price, ticker, quantity, TrdSide.BUY, orderType)
+                    logging.warning("buying")
                 else:
                     result = f"Having position, but cannot close."
             else:
