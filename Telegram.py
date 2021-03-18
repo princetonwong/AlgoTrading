@@ -57,7 +57,7 @@ class TGController(object):
         df = futuapi.queryCurrentPositions(tradingEnvironment=self.tradingEnvironment).to_dict("records")
         for record in df:
             if ticker == "HK.MHImain":
-                ticker == record["code"]
+                ticker = record["code"]
                 print (ticker)
                 print (record["code"])
             if record["code"] == ticker:
