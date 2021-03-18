@@ -61,7 +61,7 @@ class TGController(object):
                 print (ticker)
                 print (record["code"])
             if record["code"] == ticker:
-                quantity = record["quantity"]
+                quantity = abs(record["quantity"])
                 if record["position_side"] == "LONG":
                     result = self.trade(price, ticker, quantity, TrdSide.BUY, orderType)
                 elif record["position_side"] == "SHORT":
