@@ -6,14 +6,16 @@ from futu import TrdSide, OrderType, TrdEnv
 import pandas as pd
 import Keys
 from CustomAPI.Logger import defaultLogging
+from datetime import timezone
+import pytz
 
 # These example values won't work. You must get your own api_id and api_hash from https://my.telegram.org, under API Development.
 name = "Testing"
 client = TelegramClient(name, Keys.Telegram_api_id, Keys.Telegram_api_hash)
 
 class TGController(object):
-    def __init__(self, traadingEnvironment=TrdEnv.SIMULATE, threshold=0.0001):
-        self.tradingEnvironment = traadingEnvironment
+    def __init__(self, tradingEnvironment=TrdEnv.SIMULATE, threshold=0.0001):
+        self.tradingEnvironment = tradingEnvironment
         self.threshold = threshold
 
     def trade(self, price, ticker, quantity: int, tradeSide: TrdSide, orderType=OrderType.NORMAL):
@@ -21,9 +23,10 @@ class TGController(object):
         isFuture = False
         isHK = False
         isUS = False
-        if "main" in ticker: isFuture = True
         if "HK." in ticker: isHK = True
         if "US." in ticker: isUS = True
+        if "MHI" in ticker: isFuture = True
+        if "main" in ticker: isFuture = True
         print (isFuture, isHK, isUS)
 
         coef = 1 if tradeSide == TrdSide.BUY else -1
@@ -58,14 +61,18 @@ class TGController(object):
         for record in df:
             if ticker == "HK.MHImain":
                 ticker = record["code"]
-                print (ticker)
-                print (record["code"])
+                logging.warning (f'record is {record}')
+                logging.warning (f'ticker is {ticker}')
+                logging.warning (f'code is {record["code"]}')
+                logging.warning (f'quantity is {record["qty"]}')
             if record["code"] == ticker:
-                quantity = abs(record["quantity"])
+                quantity = record["qty"]
                 if record["position_side"] == "LONG":
-                    result = self.trade(price, ticker, quantity, TrdSide.BUY, orderType)
-                elif record["position_side"] == "SHORT":
                     result = self.trade(price, ticker, quantity, TrdSide.SELL, orderType)
+                    logging.warning("selling")
+                elif record["position_side"] == "SHORT":
+                    result = self.trade(price, ticker, quantity, TrdSide.BUY, orderType)
+                    logging.warning("buying")
                 else:
                     result = f"Having position, but cannot close."
             else:
@@ -136,18 +143,21 @@ class TGController(object):
             logging.warning(tradeResult)
         return tradeResult
 
+
     def getRecentTelegramMessages(self, id, limit):
         with client:
             getmessage = client.get_messages(id, limit=limit)
             for message in getmessage:
                 text = message.message
-                print(text)
-                try:
-                    key, price = self.parseMessageAndTrade(text)
-                    tradeResult = self.tradeByActionkey(key, price)
-                    print (tradeResult)
-                except:
-                    pass
+                if text is not None and " P4*" in text:
+                    utc_now = self.utc_to_local(message.date)
+                    print(utc_now, text)
+                # try:
+                #     key, price = self.parseMessageAndTrade(text)
+                #     tradeResult = self.tradeByActionkey(key, price)
+                #     print (tradeResult)
+                # except:
+                #     pass
 
     def getInfoAboutMyself(self):
         async def main():
@@ -167,10 +177,14 @@ class TGController(object):
         with client:
             client.loop.run_until_complete(main())
 
+    def utc_to_local(self, utc_dt):
+        return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=pytz.timezone("Asia/Hong_Kong"))
+
 
 if __name__ == "__main__":
     defaultLogging()
-    tg = TGController()
+    tg = TGController(tradingEnvironment=TrdEnv.REAL)
+    # tg.getRecentTelegramMessages(Keys.Telegram_TinTinTrader, limit=1000)
     while True:
         def realtimeGetNewMessagesFrom(id):
             @client.on(events.NewMessage(chats=id))

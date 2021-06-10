@@ -35,7 +35,7 @@ class FutuAPI():
         sleep(5)
         return query
     def queryCurrentPositions(self, tradingEnvironment= TrdEnv.SIMULATE):
-        trd_ctx = OpenHKTradeContext(host='127.0.0.1', port=11111)
+        trd_ctx = OpenFutureTradeContext(host='127.0.0.1', port=11111)
         trd_ctx.unlock_trade(self.password)
         _, df = trd_ctx.position_list_query(trd_env=tradingEnvironment)
         trd_ctx.close()
