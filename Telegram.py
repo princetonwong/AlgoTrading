@@ -104,7 +104,7 @@ class TGController(object):
                 action = "Short"
             elif action == "COVER" or action == "SELL":
                 action = "Close Position"
-            ticker = "HK.MHImain" if "HSI" in tickerString else tickerString
+            ticker = "HK.MHImain" if "MHI" in tickerString else tickerString
             logging.info(f"message parsed as:{action, price, ticker}")
             return action, price, ticker
         except:
